@@ -16,8 +16,16 @@ export class Player {
   private readonly body: Phaser.GameObjects.Image;
   private walkTime = 0;
   facing: 'up' | 'down' | 'left' | 'right' = 'down';
+  /** 숨는 중: 'seat' = 내 자리에서 일하는 척, 'spot' = 물건 뒤에 쪼그려 숨기 */
+  hiding: 'seat' | 'spot' | null = null;
+  /** 숨는 자리로 미끄러져 들어가는 중 */
+  private snapping = false;
 
-  constructor(scene: Phaser.Scene, x: number, y: number) {
+  constructor(
+    private readonly scene: Phaser.Scene,
+    x: number,
+    y: number,
+  ) {
     this.feet = scene.physics.add.image(x, y, '__WHITE').setVisible(false);
     this.feet.setBodySize(PLAYER.feetW, PLAYER.feetH).setCollideWorldBounds(true);
 
@@ -45,7 +53,38 @@ export class Player {
     return this.feet.body.velocity.length();
   }
 
+  /** 숨는 자리로 쏙 들어가며 숨기 시작 */
+  hide(mode: 'seat' | 'spot', x: number, y: number, seconds: number): void {
+    this.hiding = mode;
+    this.feet.setVelocity(0, 0);
+    this.snapping = true;
+    const from = { x: this.feet.x, y: this.feet.y };
+    this.scene.tweens.addCounter({
+      from: 0,
+      to: 1,
+      duration: seconds * 1000,
+      ease: 'Quad.Out',
+      onUpdate: (tw) => {
+        const t = tw.getValue() ?? 1;
+        this.feet.body.reset(Phaser.Math.Linear(from.x, x, t), Phaser.Math.Linear(from.y, y, t));
+      },
+      onComplete: () => (this.snapping = false),
+    });
+    this.facing = 'down';
+    this.parts.scaleX = 1;
+  }
+
+  unhide(): void {
+    this.hiding = null;
+    this.view.setAlpha(1);
+    this.parts.setScale(1, 1).setPosition(0, 0);
+  }
+
   update(move: Phaser.Math.Vector2, dt: number): void {
+    if (this.hiding) {
+      this.updateHiding(dt);
+      return;
+    }
     this.feet.setVelocity(move.x * PLAYER.walkSpeed, move.y * PLAYER.walkSpeed);
 
     if (move.y < 0) this.facing = 'up';
@@ -61,6 +100,26 @@ export class Player {
     this.head.y = -26 - bob;
     this.body.scaleY = moving ? 1 - Math.abs(Math.cos(this.walkTime)) * 0.06 : 1;
     this.parts.angle = moving ? Math.sin(this.walkTime) * 3 : 0;
+  }
+
+  private updateHiding(dt: number): void {
+    if (!this.snapping) this.feet.setVelocity(0, 0);
+    this.walkTime += dt;
+    this.head.setTexture(TEX.playerHeadFront);
+    this.parts.angle = 0;
+    if (this.hiding === 'spot') {
+      // 쪼그려 앉아 숨죽이기
+      this.view.setAlpha(0.7);
+      this.parts.setScale(1, 0.8).setPosition(0, 0);
+      this.head.y = -26 + Math.sin(this.walkTime * 2) * 0.6;
+      this.body.scaleY = 1;
+    } else {
+      // 내 자리: 앉아서 열심히 일하는 척 (고개가 살짝 까딱)
+      this.view.setAlpha(1);
+      this.parts.setScale(1, 1).setPosition(0, 6);
+      this.head.y = -26 + Math.abs(Math.sin(this.walkTime * 9)) * 1.5;
+      this.body.scaleY = 1;
+    }
   }
 
   /** 물리 갱신 뒤에 그림을 발 위치로 옮기고, 발 높이로 앞뒤 순서를 정한다 */

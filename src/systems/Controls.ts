@@ -74,6 +74,11 @@ export class Controls {
     return this.down.has('Space') || !!this.touch?.isDown('poke');
   }
 
+  /** 숨기·일하는 척(Shift / 터치 [숨기])을 누르고 있는가 */
+  get hideHeld(): boolean {
+    return this.down.has('ShiftLeft') || this.down.has('ShiftRight') || !!this.touch?.isDown('hide');
+  }
+
   /** 지금 터치 조작을 쓰는 중인가 (안내 문구를 바꿀 때) */
   get isTouch(): boolean {
     return !!this.touch?.enabled;

@@ -45,3 +45,10 @@ export const CAUGHT = {
   /** 들켰을 때 화면이 멈추는 시간(초). 정식 컷인은 다음 단계 */
   freezeSeconds: 1.6,
 };
+
+export const HIDE = {
+  /** 숨은 채로(일하는 척) 이 시간(초) 버티면 임시 점수가 확정된다 */
+  confirmSeconds: 0.5,
+  /** 숨는 자리로 미끄러져 들어가는 시간(초) */
+  snapSeconds: 0.15,
+};

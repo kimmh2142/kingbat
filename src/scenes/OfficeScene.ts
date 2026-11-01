@@ -8,6 +8,7 @@ import { TargetController } from '../npc/TargetController';
 import { Player } from '../player/Player';
 import { Controls } from '../systems/Controls';
 import { DebugOverlay } from '../systems/DebugOverlay';
+import { Hide } from '../systems/Hide';
 import { DEPTH, OfficeMap } from '../systems/OfficeMap';
 import { Poke } from '../systems/Poke';
 import { Score } from '../systems/Score';
@@ -29,6 +30,9 @@ export class OfficeScene extends Phaser.Scene {
   private prompt!: Prompt;
   private targetCone!: VisionCone;
   private keyHint!: Phaser.GameObjects.Text;
+  private touch!: TouchControls;
+  private hide!: Hide;
+  private goalAnnounced = false;
   /** 들킨 직후 화면이 멈춰 있는 남은 시간 */
   private frozen = 0;
   private caughtCount = 0;
@@ -39,9 +43,8 @@ export class OfficeScene extends Phaser.Scene {
 
   create(): void {
     this.map = new OfficeMap(this, 1);
-    const touch = new TouchControls(this);
-    touch.setDisabled('hide', true); // 숨기·확정은 다음 단계
-    this.controls = new Controls(this, touch);
+    this.touch = new TouchControls(this);
+    this.controls = new Controls(this, this.touch);
     this.player = new Player(this, PLAYER_START.x, PLAYER_START.y);
     this.physics.add.collider(this.player.feet, this.map.colliders);
 
@@ -55,6 +58,8 @@ export class OfficeScene extends Phaser.Scene {
 
     this.score = new Score();
     this.poke = new Poke(this, this.score);
+    this.hide = new Hide(this, this.score);
+    this.score.on('change', () => this.announceGoal());
     this.hud = new HUD(this, this.score, `STAGE 1 · ${DONGI.name}`);
     this.prompt = new Prompt(this);
     this.targetCone = new VisionCone(this);
@@ -75,7 +80,7 @@ export class OfficeScene extends Phaser.Scene {
       };
     }
     this.keyHint = this.add
-      .text(8, GAME_HEIGHT - 8, 'WASD·방향키 이동   Space 꾹: 콕 찌르기   ` 디버그', {
+      .text(8, GAME_HEIGHT - 8, 'WASD·방향키 이동   Space 꾹: 콕   Shift 꾹: 숨기·확정   ` 디버그', {
         fontFamily: FONT,
         fontSize: '15px',
         color: '#ffffff',
@@ -98,7 +103,9 @@ export class OfficeScene extends Phaser.Scene {
       const move = this.controls.getMove().clone();
       if (this.poke.active) move.scale(POKE.moveMultiplier);
       this.player.update(move, dt);
-      this.poke.update(dt, this.controls.actionHeld, this.player, this.target);
+      // 숨어 있는 동안은 찌를 수 없다
+      this.poke.update(dt, this.controls.actionHeld && !this.hide.hidden, this.player, this.target);
+      this.hide.update(dt, this.controls.hideHeld, this.player, this.map, this.poke.active);
       this.target.update(dt);
       this.checkCaught();
     }
@@ -112,7 +119,9 @@ export class OfficeScene extends Phaser.Scene {
     const near = Phaser.Math.Distance.Between(this.player.x, this.player.y, this.target.x, this.target.y) < 110;
     this.target.view.setLabelFaded(near && this.player.y < this.target.y);
     const canPoke = this.frozen <= 0 && !this.poke.active && this.target.pokeCheck(this.player.x, this.player.y, POKE.range) === 'ok';
-    this.prompt.show(this.player.x, this.player.y - 122, canPoke ? (this.controls.isTouch ? '콕 버튼 꾹!' : 'Space 꾹 → 콕!') : null);
+    this.prompt.show(this.player.x, this.player.y - 122, this.promptText(canPoke));
+    // [숨기] 버튼은 숨을 수 있는 곳 근처에서만 진하게
+    this.touch.setDisabled('hide', !this.hide.nearby);
     this.keyHint.setVisible(!this.controls.isTouch);
     this.hud.update(dt);
     this.debug.update();
@@ -123,13 +132,46 @@ export class OfficeScene extends Phaser.Scene {
       score: { confirmed: this.score.confirmed, temp: this.score.temp },
       poking: this.poke.active,
       caught: this.caughtCount,
+      hidden: this.hide.hidden,
     };
+  }
+
+  private promptText(canPoke: boolean): string | null {
+    if (this.frozen > 0 || this.hide.hidden) return null;
+    const touch = this.controls.isTouch;
+    if (canPoke) return touch ? '콕 버튼 꾹!' : 'Space 꾹 → 콕!';
+    if (this.hide.nearby) {
+      const what = this.hide.nearby.kind === 'seat' ? '일하는 척' : '숨기';
+      return touch ? `숨기 버튼 꾹: ${what}` : `Shift 꾹: ${what}`;
+    }
+    return null;
+  }
+
+  /** 확정 킹받음이 목표에 처음 닿았을 때 (특별 미션은 다음 단계에서 붙는다) */
+  private announceGoal(): void {
+    if (this.goalAnnounced || this.score.confirmed < this.score.goal) return;
+    this.goalAnnounced = true;
+    const t = this.add
+      .text(GAME_WIDTH / 2, 120, ['킹받음 100 달성!', '특별 미션은 아직 준비 중'], {
+        fontFamily: FONT,
+        fontSize: '30px',
+        color: '#ffffff',
+        align: 'center',
+        stroke: '#e0457b',
+        strokeThickness: 8,
+      })
+      .setOrigin(0.5)
+      .setScrollFactor(0)
+      .setDepth(DEPTH.label + 30)
+      .setScale(0.5);
+    this.tweens.add({ targets: t, scale: 1, duration: 250, ease: 'Back.Out' });
+    this.tweens.add({ targets: t, alpha: 0, delay: 2500, duration: 400, onComplete: () => t.destroy() });
   }
 
   /** 장난 중이거나 임시 점수를 들고 있을 때 돌아본 대상에게 보이면 들킨다 */
   private checkCaught(): void {
     const t = this.target;
-    if (!t.isLooking) return;
+    if (!t.isLooking || this.hide.hidden) return; // 숨어 있으면 안 보인다
     const guilty = this.poke.active || this.score.temp > 0;
     if (guilty && t.canSee(this.player.x, this.player.y)) this.onCaught('turned');
   }
@@ -186,7 +228,7 @@ export class OfficeScene extends Phaser.Scene {
         `FPS ${Math.round(this.game.loop.actualFps)}`,
         `위치 (${Math.round(p.x)}, ${Math.round(p.y)})  속도 ${Math.round(p.speed)}  방향 ${p.facing}`,
         `구역 ${room ? room.name : '-'}`,
-        `숨기 가능 ${hide ? hide.id : '-'}   내 자리 ${this.map.isInMySeat(p.x, p.y) ? 'O' : '-'}`,
+        `숨기 가능 ${hide ? hide.id : '-'}   숨는 중 ${this.hide.hidden ? `O ${this.hide.holdTime.toFixed(1)}초` : '-'}`,
       ];
     });
     this.debug.addInfo(() => {

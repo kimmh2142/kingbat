@@ -9,7 +9,8 @@
     "preview": "vite preview",
     "check": "node scripts/check.mjs",
     "check:dongi": "node scripts/check-dongi.mjs",
-    "check:mobile": "node scripts/check-mobile.mjs"
+    "check:mobile": "node scripts/check-mobile.mjs",
+    "check:hide": "node scripts/check-hide.mjs"
   },
   "dependencies": {
     "@fontsource/jua": "^5.3.0",

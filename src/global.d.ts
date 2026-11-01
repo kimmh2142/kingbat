@@ -7,6 +7,7 @@ interface Window {
     score?: { confirmed: number; temp: number };
     poking?: boolean;
     caught?: number;
+    hidden?: boolean;
   };
   __kingbatTest?: { teleport(x: number, y: number): void };
 }

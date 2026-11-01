@@ -18,18 +18,20 @@ import {
 } from '../data/office7f';
 import { HIDE_RADIUS, PROP_DEFS, type PropType } from '../data/props';
 
+/** 숨기 장소 (내 자리 포함). Shift로 숨고, 숨어 있으면 점수가 확정된다. */
 export interface HideSpot {
   id: string;
-  kind: PropType;
+  /** 'seat' = 내 자리 (앉아서 일하는 척) */
+  kind: PropType | 'seat';
+  /** 판정 원 중심과 반경 */
   x: number;
   y: number;
   r: number;
-}
-
-export interface SafeSpot {
-  x: number;
-  y: number;
-  r: number;
+  /** 숨을 때 발이 붙는 자리 (물건 뒤쪽, 물건이 몸을 가리게) */
+  hx: number;
+  hy: number;
+  /** 가까이 가면 반짝일 그림 */
+  image: Phaser.GameObjects.Image;
 }
 
 /** 그리기 순서. 바닥에 닿는 y가 클수록 앞에 그린다. 이 값보다 큰 depth는 맵 위에 겹치는 표시용. */
@@ -46,7 +48,8 @@ export const DEPTH = {
 export class OfficeMap {
   readonly colliders: Phaser.Physics.Arcade.StaticGroup;
   readonly hideSpots: HideSpot[] = [];
-  readonly mySeat: SafeSpot;
+  /** 내 자리 (가장 확실한 안전 지점) */
+  mySeat!: HideSpot;
   readonly desks = DESKS;
   private readonly barrierZones = new Map<Barrier, Phaser.GameObjects.Zone>();
   private readonly lockedViews: Phaser.GameObjects.GameObject[] = [];
@@ -66,9 +69,6 @@ export class OfficeMap {
     PROPS.forEach((p, i) => this.addProp(p.type, p.x, p.y, `${p.type}-${i}`));
     this.drawRoomSigns();
     this.drawLockedAreas();
-
-    const me = DESKS.find((d) => d.owner === 'me')!;
-    this.mySeat = { x: me.x, y: me.y - 88, r: 56 };
   }
 
   get width(): number {
@@ -87,8 +87,18 @@ export class OfficeMap {
     return (room.unlockStage ?? 0) > this.stage;
   }
 
+  /** 이 위치에서 숨을 수 있는 가장 가까운 곳 (내 자리 포함) */
   hideSpotAt(x: number, y: number): HideSpot | undefined {
-    return this.hideSpots.find((h) => Phaser.Math.Distance.Between(x, y, h.x, h.y) <= h.r);
+    let best: HideSpot | undefined;
+    let bestD = Infinity;
+    for (const h of [this.mySeat, ...this.hideSpots]) {
+      const d = Phaser.Math.Distance.Between(x, y, h.x, h.y);
+      if (d <= h.r && d < bestD) {
+        best = h;
+        bestD = d;
+      }
+    }
+    return best;
   }
 
   isInMySeat(x: number, y: number): boolean {
@@ -154,18 +164,35 @@ export class OfficeMap {
   private addDesk(d: Desk): void {
     const def = PROP_DEFS.desk;
     // 의자 → 책상 → 모니터 순으로 겹친다. 앉는 사람은 의자(북쪽)에서 아래를 본다.
-    this.scene.add.image(d.x, d.y - 62, TEX.chair).setOrigin(0.5, 1).setDepth(d.y - 62);
+    const chair = this.scene.add.image(d.x, d.y - 62, TEX.chair).setOrigin(0.5, 1).setDepth(d.y - 62);
     this.scene.add.image(d.x, d.y, def.texture).setOrigin(0.5, 1).setDepth(d.y);
     this.scene.add.image(d.x - 18, d.y - 30, TEX.monitor).setOrigin(0.5, 1).setDepth(d.y + 0.1);
     this.addCollider({ x: d.x - def.collider!.w / 2, y: d.y - def.collider!.h, ...def.collider! });
-    if (d.owner === 'me') this.addSign(d.x, d.y - 12, '내 자리', COLORS.pink, d.y + 0.2);
+    if (d.owner === 'me') {
+      this.addSign(d.x, d.y - 12, '내 자리', COLORS.pink, d.y + 0.2);
+      // 의자에 앉아 일하는 척 (발은 책상 충돌 상자 바로 위)
+      this.mySeat = {
+        id: 'my-seat',
+        kind: 'seat',
+        x: d.x,
+        y: d.y - 88,
+        r: 56,
+        hx: d.x,
+        hy: d.y - def.collider!.h - 8,
+        image: chair,
+      };
+    }
   }
 
   private addProp(type: PropType, x: number, y: number, id: string): void {
     const def = PROP_DEFS[type];
-    this.scene.add.image(x, y, def.texture).setOrigin(0.5, 1).setDepth(y);
+    const image = this.scene.add.image(x, y, def.texture).setOrigin(0.5, 1).setDepth(y);
     if (def.collider) this.addCollider({ x: x - def.collider.w / 2, y: y - def.collider.h, ...def.collider });
-    if (def.hide) this.hideSpots.push({ id, kind: type, x, y: y - 10, r: HIDE_RADIUS });
+    if (def.hide) {
+      // 숨는 자리: 물건 바로 뒤(위쪽). 물건이 앞에 그려져 몸을 가린다
+      const back = (def.collider?.h ?? 0) + 8;
+      this.hideSpots.push({ id, kind: type, x, y: y - 10, r: HIDE_RADIUS, hx: x, hy: y - back, image });
+    }
   }
 
   private drawRoomSigns(): void {
