@@ -1,0 +1,203 @@
+import Phaser from 'phaser';
+import type { Desk } from '../data/office7f';
+import type { ConeShape } from '../ui/VisionCone';
+import { NpcView } from './NpcView';
+import type { Facing, PatrolPattern, Point, Range } from './types';
+
+export type PatrolState =
+  | 'work' // 자리에서 일하는 중 (시야 없음)
+  | 'go' // 목적지로 가는 중
+  | 'stay' // 목적지에서 머무는 중
+  | 'return' // 자리로 돌아오는 중
+  | 'react' // 플레이어를 발견
+  | 'grab'; // 플레이어를 붙잡는 중
+
+const STATE_NAMES: Record<PatrolState, string> = {
+  work: '자리에서 업무',
+  go: '탕비실로 가는 중',
+  stay: '커피 타는 중',
+  return: '자리로 돌아가는 중',
+  react: '발견!',
+  grab: '붙잡는 중',
+};
+
+const FACING_VEC: Record<Facing, Point> = {
+  down: { x: 0, y: 1 },
+  up: { x: 0, y: -1 },
+  left: { x: -1, y: 0 },
+  right: { x: 1, y: 0 },
+};
+
+const rand = (r: Range) => Phaser.Math.FloatBetween(r[0], r[1]);
+
+/**
+ * 방해 NPC 순찰: 자리에서 일하다가 경로를 따라 목적지에 다녀온다.
+ * 걷거나 서 있는 동안은 바라보는 방향으로 시야가 있고, 바닥에 부채꼴로 보인다 (순찰 NPC 예외 규칙).
+ */
+export class PatrolController {
+  readonly view: NpcView;
+  state: PatrolState = 'work';
+  private timer = 0;
+  private pos: Point;
+  private dir: Point = { x: 0, y: 1 };
+  private path: Point[] = [];
+  private pathIndex = 0;
+  private readonly seat: Point;
+  /** 발견·붙잡기가 끝나면 돌아갈 상태 */
+  private resume: PatrolState = 'work';
+
+  constructor(
+    scene: Phaser.Scene,
+    readonly pattern: PatrolPattern,
+    private readonly desk: Desk,
+  ) {
+    this.view = new NpcView(scene, pattern.appearance, false);
+    this.seat = { x: desk.x, y: desk.y - 62 };
+    this.pos = { ...this.seat };
+    this.enter('work');
+    // 시작하자마자 모두 같은 타이밍에 움직이지 않게 첫 업무 시간을 흩뜨린다
+    this.timer = rand([2, this.pattern.work.duration[1]]);
+  }
+
+  get x(): number {
+    return this.pos.x;
+  }
+
+  get y(): number {
+    return this.pos.y;
+  }
+
+  get stateName(): string {
+    return STATE_NAMES[this.state];
+  }
+
+  get remaining(): number {
+    return Math.max(0, this.timer);
+  }
+
+  /** 지금 시야가 있는가 (자리에서 일할 땐 없음) */
+  get watching(): boolean {
+    return this.state === 'go' || this.state === 'stay' || this.state === 'return';
+  }
+
+  /** 바닥에 그릴 시야. 시야가 없으면 null */
+  get cone(): ConeShape | null {
+    if (!this.watching && this.state !== 'react') return null;
+    return { x: this.pos.x, y: this.pos.y, dir: this.dir, ...this.pattern.vision };
+  }
+
+  canSee(x: number, y: number): boolean {
+    if (!this.watching) return false;
+    const V = this.pattern.vision;
+    const dx = x - this.pos.x;
+    const dy = y - this.pos.y;
+    const dist = Math.hypot(dx, dy);
+    if (dist <= V.nearRadius) return true;
+    if (dist > V.range) return false;
+    const cos = (dx * this.dir.x + dy * this.dir.y) / dist;
+    return cos >= Math.cos(Phaser.Math.DegToRad(V.halfAngleDeg));
+  }
+
+  /** 플레이어를 발견해 들켰을 때: 그쪽을 보고 잠깐 멈춘다 */
+  onCaught(px: number, py: number): void {
+    this.lookAt(px, py);
+    this.resume = this.state === 'react' || this.state === 'grab' ? this.resume : this.state;
+    this.state = 'react';
+    this.timer = rand(this.pattern.react.duration);
+    this.view.setPose(this.pattern.react.pose);
+  }
+
+  update(dt: number): void {
+    if (this.state === 'go' || this.state === 'return') {
+      this.walk(dt);
+    } else {
+      this.timer -= dt;
+      if (this.timer <= 0) this.next();
+    }
+    this.view.update(dt);
+  }
+
+  private next(): void {
+    switch (this.state) {
+      case 'work':
+        return this.enter('go');
+      case 'stay':
+        return this.enter('return');
+      case 'react':
+      case 'grab':
+        return this.enter(this.resume, true);
+      default:
+        return;
+    }
+  }
+
+  /** @param resuming 발견·붙잡기 뒤 하던 일로 돌아가는 중 (걷던 경로를 이어서) */
+  protected enter(state: PatrolState, resuming = false): void {
+    const P = this.pattern;
+    this.state = state;
+    const v = this.view;
+    switch (state) {
+      case 'work':
+        this.timer = rand(P.work.duration);
+        this.pos = { ...this.seat };
+        this.dir = { x: 0, y: 1 };
+        v.sitAt(this.seat.x, this.seat.y, this.desk.y);
+        v.setPose(P.work.pose);
+        break;
+      case 'go':
+        if (!resuming) {
+          this.path = [this.seat, ...P.route];
+          this.pathIndex = 1;
+        }
+        v.setPose(P.walkPose);
+        break;
+      case 'return':
+        if (!resuming) {
+          this.path = [...P.route].reverse().concat([this.seat]);
+          this.pathIndex = 1;
+        }
+        v.setPose(P.walkPose);
+        break;
+      case 'stay':
+        if (!resuming) this.timer = rand(P.stay.duration);
+        this.dir = FACING_VEC[P.stay.facing];
+        v.standAt(this.pos.x, this.pos.y, P.stay.facing);
+        v.setPose(P.stay.pose);
+        break;
+      default:
+        break;
+    }
+  }
+
+  private walk(dt: number): void {
+    const target = this.path[this.pathIndex];
+    if (!target) {
+      this.enter(this.state === 'go' ? 'stay' : 'work');
+      return;
+    }
+    const dx = target.x - this.pos.x;
+    const dy = target.y - this.pos.y;
+    const dist = Math.hypot(dx, dy);
+    const step = this.pattern.speed * dt;
+    if (dist <= step) {
+      this.pos = { ...target };
+      this.pathIndex += 1;
+    } else {
+      this.dir = { x: dx / dist, y: dy / dist };
+      this.pos = { x: this.pos.x + this.dir.x * step, y: this.pos.y + this.dir.y * step };
+    }
+    this.view.standAt(this.pos.x, this.pos.y, this.facingOf(this.dir));
+  }
+
+  protected lookAt(px: number, py: number): void {
+    const dx = px - this.pos.x;
+    const dy = py - this.pos.y;
+    const d = Math.hypot(dx, dy) || 1;
+    this.dir = { x: dx / d, y: dy / d };
+    this.view.standAt(this.pos.x, this.pos.y, this.facingOf(this.dir));
+  }
+
+  private facingOf(d: Point): Facing {
+    return Math.abs(d.x) > Math.abs(d.y) ? (d.x < 0 ? 'left' : 'right') : d.y < 0 ? 'up' : 'down';
+  }
+}

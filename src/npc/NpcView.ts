@@ -200,7 +200,7 @@ export class NpcView {
   private updateHands(p: Pose, back: boolean): void {
     const hands = back ? 'hidden' : (p.hands ?? (this.seated ? 'keyboard' : 'side'));
     this.hands.setVisible(hands !== 'hidden' && hands !== 'knees');
-    this.prop.setVisible(hands === 'phone' || hands === 'snack');
+    this.prop.setVisible(hands === 'phone' || hands === 'snack' || hands === 'cup');
     const type = p.typing ?? 0;
     switch (hands) {
       case 'keyboard': {
@@ -214,6 +214,14 @@ export class NpcView {
         this.handL.setPosition(-8, -18);
         this.handR.setPosition(8, -18);
         break;
+      case 'cup': {
+        // 커피컵을 한 손에 들고 걷기
+        const swing = Math.sin(this.t * 10) * 2;
+        this.prop.setTexture(TEX.coffeeCup).setPosition(19, -22 + swing);
+        this.handL.setPosition(-20, -14 - swing);
+        this.handR.setPosition(19, -16 + swing);
+        break;
+      }
       case 'snack':
         this.prop.setTexture(TEX.snack).setPosition(4, -40 + Math.abs(Math.sin(this.t * 5)) * 8);
         this.handL.setPosition(-16, -20);

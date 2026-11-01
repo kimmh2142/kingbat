@@ -10,7 +10,7 @@ export interface Point {
 
 export type Facing = 'down' | 'up' | 'left' | 'right';
 
-export type HandsPose = 'keyboard' | 'knees' | 'phone' | 'snack' | 'side' | 'hidden';
+export type HandsPose = 'keyboard' | 'knees' | 'phone' | 'snack' | 'cup' | 'side' | 'hidden';
 
 /** 캐릭터 한 순간의 모습. 전조는 전부 이 값의 변화로만 보여준다. */
 export interface Pose {
@@ -99,4 +99,25 @@ export interface TargetPattern {
   pokeSpeedup: number;
   /** 자리 밖에서 이만큼(초) 찔리면 바로 의심을 시작한다 */
   alertToSuspect: number;
+}
+
+/** 방해 NPC 순찰 패턴. 자리 ↔ 목적지 왕복. 걸어 다니는 동안 바닥에 시야 부채꼴을 보여준다. */
+export interface PatrolPattern {
+  id: string;
+  name: string;
+  appearance: NpcLook;
+  /** 자리에서 일하는 시간 (이 동안은 시야 없음) */
+  work: { duration: Range; pose: Pose };
+  /** 자리에서 목적지까지 경로. 돌아올 땐 거꾸로 */
+  route: Point[];
+  speed: number;
+  walkPose: Pose;
+  /** 목적지에서 머무는 시간·방향·자세 */
+  stay: { duration: Range; facing: Facing; pose: Pose };
+  /** 시야 (걷거나 서 있을 때만) */
+  vision: { range: number; halfAngleDeg: number; nearRadius: number };
+  /** 플레이어를 발견했을 때 */
+  react: { duration: Range; pose: Pose };
+  /** 지나가다 플레이어를 붙잡기 ("커피 좀 사 올래?") */
+  grab?: { chance: number; radius: number; seconds: number; cooldown: number; line: string; thanks: string };
 }

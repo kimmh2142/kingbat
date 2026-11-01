@@ -362,6 +362,71 @@ const DEFS: Record<TextureKey, { w: number; h: number; draw: Draw }> = {
       g.fillStyle(0x86604c).fillEllipse(22, 28, 9, 13);
     },
   },
+  // ------------------------------------------------------------ 대리 김카페
+  [TEX.daeriBody]: {
+    // 베이지 카디건 + 남색 치마
+    w: 44,
+    h: 40,
+    draw: (g, w) => {
+      g.fillStyle(0x3f4a7a).fillRoundedRect(11, 24, w - 22, 10, 3);
+      g.fillStyle(0xfbe0cb).fillRect(13, 33, 6, 5).fillRect(w - 19, 33, 6, 5);
+      g.fillStyle(0x4a4458).fillRect(12, 37, 8, 3).fillRect(w - 20, 37, 8, 3);
+      g.fillStyle(0xe8d5b7).fillRoundedRect(7, 1, w - 14, 26, 8);
+      g.lineStyle(LINE, O).strokeRoundedRect(7, 1, w - 14, 26, 8);
+      g.fillStyle(0xffffff).fillRect(w / 2 - 4, 2, 8, 22);
+      g.fillStyle(0x90caf9).fillRect(w / 2 + 6, 10, 6, 8); // 사원증
+      g.lineStyle(1, O).strokeRect(w / 2 + 6, 10, 6, 8);
+    },
+  },
+  [TEX.daeriBodyBack]: {
+    w: 44,
+    h: 40,
+    draw: (g, w) => {
+      g.fillStyle(0x3f4a7a).fillRoundedRect(11, 24, w - 22, 10, 3);
+      g.fillStyle(0xfbe0cb).fillRect(13, 33, 6, 5).fillRect(w - 19, 33, 6, 5);
+      g.fillStyle(0x4a4458).fillRect(12, 37, 8, 3).fillRect(w - 20, 37, 8, 3);
+      g.fillStyle(0xdcc6a4).fillRoundedRect(7, 1, w - 14, 26, 8);
+      g.lineStyle(LINE, O).strokeRoundedRect(7, 1, w - 14, 26, 8);
+      // 등까지 내려온 머리
+      g.fillStyle(0x4e342e).fillRoundedRect(w / 2 - 9, 0, 18, 16, 6);
+    },
+  },
+  [TEX.daeriHeadFront]: {
+    // 단발 + 앞머리, 얼굴 표정은 face_* 를 겹친다
+    w: 58,
+    h: 56,
+    draw: (g) => {
+      g.fillStyle(0x4e342e).fillRoundedRect(6, 12, 46, 40, 14);
+      g.lineStyle(LINE, O).strokeRoundedRect(6, 12, 46, 40, 14);
+      g.fillStyle(0xfbe0cb).fillCircle(29, 33, 19);
+      g.lineStyle(LINE, O).strokeCircle(29, 33, 19);
+      g.fillStyle(0x4e342e).slice(29, 31, 21, Math.PI * 1.05, Math.PI * 1.95, false).fillPath();
+      g.fillStyle(0xf48fb1, 0.5).fillEllipse(16, 40, 6, 3).fillEllipse(42, 40, 6, 3);
+    },
+  },
+  [TEX.daeriHeadBack]: {
+    w: 58,
+    h: 56,
+    draw: (g) => {
+      g.fillStyle(0x4e342e).fillRoundedRect(6, 12, 46, 40, 14);
+      g.lineStyle(LINE, O).strokeRoundedRect(6, 12, 46, 40, 14);
+      g.fillStyle(0x4e342e).fillCircle(29, 31, 21);
+      g.lineStyle(LINE, O).strokeCircle(29, 31, 21);
+      g.fillStyle(0x6d4c41).fillEllipse(22, 24, 9, 12);
+    },
+  },
+  [TEX.coffeeCup]: {
+    w: 16,
+    h: 20,
+    draw: (g) => {
+      g.fillStyle(0xffffff).fillRoundedRect(2, 4, 12, 15, 3);
+      g.lineStyle(2, O).strokeRoundedRect(2, 4, 12, 15, 3);
+      g.fillStyle(0x8d6e63).fillRect(2, 2, 12, 4);
+      g.lineStyle(2, O).strokeRect(2, 2, 12, 4);
+      g.fillStyle(0xa1887f).fillRect(3, 10, 10, 4);
+    },
+  },
+
   [TEX.dongiHairSpike]: {
     // 진짜 돌아보기 직전: 머리카락이 쭈뼛
     w: 64,

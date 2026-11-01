@@ -35,6 +35,13 @@ export const TEX = {
   dongiHeadBack: 'dongi_head_back',
   dongiHairSpike: 'dongi_hair_spike',
 
+  // 대리 김카페 (방해 NPC)
+  daeriBody: 'daeri_body',
+  daeriBodyBack: 'daeri_body_back',
+  daeriHeadFront: 'daeri_head_front',
+  daeriHeadBack: 'daeri_head_back',
+  coffeeCup: 'coffee_cup',
+
   // NPC 공용 표정·소품 (얼굴 위에 겹친다)
   faceNormal: 'face_normal',
   faceSleepy: 'face_sleepy',

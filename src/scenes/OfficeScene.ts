@@ -4,7 +4,9 @@ import type { CaughtReasonId } from '../data/caughtReasons';
 import { PLAYER_START } from '../data/office7f';
 import { STAGES } from '../data/stages';
 import { CAMERA, POKE } from '../data/tuning';
+import { DAERI } from '../npc/patterns/daeri';
 import { DONGI } from '../npc/patterns/dongi';
+import { PatrolController } from '../npc/PatrolController';
 import { TargetController } from '../npc/TargetController';
 import { Player } from '../player/Player';
 import { Controls } from '../systems/Controls';
@@ -33,6 +35,8 @@ export class OfficeScene extends Phaser.Scene {
   private hud!: HUD;
   private prompt!: Prompt;
   private targetCone!: VisionCone;
+  private daeri!: PatrolController;
+  private daeriCone!: VisionCone;
   private keyHint!: Phaser.GameObjects.Text;
   private touch!: TouchControls;
   private hide!: Hide;
@@ -71,6 +75,9 @@ export class OfficeScene extends Phaser.Scene {
     this.targetBlocker.setBodySize(34, 60);
     this.physics.add.collider(this.player.feet, this.targetBlocker);
 
+    // 방해 NPC: 대리 김카페 (탕비실 ↔ 자리 왕복, 걸을 때 바닥에 시야 부채꼴)
+    this.daeri = new PatrolController(this, DAERI, this.map.desks.find((d) => d.owner === 'daeri')!);
+
     this.score = new Score();
     this.poke = new Poke(this, this.score);
     this.hide = new Hide(this, this.score);
@@ -83,6 +90,7 @@ export class OfficeScene extends Phaser.Scene {
     this.input.on(Phaser.Input.Events.POINTER_DOWN, () => (this.tapped = true));
     this.prompt = new Prompt(this);
     this.targetCone = new VisionCone(this);
+    this.daeriCone = new VisionCone(this, 0xffa000);
 
     // 물리 계산이 끝난 뒤 그림 위치를 맞춘다
     const sync = () => this.player.syncView();
@@ -122,6 +130,7 @@ export class OfficeScene extends Phaser.Scene {
       // 컷인·실패 화면: 게임은 멈추고 캐릭터 연출만 움직인다
       this.player.update(new Phaser.Math.Vector2(), dt);
       this.target.view.update(dt);
+      this.daeri.view.update(dt);
       this.cutin.update(dt, this.controls.justPressed('Space') || this.tapped);
       if (this.failed && (this.controls.justPressed('Space') || this.controls.justPressed('Enter'))) this.retry();
     } else {
@@ -132,6 +141,7 @@ export class OfficeScene extends Phaser.Scene {
       this.poke.update(dt, this.controls.actionHeld && !this.hide.hidden, this.player, this.target);
       this.hide.update(dt, this.controls.hideHeld, this.player, this.map, this.poke.active);
       this.target.update(dt);
+      this.daeri.update(dt);
       this.checkCaught();
       // 컷인·실패 화면 동안은 퇴근 시계도 멈춘다
       if (!this.paused) this.clock.update(dt);
@@ -142,6 +152,7 @@ export class OfficeScene extends Phaser.Scene {
     const t = this.target;
     const looking = t.state === 'look' || t.state === 'react';
     this.targetCone.update(dt, looking ? { x: t.x, y: t.y, dir: t.lookDir, ...t.pattern.look } : null);
+    this.daeriCone.update(dt, this.daeri.cone);
     this.target.view.setAnger(this.score.total / this.score.goal);
     const near = Phaser.Math.Distance.Between(this.player.x, this.player.y, this.target.x, this.target.y) < 110;
     this.target.view.setLabelFaded(near && this.player.y < this.target.y);
@@ -164,6 +175,7 @@ export class OfficeScene extends Phaser.Scene {
       cutin: this.cutin.active,
       failed: this.failed,
       remaining: Math.round(this.clock.remaining * 10) / 10,
+      daeri: { state: this.daeri.state, x: Math.round(this.daeri.x), y: Math.round(this.daeri.y) },
     };
     this.tapped = false;
   }
@@ -286,6 +298,10 @@ export class OfficeScene extends Phaser.Scene {
         `탕비실까지 ${t.tripIn.toFixed(0)}초   짜증 ${t.irritated ? 'O' : '-'}   연타 잠금 ${t.pokeLocked ? 'O' : '-'}`,
         `콕 ${this.poke.active ? `중 ${this.poke.rate.toFixed(1)}회/초` : '-'}   배율 x${t.scoreMultiplier}   들킴 ${this.caughtCount}`,
       ];
+    });
+    this.debug.addInfo(() => {
+      const d = this.daeri;
+      return [`── ${d.pattern.name}`, `상태 ${d.stateName}  남은 ${d.remaining.toFixed(1)}초  시야 ${d.watching ? 'O' : '-'}`];
     });
     this.debug.addWorldDrawer((g) => {
       this.map.drawDebug(g);

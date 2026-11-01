@@ -12,6 +12,7 @@ interface Window {
     cutin?: boolean;
     failed?: boolean;
     remaining?: number;
+    daeri?: { state: string; x: number; y: number };
   };
   __kingbatTest?: { teleport(x: number, y: number): void; setRemaining(seconds: number): void };
 }
