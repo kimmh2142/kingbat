@@ -11,7 +11,8 @@
     "check:dongi": "node scripts/check-dongi.mjs",
     "check:mobile": "node scripts/check-mobile.mjs",
     "check:hide": "node scripts/check-hide.mjs",
-    "check:caught": "node scripts/check-caught.mjs"
+    "check:caught": "node scripts/check-caught.mjs",
+    "check:clock": "node scripts/check-clock.mjs"
   },
   "dependencies": {
     "@fontsource/jua": "^5.3.0",

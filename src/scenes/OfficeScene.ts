@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import { FONT, GAME_HEIGHT, GAME_WIDTH } from '../config';
 import type { CaughtReasonId } from '../data/caughtReasons';
 import { PLAYER_START } from '../data/office7f';
+import { STAGES } from '../data/stages';
 import { CAMERA, POKE } from '../data/tuning';
 import { DONGI } from '../npc/patterns/dongi';
 import { TargetController } from '../npc/TargetController';
@@ -13,6 +14,7 @@ import { Life } from '../systems/Life';
 import { DEPTH, OfficeMap } from '../systems/OfficeMap';
 import { Poke } from '../systems/Poke';
 import { Score } from '../systems/Score';
+import { WorkClock } from '../systems/WorkClock';
 import { CaughtCutin } from '../ui/CaughtCutin';
 import { HUD } from '../ui/HUD';
 import { Prompt } from '../ui/Prompt';
@@ -36,6 +38,7 @@ export class OfficeScene extends Phaser.Scene {
   private hide!: Hide;
   private goalAnnounced = false;
   private life!: Life;
+  private clock!: WorkClock;
   private cutin!: CaughtCutin;
   /** 하트를 다 잃어서 실패 화면이 떠 있음 */
   private failed = false;
@@ -73,7 +76,9 @@ export class OfficeScene extends Phaser.Scene {
     this.hide = new Hide(this, this.score);
     this.score.on('change', () => this.announceGoal());
     this.life = new Life();
-    this.hud = new HUD(this, this.score, this.life, `STAGE 1 · ${DONGI.name}`);
+    this.clock = new WorkClock(STAGES[1]);
+    this.clock.once('timeout', () => this.showFail('overtime'));
+    this.hud = new HUD(this, this.score, this.life, this.clock);
     this.cutin = new CaughtCutin(this);
     this.input.on(Phaser.Input.Events.POINTER_DOWN, () => (this.tapped = true));
     this.prompt = new Prompt(this);
@@ -94,6 +99,7 @@ export class OfficeScene extends Phaser.Scene {
           this.player.feet.body.reset(x, y);
           this.cameras.main.centerOn(x, y);
         },
+        setRemaining: (seconds: number) => this.clock.setRemaining(seconds),
       };
     }
     this.keyHint = this.add
@@ -127,6 +133,8 @@ export class OfficeScene extends Phaser.Scene {
       this.hide.update(dt, this.controls.hideHeld, this.player, this.map, this.poke.active);
       this.target.update(dt);
       this.checkCaught();
+      // 컷인·실패 화면 동안은 퇴근 시계도 멈춘다
+      if (!this.paused) this.clock.update(dt);
     }
 
     this.targetBlocker.body.reset(this.target.x, this.target.y - 26);
@@ -155,6 +163,7 @@ export class OfficeScene extends Phaser.Scene {
       hearts: this.life.hearts,
       cutin: this.cutin.active,
       failed: this.failed,
+      remaining: Math.round(this.clock.remaining * 10) / 10,
     };
     this.tapped = false;
   }
@@ -216,24 +225,28 @@ export class OfficeScene extends Phaser.Scene {
       follow: this.player.cameraTarget,
       onHit: () => this.life.lose(reason),
       onDone: () => {
-        if (!this.life.alive) this.showFail();
+        if (!this.life.alive) this.showFail('caught');
       },
     });
   }
 
-  /** 하트 0개: 간이 실패 화면 (정식 실패 화면은 이후 단계) */
-  private showFail(): void {
+  /** 간이 실패 화면 (정식 실패 화면은 이후 단계). caught = 하트 0개, overtime = 시간 초과 */
+  private showFail(kind: 'caught' | 'overtime'): void {
+    if (this.failed) return;
     this.failed = true;
+    this.poke.cancel(this.target);
+    const overtime = kind === 'overtime';
     const cx = GAME_WIDTH / 2;
     const cy = GAME_HEIGHT / 2;
-    const dim = this.add.rectangle(0, 0, GAME_WIDTH, GAME_HEIGHT, 0x2a1d24, 0.6).setOrigin(0);
+    // 야근: 불 꺼진 사무실처럼 더 어둡게
+    const dim = this.add.rectangle(0, 0, GAME_WIDTH, GAME_HEIGHT, overtime ? 0x0d0a14 : 0x2a1d24, overtime ? 0.8 : 0.6).setOrigin(0);
     const stamp = this.add
-      .text(cx, cy - 50, '딱 걸렸다!', { fontFamily: FONT, fontSize: '72px', color: '#ff3d6e', stroke: '#ffffff', strokeThickness: 10 })
+      .text(cx, cy - 50, overtime ? '야근 확정!' : '딱 걸렸다!', { fontFamily: FONT, fontSize: '72px', color: '#ff3d6e', stroke: '#ffffff', strokeThickness: 10 })
       .setOrigin(0.5)
       .setAngle(-8)
       .setScale(2.5);
     const sub = this.add
-      .text(cx, cy + 20, '동기: "야! 너였구나!"', { fontFamily: FONT, fontSize: '22px', color: '#ffffff' })
+      .text(cx, cy + 20, overtime ? '퇴근 시계가 6시를 넘겼다… 오늘도 야근이다' : '동기: "야! 너였구나!"', { fontFamily: FONT, fontSize: '22px', color: '#ffffff' })
       .setOrigin(0.5);
     const btnBg = this.add.rectangle(cx, cy + 90, 220, 56, 0xffd54f).setStrokeStyle(4, 0x5a3a4a);
     const btnText = this.add.text(cx, cy + 90, '다시 도전', { fontFamily: FONT, fontSize: '26px', color: '#5a3a4a' }).setOrigin(0.5);
@@ -257,7 +270,7 @@ export class OfficeScene extends Phaser.Scene {
       const room = this.map.roomAt(p.x, p.y);
       const hide = this.map.hideSpotAt(p.x, p.y);
       return [
-        `FPS ${Math.round(this.game.loop.actualFps)}`,
+        `FPS ${Math.round(this.game.loop.actualFps)}   퇴근까지 ${this.clock.remaining.toFixed(0)}초 (${this.clock.clockText})   하트 ${this.life.hearts}`,
         `위치 (${Math.round(p.x)}, ${Math.round(p.y)})  속도 ${Math.round(p.speed)}  방향 ${p.facing}`,
         `구역 ${room ? room.name : '-'}`,
         `숨기 가능 ${hide ? hide.id : '-'}   숨는 중 ${this.hide.hidden ? `O ${this.hide.holdTime.toFixed(1)}초` : '-'}`,

@@ -4,13 +4,17 @@ import { COLORS, FONT, GAME_WIDTH } from '../config';
 import { DEPTH } from '../systems/OfficeMap';
 import type { Life } from '../systems/Life';
 import type { Score } from '../systems/Score';
+import type { WorkClock } from '../systems/WorkClock';
 
-const BAR_W = 300;
+const BAR_W = 210;
 const BAR_H = 18;
+const CLOCK_X = 668;
+/** 시계 바가 끝나는 x (하트 왼쪽) */
+const CLOCK_BAR_END = 836;
 
 /**
- * 상단 HUD: 스테이지 · 킹받음 게이지(확정 + 임시 줄무늬) · 하트.
- * 퇴근 시계·일시정지는 다음 단계에서 같은 줄에 붙인다.
+ * 상단 HUD 한 줄: 스테이지 · 킹받음 게이지(확정 + 임시 줄무늬) · 퇴근 시계 · 하트.
+ * 일시정지 버튼은 이후 단계에서 붙인다.
  */
 export class HUD {
   private readonly fill: Phaser.GameObjects.Graphics;
@@ -19,12 +23,15 @@ export class HUD {
   private readonly barX: number;
   private readonly barY: number;
   private readonly hearts: Phaser.GameObjects.Image[] = [];
+  private readonly clockText: Phaser.GameObjects.Text;
+  private readonly clockBar: Phaser.GameObjects.Graphics;
+  private t = 0;
 
   constructor(
     private readonly scene: Phaser.Scene,
     private readonly score: Score,
     life: Life,
-    stageLabel: string,
+    private readonly clock: WorkClock,
   ) {
     const fixed = <T extends Phaser.GameObjects.Components.ScrollFactor & Phaser.GameObjects.Components.Depth>(o: T) =>
       o.setScrollFactor(0).setDepth(DEPTH.label + 20);
@@ -33,9 +40,9 @@ export class HUD {
     bg.fillStyle(0xffffff, 0.92).fillRoundedRect(8, 6, GAME_WIDTH - 16, 36, 18);
     bg.lineStyle(3, COLORS.outline).strokeRoundedRect(8, 6, GAME_WIDTH - 16, 36, 18);
 
-    fixed(scene.add.text(24, 24, stageLabel, { fontFamily: FONT, fontSize: '18px', color: COLORS.text }).setOrigin(0, 0.5));
+    fixed(scene.add.text(24, 24, clock.stage.label, { fontFamily: FONT, fontSize: '18px', color: COLORS.text }).setOrigin(0, 0.5));
 
-    const label = fixed(scene.add.text(300, 24, '킹받음', { fontFamily: FONT, fontSize: '18px', color: '#e0457b' }).setOrigin(0, 0.5));
+    const label = fixed(scene.add.text(222, 24, '킹받음', { fontFamily: FONT, fontSize: '18px', color: '#e0457b' }).setOrigin(0, 0.5));
     this.barX = label.x + label.width + 10;
     this.barY = 24 - BAR_H / 2;
 
@@ -47,8 +54,14 @@ export class HUD {
     frame.lineStyle(3, COLORS.outline).strokeRoundedRect(this.barX, this.barY, BAR_W, BAR_H, 9);
 
     this.value = fixed(
-      scene.add.text(this.barX + BAR_W + 10, 24, '', { fontFamily: FONT, fontSize: '16px', color: COLORS.text }).setOrigin(0, 0.5),
+      scene.add.text(this.barX + BAR_W + 8, 24, '', { fontFamily: FONT, fontSize: '15px', color: COLORS.text }).setOrigin(0, 0.5),
     );
+
+    // 퇴근 시계: 시각 + 줄어드는 바
+    this.clockText = fixed(
+      scene.add.text(CLOCK_X, 24, '', { fontFamily: FONT, fontSize: '15px', color: COLORS.text }).setOrigin(0, 0.5),
+    );
+    this.clockBar = fixed(scene.add.graphics());
 
     for (let i = 0; i < life.max; i++) {
       const x = GAME_WIDTH - 36 - (life.max - 1 - i) * 32;
@@ -61,7 +74,27 @@ export class HUD {
   }
 
   update(dt: number): void {
+    this.t += dt;
     this.temp.tilePositionX -= dt * 20;
+    this.updateClock();
+  }
+
+  private updateClock(): void {
+    const c = this.clock;
+    const urgent = c.urgent;
+    if (this.clockText.text !== '⏰ ' + c.clockText) this.clockText.setText('⏰ ' + c.clockText);
+    // 마지막 30초: 빨개지고 째깍째깍 흔들린다
+    this.clockText.setColor(urgent ? '#e53935' : COLORS.text);
+    this.clockText.setAngle(urgent ? Math.sin(this.t * 20) * 6 : 0);
+    // 바는 시각 글자 바로 뒤부터 하트 앞까지 (글자 폭이 바뀌어도 겹치지 않게)
+    const x = CLOCK_X + this.clockText.width + 6;
+    const barW = Math.max(30, CLOCK_BAR_END - x);
+    const y = 24 - 6;
+    this.clockBar.clear();
+    this.clockBar.fillStyle(0xf3e5ea).fillRoundedRect(x, y, barW, 12, 6);
+    const w = barW * c.ratio;
+    if (w > 1) this.clockBar.fillStyle(urgent ? 0xe53935 : 0x7986cb).fillRoundedRect(x, y, Math.max(w, 8), 12, 6);
+    this.clockBar.lineStyle(2, COLORS.outline).strokeRoundedRect(x, y, barW, 12, 6);
   }
 
   /** 하트 하나가 크게 튀었다가 깨진다 */

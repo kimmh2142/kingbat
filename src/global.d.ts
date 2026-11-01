@@ -11,6 +11,7 @@ interface Window {
     hearts?: number;
     cutin?: boolean;
     failed?: boolean;
+    remaining?: number;
   };
-  __kingbatTest?: { teleport(x: number, y: number): void };
+  __kingbatTest?: { teleport(x: number, y: number): void; setRemaining(seconds: number): void };
 }
