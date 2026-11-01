@@ -41,6 +41,16 @@ await page.screenshot({ path: `screenshots/${name}-moved.png` });
 results.push(['왼쪽 끝까지', await hold(['a'], 3500)]);
 await page.screenshot({ path: `screenshots/${name}-left.png` });
 
+// 디버그 켜기·끄기 (` 키)
+await page.keyboard.press('Backquote');
+await page.waitForTimeout(200);
+const debugOn = await page.evaluate(() => window.__kingbat?.debug);
+await page.screenshot({ path: `screenshots/${name}-debug.png` });
+await page.keyboard.press('Backquote');
+await page.waitForTimeout(200);
+const debugOff = await page.evaluate(() => window.__kingbat?.debug);
+results.push(['디버그 켬/끔', { on: debugOn, off: debugOff }]);
+
 for (const [label, p] of results) console.log(label.padEnd(14), JSON.stringify(p));
 console.log(errors.length ? `콘솔 에러 ${errors.length}개:\n` + errors.join('\n') : '콘솔 에러 없음');
 await browser.close();

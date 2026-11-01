@@ -24,7 +24,7 @@ npm run dev      # 개발 서버 실행
 | `npm run dev` | 개발 서버 (PC + 같은 Wi-Fi 휴대폰) |
 | `npm run build` | 타입 검사 후 `dist/`에 배포용 빌드 |
 | `npm run preview` | 빌드 결과를 로컬에서 확인 |
-| `npm run check` | Playwright로 실행 확인 (화면 캡처 + 콘솔 에러), `npm run dev`가 켜져 있어야 함 |
+| `npm run check` | Playwright로 실행 확인 (이동·충돌·디버그 키 + 화면 캡처 + 콘솔 에러). `npm run dev`가 켜져 있어야 함. 캡처는 `screenshots/`에 저장. 처음 한 번 `npx playwright install chromium` 필요 |
 
 ## 휴대폰으로 접속하기
 
@@ -45,7 +45,7 @@ npm run dev      # 개발 서버 실행
 | 키 | 기능 | 상태 |
 |---|---|---|
 | WASD / 방향키 | 이동 | ✅ |
-| D | 디버그 표시 켜기·끄기 (충돌 영역, 숨기 장소, 좌표, 상태) | ✅ |
+| ` (숫자 1 왼쪽) | 디버그 표시 켜기·끄기 (충돌 상자, 숨기 범위, 내 자리, 좌표·상태). D는 이동 키와 겹쳐서 ` 로 정함. 주소 뒤에 `?debug=1`을 붙이면 켜진 채로 시작 | ✅ |
 | Space 꾹 / 짧게 | 콕 찌르기 / 아이템 사용 | 예정 |
 | 1 / 2 / 3 | 아이템 선택 | 예정 |
 | E | 상호작용 | 예정 |
@@ -73,3 +73,10 @@ public/assets/
 모든 그림은 텍스처 키(`src/assets/keys.ts`)로 불러옵니다.
 `public/assets/final/`에 이미지를 넣고 `src/assets/manifest.ts`에 `키: 'final/파일명.png'`을 한 줄 추가하면
 같은 키의 임시 그래픽 대신 그 이미지가 쓰입니다. 크기는 임시 그래픽과 같게 맞추면 위치가 그대로 유지됩니다.
+
+## 개발용 주소 옵션
+
+| 주소 | 설명 |
+|---|---|
+| `http://localhost:5173/?debug=1` | 디버그 표시를 켠 채로 시작 |
+| `http://localhost:5173/?overview=1` | 맵 전체를 한 화면에 (맵 배치 확인용) |
