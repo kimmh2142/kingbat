@@ -25,7 +25,7 @@ export class DebugOverlay {
 
     this.world = scene.add.graphics().setDepth(DEPTH.label + 50);
     this.panel = scene.add
-      .text(8, 8, '', {
+      .text(8, 50, '', {
         fontFamily: FONT,
         fontSize: '15px',
         color: '#ffffff',

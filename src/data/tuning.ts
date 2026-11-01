@@ -15,3 +15,28 @@ export const CAMERA = {
   deadzoneW: 80,
   deadzoneH: 50,
 };
+
+export const POKE = {
+  /** Space를 이 시간(초) 이상 누르면 콕 찌르기 (짧게 누르면 나중에 아이템 사용) */
+  holdThreshold: 0.15,
+  /** 등 뒤 이 거리(px) 안에서 찌를 수 있다 */
+  range: 84,
+  /** 초당 콕 횟수: 처음 → 최대. accelTime초 동안 점점 빨라진다 */
+  rateStart: 3,
+  rateMax: 10,
+  accelTime: 3,
+  /** 콕 1번당 킹받음 */
+  pointsPerPoke: 1,
+  /** 찌르는 동안 이동 속도 배율 (0 = 제자리) */
+  moveMultiplier: 0,
+};
+
+export const SCORE = {
+  /** 클리어에 필요한 확정 킹받음 */
+  goal: 100,
+};
+
+export const CAUGHT = {
+  /** 들켰을 때 화면이 멈추는 시간(초). 정식 컷인은 다음 단계 */
+  freezeSeconds: 1.6,
+};
