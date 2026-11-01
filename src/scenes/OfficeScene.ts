@@ -186,7 +186,7 @@ export class OfficeScene extends Phaser.Scene {
       cutin: this.cutin.active,
       failed: this.failed,
       remaining: Math.round(this.clock.remaining * 10) / 10,
-      daeri: { state: this.daeri.state, x: Math.round(this.daeri.x), y: Math.round(this.daeri.y) },
+      daeri: { state: this.daeri.state, x: Math.round(this.daeri.x), y: Math.round(this.daeri.y), route: this.daeri.routeIndex },
       caughtBy: this.life.caughtBy,
     };
     this.tapped = false;
@@ -333,7 +333,7 @@ export class OfficeScene extends Phaser.Scene {
       const d = this.daeri;
       return [
         `── ${d.pattern.name}`,
-        `상태 ${d.stateName}  남은 ${d.remaining.toFixed(1)}초  시야 ${d.watching ? 'O' : '-'}  붙잡기 대기 ${d.grabCooldown.toFixed(0)}초`,
+        `상태 ${d.stateName}(${d.routeName})  남은 ${d.remaining.toFixed(1)}초  시야 ${d.watching ? 'O' : '-'}  붙잡기 대기 ${d.grabCooldown.toFixed(0)}초`,
       ];
     });
     this.debug.addWorldDrawer((g) => {

@@ -45,6 +45,8 @@ export class PatrolController {
   private readonly seat: Point;
   /** 발견·붙잡기가 끝나면 돌아갈 상태 */
   private resume: PatrolState = 'work';
+  /** 이번 왕복에 고른 경로 */
+  routeIndex = 0;
   /** 개발 테스트용: 붙잡기 확률 덮어쓰기 */
   grabChanceOverride?: number;
   /** 붙잡기 재사용 대기 시간 */
@@ -182,14 +184,15 @@ export class PatrolController {
         break;
       case 'go':
         if (!resuming) {
-          this.path = [this.seat, ...P.route];
+          this.routeIndex = this.pickRoute();
+          this.path = [this.seat, ...P.routes[this.routeIndex].path];
           this.pathIndex = 1;
         }
         v.setPose(P.walkPose);
         break;
       case 'return':
         if (!resuming) {
-          this.path = [...P.route].reverse().concat([this.seat]);
+          this.path = [...P.routes[this.routeIndex].path].reverse().concat([this.seat]);
           this.pathIndex = 1;
         }
         v.setPose(P.walkPose);
@@ -223,6 +226,20 @@ export class PatrolController {
       this.pos = { x: this.pos.x + this.dir.x * step, y: this.pos.y + this.dir.y * step };
     }
     this.view.standAt(this.pos.x, this.pos.y, this.facingOf(this.dir));
+  }
+
+  get routeName(): string {
+    return this.pattern.routes[this.routeIndex].name;
+  }
+
+  private pickRoute(): number {
+    const routes = this.pattern.routes;
+    let r = Math.random() * routes.reduce((s, x) => s + x.weight, 0);
+    for (let i = 0; i < routes.length; i++) {
+      r -= routes[i].weight;
+      if (r < 0) return i;
+    }
+    return 0;
   }
 
   protected lookAt(px: number, py: number): void {

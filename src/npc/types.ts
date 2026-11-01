@@ -108,8 +108,8 @@ export interface PatrolPattern {
   appearance: NpcLook;
   /** 자리에서 일하는 시간 (이 동안은 시야 없음) */
   work: { duration: Range; pose: Pose };
-  /** 자리에서 목적지까지 경로. 돌아올 땐 거꾸로 */
-  route: Point[];
+  /** 자리에서 목적지까지 경로들. 갈 때마다 비중대로 하나를 고르고, 돌아올 땐 같은 길을 거꾸로 */
+  routes: { name: string; weight: number; path: Point[] }[];
   speed: number;
   walkPose: Pose;
   /** 목적지에서 머무는 시간·방향·자세 */

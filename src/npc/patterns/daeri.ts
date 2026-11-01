@@ -16,15 +16,36 @@ export const DAERI: PatrolPattern = {
     rank: '대리',
     rankColor: 0x90a4ae, // 방해 NPC는 회색 계열
   },
-  work: { duration: [8, 15], pose: { face: TEX.faceNormal, hands: 'keyboard', typing: 0.8 } },
-  // 대리 자리(1384, 638) → 가운데 가로 통로(내 자리와 동기 자리 사이) → 왼쪽 통로 → 탕비실 커피머신 앞
-  route: [
-    { x: 1384, y: 560 },
-    { x: 1270, y: 500 },
-    { x: 570, y: 500 },
-    { x: 570, y: 340 },
-    { x: 420, y: 340 },
-    { x: 140, y: 245 },
+  work: { duration: [5, 10], pose: { face: TEX.faceNormal, hands: 'keyboard', typing: 0.8 } },
+  // 대리 자리(1384, 638)에서 탕비실 커피머신 앞까지 두 갈래. 어느 길로 올지 관찰해야 한다
+  routes: [
+    {
+      // 가운데 가로 통로: 내 자리와 동기 자리 사이 (도망치는 길과 겹친다)
+      name: '가운데 통로',
+      weight: 1,
+      path: [
+        { x: 1384, y: 560 },
+        { x: 1270, y: 500 },
+        { x: 570, y: 500 },
+        { x: 570, y: 340 },
+        { x: 420, y: 340 },
+        { x: 140, y: 245 },
+      ],
+    },
+    {
+      // 맨 위 통로: 동기 등 뒤(찌르는 자리)를 쓸고 지나간다
+      name: '맨 위 통로',
+      weight: 1,
+      path: [
+        { x: 1384, y: 560 },
+        { x: 1300, y: 500 },
+        { x: 1300, y: 215 },
+        { x: 570, y: 215 },
+        { x: 570, y: 340 },
+        { x: 420, y: 340 },
+        { x: 140, y: 245 },
+      ],
+    },
   ],
   speed: 95,
   walkPose: { face: TEX.faceHappy, hands: 'cup' },
