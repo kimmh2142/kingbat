@@ -14,6 +14,7 @@ import { Score } from '../systems/Score';
 import { HUD } from '../ui/HUD';
 import { Prompt } from '../ui/Prompt';
 import { VisionCone } from '../ui/VisionCone';
+import { TouchControls } from '../ui/TouchControls';
 
 export class OfficeScene extends Phaser.Scene {
   private map!: OfficeMap;
@@ -27,6 +28,7 @@ export class OfficeScene extends Phaser.Scene {
   private hud!: HUD;
   private prompt!: Prompt;
   private targetCone!: VisionCone;
+  private keyHint!: Phaser.GameObjects.Text;
   /** 들킨 직후 화면이 멈춰 있는 남은 시간 */
   private frozen = 0;
   private caughtCount = 0;
@@ -37,7 +39,9 @@ export class OfficeScene extends Phaser.Scene {
 
   create(): void {
     this.map = new OfficeMap(this, 1);
-    this.controls = new Controls(this);
+    const touch = new TouchControls(this);
+    touch.setDisabled('hide', true); // 숨기·확정은 다음 단계
+    this.controls = new Controls(this, touch);
     this.player = new Player(this, PLAYER_START.x, PLAYER_START.y);
     this.physics.add.collider(this.player.feet, this.map.colliders);
 
@@ -70,7 +74,7 @@ export class OfficeScene extends Phaser.Scene {
         },
       };
     }
-    this.add
+    this.keyHint = this.add
       .text(8, GAME_HEIGHT - 8, 'WASD·방향키 이동   Space 꾹: 콕 찌르기   ` 디버그', {
         fontFamily: FONT,
         fontSize: '15px',
@@ -108,7 +112,8 @@ export class OfficeScene extends Phaser.Scene {
     const near = Phaser.Math.Distance.Between(this.player.x, this.player.y, this.target.x, this.target.y) < 110;
     this.target.view.setLabelFaded(near && this.player.y < this.target.y);
     const canPoke = this.frozen <= 0 && !this.poke.active && this.target.pokeCheck(this.player.x, this.player.y, POKE.range) === 'ok';
-    this.prompt.show(this.player.x, this.player.y - 122, canPoke ? 'Space 꾹 → 콕!' : null);
+    this.prompt.show(this.player.x, this.player.y - 122, canPoke ? (this.controls.isTouch ? '콕 버튼 꾹!' : 'Space 꾹 → 콕!') : null);
+    this.keyHint.setVisible(!this.controls.isTouch);
     this.hud.update(dt);
     this.debug.update();
     window.__kingbat = {
