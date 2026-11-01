@@ -3,9 +3,21 @@
 서강대학교 가상융합전문대학원 캡스톤 게임 프로젝트.
 사무실을 돌아다니며 상대를 관찰하고, 몰래 장난친 뒤, 들키지 않고 내 자리로 돌아와야 점수가 확정되는 코믹 눈치 게임.
 
+## ▶ 플레이: https://kimmh2142.github.io/kingbat/
+
 - 기획 기준 문서: [docs/직장인_킹받게_하기_시나리오_최종.md](docs/직장인_킹받게_하기_시나리오_최종.md)
 - 개발 지침: [CLAUDE.md](CLAUDE.md)
 - 기술: Phaser 3 + TypeScript + Vite (기준 해상도 960x540)
+- 저장소: https://github.com/kimmh2142/kingbat
+
+## 배포
+
+`master` 브랜치에 push하면 GitHub Actions([.github/workflows/deploy.yml](.github/workflows/deploy.yml))가
+`npm run build`로 빌드해서 GitHub Pages에 자동으로 올립니다. 보통 1~2분 걸립니다.
+
+- 배포 주소: https://kimmh2142.github.io/kingbat/
+- 진행 상황: https://github.com/kimmh2142/kingbat/actions (빌드가 실패하면 여기 빨간 X가 뜹니다)
+- 배포된 화면이 안 바뀌면 브라우저에서 새로고침(Ctrl+F5)을 해 보세요.
 
 ## 실행 방법
 
