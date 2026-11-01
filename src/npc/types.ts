@@ -28,6 +28,8 @@ export interface Pose {
   spike?: boolean;
   /** 몸을 숙임 (책상 아래로 휴대폰 줍기) px */
   bend?: number;
+  /** 눈동자·고개가 흘깃 향하는 쪽 (-1 화면 왼쪽, 1 오른쪽). 돌아볼 방향의 전조 */
+  glance?: number;
   /** 머리 위 작은 말풍선 */
   bubble?: string;
 }
@@ -57,7 +59,17 @@ export interface TargetPattern {
   /** 2단계 진짜: 여기서 갈라진 뒤 돌아보기까지가 반응 시간 */
   real: { duration: Range; pose: Pose };
   /** 실제 확인 (뒤돌아봄) */
-  look: { duration: Range; pose: Pose; range: number; halfAngleDeg: number; nearRadius: number };
+  look: {
+    duration: Range;
+    pose: Pose;
+    range: number;
+    halfAngleDeg: number;
+    nearRadius: number;
+    /** 어느 쪽 어깨 너머로 돌아볼지 비중 (화면 기준 왼쪽·가운데·오른쪽) */
+    sideWeights: { left: number; center: number; right: number };
+    /** 어깨 너머로 볼 때 부채꼴이 치우치는 각도 */
+    skewDeg: number;
+  };
   /** 업무 복귀 */
   back: { duration: Range; pose: Pose; posePuzzled: Pose };
   /** 들켰을 때 반응 */

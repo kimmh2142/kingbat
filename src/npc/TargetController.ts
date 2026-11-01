@@ -52,6 +52,8 @@ export class TargetController {
   /** 이번 의심이 진짜인지 (의심 시작 때 정해짐, 디버그용으로 공개) */
   isReal = false;
   consecutiveFakes = 0;
+  /** 이번 진짜 확인에서 돌아볼 쪽 (화면 기준 -1 왼쪽, 0 가운데, 1 오른쪽). 진짜 전조 때 흘깃 보는 쪽 */
+  lookSide: -1 | 0 | 1 = 0;
   /** 콕 찔려서 짜증난 상태: 페이크 확률이 낮아진다. 확인 사이클이 끝나면 풀린다 */
   irritated = false;
   /** 연타 방지: 한 번 점수를 준 뒤 확인 사이클이 끝날 때까지 콕 점수 없음 */
@@ -116,10 +118,19 @@ export class TargetController {
     return this.state === 'distracted' ? this.pattern.distracted.scoreMultiplier : 1;
   }
 
-  /** 지금 바라보는 방향 (확인 중이면 원래 방향의 반대) */
+  /** 지금 바라보는 방향. 확인 중이면 원래 방향의 반대에서 lookSide 쪽으로 skewDeg만큼 치우친다 */
   get lookDir(): Point {
     const f = FACING_VEC[this.facing];
-    return this.state === 'look' || this.state === 'react' ? { x: -f.x, y: -f.y } : f;
+    if (this.state !== 'look' && this.state !== 'react') return f;
+    const base = Math.atan2(-f.y, -f.x);
+    if (this.lookSide === 0) return { x: -f.x, y: -f.y };
+    const skew = Phaser.Math.DegToRad(this.pattern.look.skewDeg);
+    // 두 방향 중 화면에서 lookSide 쪽(x 부호)에 있는 것을 고른다. 좌우로 서 있으면 시계/반시계로 정한다
+    let a = base + skew;
+    if (Math.abs(Math.cos(base)) < 0.5) {
+      if (Math.sign(Math.cos(a)) !== this.lookSide) a = base - skew;
+    } else if (this.lookSide < 0) a = base - skew;
+    return { x: Math.cos(a), y: Math.sin(a) };
   }
 
   /**
@@ -229,6 +240,7 @@ export class TargetController {
     const chance = this.irritated ? P.fakeChanceIrritated : P.fakeChance;
     this.isReal = this.consecutiveFakes >= P.maxConsecutiveFakes || Math.random() >= chance;
     this.consecutiveFakes = this.isReal ? 0 : this.consecutiveFakes + 1;
+    this.lookSide = this.isReal ? this.pickSide() : 0;
     this.alert = 0;
     this.enter('suspect');
   }
@@ -261,18 +273,21 @@ export class TargetController {
         this.setTimer(P.fake.duration);
         v.setPose(this.atSeat ? P.fake.pose : { ...P.fake.pose, hands: 'side' });
         break;
-      case 'real':
+      case 'real': {
         this.setTimer(P.real.duration);
-        v.setPose(this.atSeat ? P.real.pose : { ...P.real.pose, hands: 'hidden' });
+        // 진짜로 갈라진 뒤에만 돌아볼 쪽을 흘깃 본다 (페이크와 구별되기 전에는 안 보임)
+        const pose = { ...P.real.pose, glance: this.lookSide };
+        v.setPose(this.atSeat ? pose : { ...pose, hands: 'hidden' });
         break;
+      }
       case 'look':
         this.sawPlayer = false;
         this.setTimer(P.look.duration);
-        v.setPose(this.turnedPose(P.look.pose));
+        v.setPose(this.turnedPose({ ...P.look.pose, glance: this.lookSide }));
         break;
       case 'react':
         this.setTimer(P.react.duration);
-        v.setPose(this.turnedPose(P.react.pose));
+        v.setPose(this.turnedPose({ ...P.react.pose, glance: this.lookSide }));
         break;
       case 'back': {
         this.faceForward();
@@ -350,6 +365,14 @@ export class TargetController {
   private setTimer(r: Range): void {
     this.duration = rand(r);
     this.timer = this.duration;
+  }
+
+  private pickSide(): -1 | 0 | 1 {
+    const w = this.pattern.look.sideWeights;
+    let r = Math.random() * (w.left + w.center + w.right);
+    if ((r -= w.left) < 0) return -1;
+    if ((r -= w.center) < 0) return 0;
+    return 1;
   }
 
   private pickActivity(): Pose {

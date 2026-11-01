@@ -162,9 +162,14 @@ export class NpcView {
 
     const nod = p.nod ? Math.max(0, Math.sin(this.t * 2.2)) * 7 : 0;
     const bend = p.bend ?? 0;
-    const tilt = (p.tilt ?? 0) + (p.nod ? Math.sin(this.t * 2.2) * 6 : 0);
+    // 흘깃: 앞모습이면 눈동자·고개가 그쪽으로, 뒷모습이면 그쪽 어깨 너머로 몸을 비튼다
+    const glance = p.glance ?? 0;
+    const tilt = (p.tilt ?? 0) + (p.nod ? Math.sin(this.t * 2.2) * 6 : 0) + glance * (back ? 14 : 10);
     this.head.setAngle(tilt);
     this.face.setAngle(tilt);
+    this.head.x = glance * (back ? 7 : 3);
+    this.face.x = glance * 7;
+    this.body.setAngle(back ? glance * 7 : 0);
     this.head.y = HEAD_Y + nod;
     this.face.y = FACE_Y + nod;
     this.parts.y = bend;

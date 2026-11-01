@@ -128,7 +128,7 @@ export class OfficeScene extends Phaser.Scene {
     window.__kingbat = {
       player: { x: Math.round(this.player.x), y: Math.round(this.player.y) },
       debug: this.debug.enabled,
-      target: { state: this.target.state, x: Math.round(this.target.x), y: Math.round(this.target.y) },
+      target: { state: this.target.state, x: Math.round(this.target.x), y: Math.round(this.target.y), side: this.target.lookSide },
       score: { confirmed: this.score.confirmed, temp: this.score.temp },
       poking: this.poke.active,
       caught: this.caughtCount,
@@ -237,7 +237,7 @@ export class OfficeScene extends Phaser.Scene {
       return [
         `── ${t.pattern.name}`,
         `상태 ${t.stateName}  남은 ${t.remaining.toFixed(1)}초`,
-        `이번 의심 ${isCheck ? (t.isReal ? '진짜' : '페이크') : '-'}   연속 페이크 ${t.consecutiveFakes}`,
+        `이번 의심 ${isCheck ? (t.isReal ? `진짜(${['왼쪽', '가운데', '오른쪽'][t.lookSide + 1]})` : '페이크') : '-'}   연속 페이크 ${t.consecutiveFakes}`,
         `탕비실까지 ${t.tripIn.toFixed(0)}초   짜증 ${t.irritated ? 'O' : '-'}   연타 잠금 ${t.pokeLocked ? 'O' : '-'}`,
         `콕 ${this.poke.active ? `중 ${this.poke.rate.toFixed(1)}회/초` : '-'}   배율 x${t.scoreMultiplier}   들킴 ${this.caughtCount}`,
       ];
