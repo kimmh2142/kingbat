@@ -37,6 +37,8 @@ export class OfficeScene extends Phaser.Scene {
   private targetCone!: VisionCone;
   private daeri!: PatrolController;
   private daeriCone!: VisionCone;
+  /** 대리에게 붙잡혀 있는 동안 남은 시간 원 */
+  private grabRing!: Phaser.GameObjects.Graphics;
   private keyHint!: Phaser.GameObjects.Text;
   private touch!: TouchControls;
   private hide!: Hide;
@@ -91,6 +93,7 @@ export class OfficeScene extends Phaser.Scene {
     this.prompt = new Prompt(this);
     this.targetCone = new VisionCone(this);
     this.daeriCone = new VisionCone(this, 0xffa000);
+    this.grabRing = this.add.graphics().setDepth(DEPTH.label + 6);
 
     // 물리 계산이 끝난 뒤 그림 위치를 맞춘다
     const sync = () => this.player.syncView();
@@ -108,6 +111,10 @@ export class OfficeScene extends Phaser.Scene {
           this.cameras.main.centerOn(x, y);
         },
         setRemaining: (seconds: number) => this.clock.setRemaining(seconds),
+        forceGrab: () => {
+          this.daeri.grabChanceOverride = 1;
+          this.daeri.grabCooldown = 0;
+        },
       };
     }
     this.keyHint = this.add
@@ -134,12 +141,15 @@ export class OfficeScene extends Phaser.Scene {
       this.cutin.update(dt, this.controls.justPressed('Space') || this.tapped);
       if (this.failed && (this.controls.justPressed('Space') || this.controls.justPressed('Enter'))) this.retry();
     } else {
+      // 대리가 옆을 지나가면 가끔 붙잡는다 (숨어 있거나 찌르는 중이면 안 붙잡음)
+      this.daeri.tryGrab(this.player.x, this.player.y, !this.hide.hidden && !this.poke.active);
+      const grabbed = this.daeri.state === 'grab';
       const move = this.controls.getMove().clone();
-      if (this.poke.active) move.scale(POKE.moveMultiplier);
+      if (this.poke.active || grabbed) move.scale(grabbed ? 0 : POKE.moveMultiplier);
       this.player.update(move, dt);
-      // 숨어 있는 동안은 찌를 수 없다
-      this.poke.update(dt, this.controls.actionHeld && !this.hide.hidden, this.player, this.target);
-      this.hide.update(dt, this.controls.hideHeld, this.player, this.map, this.poke.active);
+      // 숨어 있거나 붙잡혀 있는 동안은 찌를 수 없다
+      this.poke.update(dt, this.controls.actionHeld && !this.hide.hidden && !grabbed, this.player, this.target);
+      this.hide.update(dt, this.controls.hideHeld && !grabbed, this.player, this.map, this.poke.active);
       this.target.update(dt);
       this.daeri.update(dt);
       this.checkCaught();
@@ -153,6 +163,7 @@ export class OfficeScene extends Phaser.Scene {
     const looking = t.state === 'look' || t.state === 'react';
     this.targetCone.update(dt, looking ? { x: t.x, y: t.y, dir: t.lookDir, ...t.pattern.look } : null);
     this.daeriCone.update(dt, this.daeri.cone);
+    this.drawGrabRing();
     this.target.view.setAnger(this.score.total / this.score.goal);
     const near = Phaser.Math.Distance.Between(this.player.x, this.player.y, this.target.x, this.target.y) < 110;
     this.target.view.setLabelFaded(near && this.player.y < this.target.y);
@@ -176,6 +187,7 @@ export class OfficeScene extends Phaser.Scene {
       failed: this.failed,
       remaining: Math.round(this.clock.remaining * 10) / 10,
       daeri: { state: this.daeri.state, x: Math.round(this.daeri.x), y: Math.round(this.daeri.y) },
+      caughtBy: this.life.caughtBy,
     };
     this.tapped = false;
   }
@@ -183,6 +195,18 @@ export class OfficeScene extends Phaser.Scene {
   /** 컷인이나 실패 화면 때문에 게임이 멈춰 있음 */
   private get paused(): boolean {
     return this.cutin.active || this.failed;
+  }
+
+  /** 붙잡혀 있는 동안 머리 위에 남은 시간 원 */
+  private drawGrabRing(): void {
+    const r = this.daeri.grabRatio;
+    this.grabRing.clear();
+    if (r <= 0) return;
+    const x = this.player.x;
+    const y = this.player.y - 118;
+    this.grabRing.fillStyle(0xffffff, 0.9).fillCircle(x, y, 15);
+    this.grabRing.fillStyle(0xffa000).slice(x, y, 13, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * r, false).fillPath();
+    this.grabRing.lineStyle(3, 0x5a3a4a).strokeCircle(x, y, 15);
   }
 
   private promptText(canPoke: boolean): string | null {
@@ -219,21 +243,27 @@ export class OfficeScene extends Phaser.Scene {
 
   /** 장난 중이거나 임시 점수를 들고 있을 때 돌아본 대상에게 보이면 들킨다 */
   private checkCaught(): void {
-    const t = this.target;
-    if (!t.isLooking || this.hide.hidden) return; // 숨어 있으면 안 보인다
+    if (this.hide.hidden) return; // 숨어 있으면 안 보인다
     const guilty = this.poke.active || this.score.temp > 0;
-    if (guilty && t.canSee(this.player.x, this.player.y)) this.onCaught('turned');
+    if (!guilty) return;
+    const { x, y } = this.player;
+    const t = this.target;
+    if (t.isLooking && t.canSee(x, y)) return this.onCaught('turned', 'target');
+    // 순찰 중인 대리 시야 (바닥 부채꼴)
+    if (this.daeri.canSee(x, y)) return this.onCaught('escaping', 'daeri');
   }
 
   /** 들킴: 임시 점수 소멸 → 컷인(하트 -1) → 하트가 없으면 실패 화면 */
-  private onCaught(reason: CaughtReasonId): void {
+  private onCaught(reason: CaughtReasonId, by: 'target' | 'daeri'): void {
     this.caughtCount += 1;
     this.poke.cancel(this.target);
     this.score.loseTemp();
-    this.target.onCaught();
+    const who = by === 'target' ? this.target : this.daeri;
+    if (by === 'target') this.target.onCaught();
+    else this.daeri.onCaught(this.player.x, this.player.y);
     this.cutin.play({
       reason,
-      cause: { x: this.target.x, y: this.target.y - 70 },
+      cause: { x: who.x, y: who.y - 70 },
       follow: this.player.cameraTarget,
       onHit: () => this.life.lose(reason),
       onDone: () => {
@@ -301,7 +331,10 @@ export class OfficeScene extends Phaser.Scene {
     });
     this.debug.addInfo(() => {
       const d = this.daeri;
-      return [`── ${d.pattern.name}`, `상태 ${d.stateName}  남은 ${d.remaining.toFixed(1)}초  시야 ${d.watching ? 'O' : '-'}`];
+      return [
+        `── ${d.pattern.name}`,
+        `상태 ${d.stateName}  남은 ${d.remaining.toFixed(1)}초  시야 ${d.watching ? 'O' : '-'}  붙잡기 대기 ${d.grabCooldown.toFixed(0)}초`,
+      ];
     });
     this.debug.addWorldDrawer((g) => {
       this.map.drawDebug(g);

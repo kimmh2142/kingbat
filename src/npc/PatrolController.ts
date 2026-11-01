@@ -45,6 +45,12 @@ export class PatrolController {
   private readonly seat: Point;
   /** 발견·붙잡기가 끝나면 돌아갈 상태 */
   private resume: PatrolState = 'work';
+  /** 개발 테스트용: 붙잡기 확률 덮어쓰기 */
+  grabChanceOverride?: number;
+  /** 붙잡기 재사용 대기 시간 */
+  grabCooldown = 0;
+  /** 이번에 옆을 지나가며 이미 붙잡을지 굴려 봤는가 (한 번 지나갈 때 한 번만) */
+  private grabRolled = false;
 
   constructor(
     scene: Phaser.Scene,
@@ -107,7 +113,35 @@ export class PatrolController {
     this.view.setPose(this.pattern.react.pose);
   }
 
+  /** 붙잡는 중이면 남은 비율 1 → 0 */
+  get grabRatio(): number {
+    return this.state === 'grab' && this.pattern.grab ? this.timer / this.pattern.grab.seconds : 0;
+  }
+
+  /**
+   * 걷다가 플레이어 바로 옆을 지나가면 가끔 붙잡는다 ("커피 좀 사 올래?").
+   * 한 번 지나갈 때 한 번만 확률을 굴리고, 붙잡은 뒤엔 cooldown 동안 쉰다.
+   * @returns 지금 붙잡기 시작했는가
+   */
+  tryGrab(px: number, py: number, canBeGrabbed: boolean): boolean {
+    const G = this.pattern.grab;
+    if (!G || (this.state !== 'go' && this.state !== 'return')) return false;
+    const dist = Phaser.Math.Distance.Between(px, py, this.pos.x, this.pos.y);
+    if (dist > G.radius * 1.6) this.grabRolled = false;
+    if (dist > G.radius || this.grabRolled || this.grabCooldown > 0 || !canBeGrabbed) return false;
+    this.grabRolled = true;
+    if (Math.random() >= (this.grabChanceOverride ?? G.chance)) return false;
+    this.resume = this.state;
+    this.state = 'grab';
+    this.timer = G.seconds;
+    this.grabCooldown = G.cooldown;
+    this.lookAt(px, py);
+    this.view.setPose({ ...this.pattern.walkPose, bubble: G.line });
+    return true;
+  }
+
   update(dt: number): void {
+    this.grabCooldown = Math.max(0, this.grabCooldown - dt);
     if (this.state === 'go' || this.state === 'return') {
       this.walk(dt);
     } else {
@@ -123,8 +157,10 @@ export class PatrolController {
         return this.enter('go');
       case 'stay':
         return this.enter('return');
-      case 'react':
       case 'grab':
+        this.view.say(this.pattern.grab?.thanks ?? '', 1.2);
+        return this.enter(this.resume, true);
+      case 'react':
         return this.enter(this.resume, true);
       default:
         return;

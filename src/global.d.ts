@@ -13,6 +13,7 @@ interface Window {
     failed?: boolean;
     remaining?: number;
     daeri?: { state: string; x: number; y: number };
+    caughtBy?: Record<string, number>;
   };
-  __kingbatTest?: { teleport(x: number, y: number): void; setRemaining(seconds: number): void };
+  __kingbatTest?: { teleport(x: number, y: number): void; setRemaining(seconds: number): void; forceGrab(): void };
 }
