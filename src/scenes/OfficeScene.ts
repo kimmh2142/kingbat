@@ -13,6 +13,7 @@ import { Poke } from '../systems/Poke';
 import { Score } from '../systems/Score';
 import { HUD } from '../ui/HUD';
 import { Prompt } from '../ui/Prompt';
+import { VisionCone } from '../ui/VisionCone';
 
 export class OfficeScene extends Phaser.Scene {
   private map!: OfficeMap;
@@ -25,6 +26,7 @@ export class OfficeScene extends Phaser.Scene {
   private poke!: Poke;
   private hud!: HUD;
   private prompt!: Prompt;
+  private targetCone!: VisionCone;
   /** 들킨 직후 화면이 멈춰 있는 남은 시간 */
   private frozen = 0;
   private caughtCount = 0;
@@ -51,6 +53,7 @@ export class OfficeScene extends Phaser.Scene {
     this.poke = new Poke(this, this.score);
     this.hud = new HUD(this, this.score, `STAGE 1 · ${DONGI.name}`);
     this.prompt = new Prompt(this);
+    this.targetCone = new VisionCone(this);
 
     // 물리 계산이 끝난 뒤 그림 위치를 맞춘다
     this.events.on(Phaser.Scenes.Events.POST_UPDATE, () => this.player.syncView());
@@ -97,6 +100,10 @@ export class OfficeScene extends Phaser.Scene {
     }
 
     this.targetBlocker.body.reset(this.target.x, this.target.y - 26);
+    // 뒤돌아본 동안에만 시야 부채꼴을 보여준다 (전조 단계에서는 안 보임)
+    const t = this.target;
+    const looking = t.state === 'look' || t.state === 'react';
+    this.targetCone.update(dt, looking ? { x: t.x, y: t.y, dir: t.lookDir, ...t.pattern.look } : null);
     this.target.view.setAnger(this.score.total / this.score.goal);
     const near = Phaser.Math.Distance.Between(this.player.x, this.player.y, this.target.x, this.target.y) < 110;
     this.target.view.setLabelFaded(near && this.player.y < this.target.y);

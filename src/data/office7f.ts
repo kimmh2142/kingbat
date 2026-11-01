@@ -129,6 +129,9 @@ export const PROPS: PropPlacement[] = [
   { type: 'plant', x: 545, y: 200 },
   { type: 'plant', x: 1670, y: 200 },
   { type: 'papers', x: 1660, y: 560 },
+  // 동기 자리(1152, 298) 근처 숨기 장소: 찌르고 짧게 도망쳐 확정하는 용도. 두 방향으로 빠질 수 있게
+  { type: 'partition', x: 930, y: 180 }, // 왼쪽 위 통로 (동기 뒤쪽 시야 55도 바깥)
+  { type: 'plant', x: 1268, y: 420 }, // 오른쪽 아래 통로 (동기 앞쪽이라 돌아봐도 안 보임)
   { type: 'partition', x: 780, y: 1250 },
   { type: 'partition', x: 1260, y: 1250 },
   { type: 'plant', x: 1030, y: 1380 },
