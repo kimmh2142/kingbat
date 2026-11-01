@@ -40,7 +40,12 @@ export class DebugOverlay {
     if (!physics.debugGraphic) physics.createDebugGraphic();
     physics.debugGraphic.setDepth(DEPTH.label + 40);
 
-    scene.input.keyboard!.on('keydown-BACKTICK', () => this.set(!this.on));
+    // 한글 입력 상태에서도 되도록 물리 키 위치(code)로 받는다
+    const onKey = (e: KeyboardEvent) => {
+      if (e.code === 'Backquote' && !e.repeat) this.set(!this.on);
+    };
+    window.addEventListener('keydown', onKey);
+    scene.events.once(Phaser.Scenes.Events.SHUTDOWN, () => window.removeEventListener('keydown', onKey));
     this.set(this.on);
   }
 

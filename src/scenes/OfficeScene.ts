@@ -12,6 +12,7 @@ import { DEPTH, OfficeMap } from '../systems/OfficeMap';
 import { Poke } from '../systems/Poke';
 import { Score } from '../systems/Score';
 import { HUD } from '../ui/HUD';
+import { Prompt } from '../ui/Prompt';
 
 export class OfficeScene extends Phaser.Scene {
   private map!: OfficeMap;
@@ -23,6 +24,7 @@ export class OfficeScene extends Phaser.Scene {
   private score!: Score;
   private poke!: Poke;
   private hud!: HUD;
+  private prompt!: Prompt;
   /** 들킨 직후 화면이 멈춰 있는 남은 시간 */
   private frozen = 0;
   private caughtCount = 0;
@@ -48,6 +50,7 @@ export class OfficeScene extends Phaser.Scene {
     this.score = new Score();
     this.poke = new Poke(this, this.score);
     this.hud = new HUD(this, this.score, `STAGE 1 · ${DONGI.name}`);
+    this.prompt = new Prompt(this);
 
     // 물리 계산이 끝난 뒤 그림 위치를 맞춘다
     this.events.on(Phaser.Scenes.Events.POST_UPDATE, () => this.player.syncView());
@@ -97,6 +100,8 @@ export class OfficeScene extends Phaser.Scene {
     this.target.view.setAnger(this.score.total / this.score.goal);
     const near = Phaser.Math.Distance.Between(this.player.x, this.player.y, this.target.x, this.target.y) < 110;
     this.target.view.setLabelFaded(near && this.player.y < this.target.y);
+    const canPoke = this.frozen <= 0 && !this.poke.active && this.target.pokeCheck(this.player.x, this.player.y, POKE.range) === 'ok';
+    this.prompt.show(this.player.x, this.player.y - 122, canPoke ? 'Space 꾹 → 콕!' : null);
     this.hud.update(dt);
     this.debug.update();
     window.__kingbat = {

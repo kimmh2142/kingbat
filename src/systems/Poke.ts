@@ -30,16 +30,27 @@ export class Poke {
     return Phaser.Math.Linear(POKE.rateStart, POKE.rateMax, t * t);
   }
 
-  update(dt: number, held: boolean, player: Player, target: TargetController): void {
+  /**
+   * @param hasItem 아이템을 고른 상태면 짧게 누르기는 아이템 사용이라 holdThreshold만큼 기다린다.
+   *                아이템이 없으면 누르자마자 찌른다.
+   */
+  update(dt: number, held: boolean, player: Player, target: TargetController, hasItem = false): void {
     if (!held) {
       this.holdTime = 0;
       this.stop(target);
       return;
     }
+    const justPressed = this.holdTime === 0;
     this.holdTime += dt;
-    if (this.holdTime < POKE.holdThreshold) return;
+    if (this.holdTime < (hasItem ? POKE.holdThreshold : 0)) return;
 
-    if (!target.canBePokedFrom(player.x, player.y, POKE.range)) {
+    const where = target.pokeCheck(player.x, player.y, POKE.range);
+    if (where !== 'ok') {
+      // 왜 안 되는지 알려준다 (누른 순간 한 번)
+      if (justPressed && !this.active) {
+        const msg = where === 'front' ? '얼굴 쪽은 안 돼! 등 뒤로' : `${target.pattern.appearance.rank} 등 뒤에서 꾹!`;
+        popWord(this.scene, player.x, player.y - 110, msg, { color: '#5a3a4a', size: 18 });
+      }
       this.stop(target);
       return;
     }
@@ -71,7 +82,7 @@ export class Poke {
     const bx = target.x;
     const by = target.y - 50;
     target.view.jolt();
-    if (target.pokeLocked) {
+    if (POKE.lockAfterScore && target.pokeLocked) {
       // 연타 방지: 같은 장난은 상대가 확인 사이클을 마칠 때까지 점수 없음
       popWord(this.scene, bx, by, '콕…', { color: '#b0a6b8', size: 20 });
       return;

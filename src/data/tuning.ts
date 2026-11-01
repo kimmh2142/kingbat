@@ -27,6 +27,11 @@ export const POKE = {
   accelTime: 3,
   /** 콕 1번당 킹받음 */
   pointsPerPoke: 1,
+  /**
+   * 연타 방지를 콕 찌르기에도 적용할지. true면 한 번 점수를 받은 뒤 상대가 확인 사이클을 마칠 때까지 0점.
+   * 꺼 두면 콕은 언제든 쌓이고(대신 돌아볼 때 들킬 위험), 연타 방지는 아이템 장난에만 적용한다.
+   */
+  lockAfterScore: false,
   /** 찌르는 동안 이동 속도 배율 (0 = 제자리) */
   moveMultiplier: 0,
 };

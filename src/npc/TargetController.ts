@@ -122,14 +122,18 @@ export class TargetController {
     return this.state === 'look' || this.state === 'react' ? { x: -f.x, y: -f.y } : f;
   }
 
-  /** 콕 찌를 수 있는 위치인가: 등 뒤 가까이 */
-  canBePokedFrom(x: number, y: number, range: number): boolean {
+  /**
+   * 이 위치에서 콕 찌를 수 있는가. 등 뒤·옆에서 가까이 있어야 한다 (얼굴 쪽은 안 됨).
+   * 돌아보는 중에도 원래 등 쪽에서 찌를 수는 있다 (그러면 들킨다).
+   */
+  pokeCheck(x: number, y: number, range: number): 'ok' | 'far' | 'front' {
     const f = FACING_VEC[this.facing];
     const dx = x - this.pos.x;
     const dy = y - this.pos.y;
-    // 돌아보는 중에도 원래 등 쪽에서 찌를 수는 있다 (그러면 들킨다)
-    const behind = dx * f.x + dy * f.y < 4;
-    return behind && Math.hypot(dx, dy) <= range;
+    const dist = Math.hypot(dx, dy);
+    if (dist > range) return 'far';
+    const facingCos = dist < 1 ? -1 : (dx * f.x + dy * f.y) / dist;
+    return facingCos < 0.35 ? 'ok' : 'front';
   }
 
   /** 확인 중일 때 이 위치가 보이는가 */
