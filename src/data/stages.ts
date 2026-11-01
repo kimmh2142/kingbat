@@ -15,5 +15,6 @@ export interface StageConfig {
 
 export const STAGES: Record<number, StageConfig> = {
   // 2·3 스테이지 시각은 기준 문서에 끝 시각이 없어 정해지면 추가한다 (제한시간 4분·5분)
-  1: { id: 1, label: 'STAGE 1 · 동기 이동기', timeLimit: 180, clockStart: 16 * 60 + 57, clockEnd: 18 * 60, urgentAt: 30 },
+  // STAGE 1: 기준 문서 초기값 3분 → 플레이 테스트(11/1) 후 2분. 대리·아이템·미션을 넣은 뒤 다시 잰다
+  1: { id: 1, label: 'STAGE 1 · 동기 이동기', timeLimit: 120, clockStart: 16 * 60 + 57, clockEnd: 18 * 60, urgentAt: 30 },
 };
