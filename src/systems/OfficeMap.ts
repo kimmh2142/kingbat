@@ -68,7 +68,7 @@ export class OfficeMap {
     this.drawLockedAreas();
 
     const me = DESKS.find((d) => d.owner === 'me')!;
-    this.mySeat = { x: me.x, y: me.y - 76, r: 56 };
+    this.mySeat = { x: me.x, y: me.y - 88, r: 56 };
   }
 
   get width(): number {

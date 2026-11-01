@@ -147,4 +147,4 @@ export const WALL_DECOR: WallDecor[] = [
 ];
 
 /** 시작 위치: 내 자리 의자 */
-export const PLAYER_START = { x: COLS[0] + DESK_W / 2, y: ROWS[2] - 76 };
+export const PLAYER_START = { x: COLS[0] + DESK_W / 2, y: ROWS[2] - 100 };
