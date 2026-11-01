@@ -1,0 +1,90 @@
+import type { TextureKey } from '../assets/keys';
+
+/** [최소, 최대] 초. 매번 이 사이에서 무작위로 고른다 (시간을 외워서 이기지 못하게) */
+export type Range = readonly [number, number];
+
+export interface Point {
+  x: number;
+  y: number;
+}
+
+export type Facing = 'down' | 'up' | 'left' | 'right';
+
+export type HandsPose = 'keyboard' | 'knees' | 'phone' | 'snack' | 'side' | 'hidden';
+
+/** 캐릭터 한 순간의 모습. 전조는 전부 이 값의 변화로만 보여준다. */
+export interface Pose {
+  /** 뒤돌아본 상태 (뒤통수와 등이 보임) */
+  back?: boolean;
+  face?: TextureKey;
+  hands?: HandsPose;
+  /** 손이 키보드 위에서 움직임 (타닥타닥). 멈추는 것 자체가 전조 */
+  typing?: number;
+  /** 고개 기울기 (도) */
+  tilt?: number;
+  /** 꾸벅꾸벅 */
+  nod?: boolean;
+  /** 머리카락 쭈뼛 */
+  spike?: boolean;
+  /** 몸을 숙임 (책상 아래로 휴대폰 줍기) px */
+  bend?: number;
+  /** 머리 위 작은 말풍선 */
+  bubble?: string;
+}
+
+export interface NpcLook {
+  body: TextureKey;
+  bodyBack: TextureKey;
+  headFront: TextureKey;
+  headBack: TextureKey;
+  spike?: TextureKey;
+  rank: string;
+  rankColor: number;
+}
+
+/** 공략 대상 행동 패턴. 수치·대사·자세는 전부 여기서 정하고 TargetController는 순서만 돌린다. */
+export interface TargetPattern {
+  id: string;
+  name: string;
+  appearance: NpcLook;
+
+  /** 평소 업무: 이 중 하나를 골라 한동안 한다 */
+  work: { duration: Range; activities: { pose: Pose; weight: number }[] };
+  /** 의심 1단계: 진짜·페이크가 똑같이 보이는 구간 */
+  suspect: { duration: Range; pose: Pose };
+  /** 2단계 페이크: 다시 업무로 */
+  fake: { duration: Range; pose: Pose };
+  /** 2단계 진짜: 여기서 갈라진 뒤 돌아보기까지가 반응 시간 */
+  real: { duration: Range; pose: Pose };
+  /** 실제 확인 (뒤돌아봄) */
+  look: { duration: Range; pose: Pose; range: number; halfAngleDeg: number; nearRadius: number };
+  /** 업무 복귀 */
+  back: { duration: Range; pose: Pose; posePuzzled: Pose };
+  /** 들켰을 때 반응 */
+  react: { duration: Range; pose: Pose };
+
+  /** 페이크 확률 (0~1). 콕 찔려서 짜증난 상태면 낮아진다 */
+  fakeChance: number;
+  fakeChanceIrritated: number;
+  maxConsecutiveFakes: number;
+
+  /** 업무가 끝났을 때 의심 대신 방심 행동(휴대폰 떨어뜨리기 등)을 할 확률 */
+  distracted: { chance: number; duration: Range; pose: Pose; startBubble: string; scoreMultiplier: number };
+
+  /** 자리 비우기 (탕비실 다녀오기) */
+  trip: {
+    interval: Range;
+    stay: Range;
+    speed: number;
+    /** 자리에서 목적지까지 경로. 돌아올 땐 거꾸로 */
+    path: Point[];
+    stayFacing: Facing;
+    walkPose: Pose;
+    stayPose: Pose;
+  };
+
+  /** 업무 중 콕 찔리면 업무 타이머가 이 배율로 빨리 줄어든다 (뭔가 느낌) */
+  pokeSpeedup: number;
+  /** 자리 밖에서 이만큼(초) 찔리면 바로 의심을 시작한다 */
+  alertToSuspect: number;
+}

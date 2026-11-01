@@ -307,6 +307,202 @@ const DEFS: Record<TextureKey, { w: number; h: number; draw: Draw }> = {
       g.lineStyle(4, 0xffd54f).lineBetween(36, 16, 44, 24).lineBetween(44, 16, 36, 24);
     },
   },
+
+  // ------------------------------------------------------------ 동기 이동기
+  [TEX.dongiBody]: {
+    // 민트 셔츠 + 넥타이 + 회색 바지
+    w: 44,
+    h: 40,
+    draw: (g, w) => {
+      g.fillStyle(0x6d6a7c).fillRect(12, 26, w - 24, 8);
+      g.fillStyle(0x4a4458).fillRect(12, 34, 8, 5).fillRect(w - 20, 34, 8, 5);
+      g.fillStyle(0xa8e6cf).fillRoundedRect(7, 1, w - 14, 27, 8);
+      g.lineStyle(LINE, O).strokeRoundedRect(7, 1, w - 14, 27, 8);
+      g.fillStyle(0xffffff).fillTriangle(w / 2 - 7, 2, w / 2 + 7, 2, w / 2, 9);
+      g.fillStyle(0xef5350).fillTriangle(w / 2 - 3, 7, w / 2 + 3, 7, w / 2, 22);
+    },
+  },
+  [TEX.dongiBodyBack]: {
+    w: 44,
+    h: 40,
+    draw: (g, w) => {
+      g.fillStyle(0x6d6a7c).fillRect(12, 26, w - 24, 8);
+      g.fillStyle(0x4a4458).fillRect(12, 34, 8, 5).fillRect(w - 20, 34, 8, 5);
+      g.fillStyle(0x94d8bd).fillRoundedRect(7, 1, w - 14, 27, 8);
+      g.lineStyle(LINE, O).strokeRoundedRect(7, 1, w - 14, 27, 8);
+      g.lineStyle(2, O).lineBetween(w / 2, 6, w / 2, 24);
+    },
+  },
+  [TEX.dongiHeadFront]: {
+    // 얼굴 표정은 face_* 를 따로 겹친다
+    w: 58,
+    h: 56,
+    draw: (g) => {
+      g.fillStyle(0xfbe0cb).fillCircle(29, 33, 21);
+      g.lineStyle(LINE, O).strokeCircle(29, 33, 21);
+      g.fillStyle(0xfbe0cb).fillCircle(8, 36, 5).fillCircle(50, 36, 5);
+      g.lineStyle(2, O).strokeCircle(8, 36, 5).strokeCircle(50, 36, 5);
+      // 부스스한 갈색 머리
+      g.fillStyle(0x6b4a3a).slice(29, 33, 22, Math.PI * 1.02, Math.PI * 1.98, false).fillPath();
+      g.fillTriangle(12, 22, 20, 6, 24, 20).fillTriangle(24, 16, 32, 4, 36, 16).fillTriangle(36, 18, 46, 8, 46, 24);
+      g.lineStyle(2, O).strokeTriangle(12, 22, 20, 6, 24, 20);
+      g.lineStyle(2, O).strokeTriangle(36, 18, 46, 8, 46, 24);
+    },
+  },
+  [TEX.dongiHeadBack]: {
+    w: 58,
+    h: 56,
+    draw: (g) => {
+      g.fillStyle(0xfbe0cb).fillCircle(8, 36, 5).fillCircle(50, 36, 5);
+      g.lineStyle(2, O).strokeCircle(8, 36, 5).strokeCircle(50, 36, 5);
+      g.fillStyle(0x6b4a3a).fillCircle(29, 33, 21);
+      g.lineStyle(LINE, O).strokeCircle(29, 33, 21);
+      g.fillStyle(0x6b4a3a).fillTriangle(12, 22, 20, 6, 24, 20).fillTriangle(24, 16, 32, 4, 36, 16);
+      g.fillTriangle(36, 18, 46, 8, 46, 24);
+      g.fillStyle(0x86604c).fillEllipse(22, 28, 9, 13);
+    },
+  },
+  [TEX.dongiHairSpike]: {
+    // 진짜 돌아보기 직전: 머리카락이 쭈뼛
+    w: 64,
+    h: 30,
+    draw: (g) => {
+      g.fillStyle(0x6b4a3a);
+      const spikes = [
+        [6, 28, 10, 2, 18, 26],
+        [16, 26, 24, 0, 30, 24],
+        [28, 24, 34, 0, 40, 24],
+        [38, 24, 46, 2, 50, 26],
+        [48, 26, 58, 4, 58, 28],
+      ];
+      for (const [a, b, c, d, e, f] of spikes) {
+        g.fillTriangle(a, b, c, d, e, f);
+        g.lineStyle(2, O).strokeTriangle(a, b, c, d, e, f);
+      }
+    },
+  },
+
+  // ------------------------------------------------------------ NPC 공용 표정
+  [TEX.faceNormal]: {
+    w: 40,
+    h: 24,
+    draw: (g) => {
+      g.fillStyle(O).fillEllipse(12, 8, 5, 7).fillEllipse(28, 8, 5, 7);
+      g.lineStyle(2, O).beginPath().arc(20, 15, 4, 0.3, Math.PI - 0.3).strokePath();
+    },
+  },
+  [TEX.faceSleepy]: {
+    w: 40,
+    h: 24,
+    draw: (g) => {
+      g.lineStyle(2, O).lineBetween(8, 9, 16, 9).lineBetween(24, 9, 32, 9);
+      g.fillStyle(O).fillEllipse(20, 18, 6, 4);
+    },
+  },
+  [TEX.faceSuspicious]: {
+    // 가늘게 뜬 눈 + 옆으로 흘깃
+    w: 40,
+    h: 24,
+    draw: (g) => {
+      g.lineStyle(2, O).lineBetween(6, 5, 17, 7).lineBetween(23, 7, 34, 5);
+      g.fillStyle(O).fillEllipse(9, 10, 4, 4).fillEllipse(25, 10, 4, 4);
+      g.lineStyle(2, O).lineBetween(16, 18, 24, 17);
+    },
+  },
+  [TEX.facePhone]: {
+    // 눈을 아래로 깔고 히죽
+    w: 40,
+    h: 24,
+    draw: (g) => {
+      g.fillStyle(O).fillEllipse(12, 11, 5, 4).fillEllipse(28, 11, 5, 4);
+      g.lineStyle(2, O).beginPath().arc(20, 15, 5, 0.2, Math.PI - 0.2).strokePath();
+    },
+  },
+  [TEX.faceHappy]: {
+    w: 40,
+    h: 24,
+    draw: (g) => {
+      g.lineStyle(2, O).beginPath().arc(12, 10, 4, Math.PI, 0).strokePath();
+      g.lineStyle(2, O).beginPath().arc(28, 10, 4, Math.PI, 0).strokePath();
+      g.fillStyle(0xe57373).fillCircle(20, 17, 4);
+      g.lineStyle(2, O).strokeCircle(20, 17, 4);
+    },
+  },
+  [TEX.faceShock]: {
+    w: 40,
+    h: 24,
+    draw: (g) => {
+      g.fillStyle(0xffffff).fillCircle(12, 8, 5).fillCircle(28, 8, 5);
+      g.lineStyle(2, O).strokeCircle(12, 8, 5).strokeCircle(28, 8, 5);
+      g.fillStyle(O).fillCircle(12, 8, 2).fillCircle(28, 8, 2);
+      g.fillStyle(O).fillEllipse(20, 19, 8, 7);
+    },
+  },
+  [TEX.hand]: {
+    w: 14,
+    h: 14,
+    draw: (g) => {
+      g.fillStyle(0xfbe0cb).fillCircle(7, 7, 5);
+      g.lineStyle(2, O).strokeCircle(7, 7, 5);
+    },
+  },
+  [TEX.phone]: {
+    w: 14,
+    h: 20,
+    draw: (g) => {
+      g.fillStyle(0x37474f).fillRoundedRect(1, 1, 12, 18, 3);
+      g.lineStyle(2, O).strokeRoundedRect(1, 1, 12, 18, 3);
+      g.fillStyle(0x80deea).fillRect(3, 3, 8, 12);
+    },
+  },
+  [TEX.snack]: {
+    w: 18,
+    h: 18,
+    draw: (g) => {
+      g.fillStyle(0xffcc80).fillCircle(9, 9, 7);
+      g.lineStyle(2, O).strokeCircle(9, 9, 7);
+      g.fillStyle(0x8d6e63).fillCircle(7, 7, 1.5).fillCircle(11, 10, 1.5);
+    },
+  },
+
+  // ------------------------------------------------------------ 표시
+  [TEX.angerMark]: {
+    // 만화식 핏대 (+자 모양 네 갈래)
+    w: 36,
+    h: 36,
+    draw: (g) => {
+      const arm = (x1: number, y1: number, x2: number, y2: number) => {
+        g.lineStyle(9, O).lineBetween(x1, y1, x2, y2);
+        g.lineStyle(5, 0xef5350).lineBetween(x1, y1, x2, y2);
+      };
+      arm(18, 4, 18, 13);
+      arm(18, 23, 18, 32);
+      arm(4, 18, 13, 18);
+      arm(23, 18, 32, 18);
+    },
+  },
+  [TEX.targetIcon]: {
+    w: 26,
+    h: 26,
+    draw: (g) => {
+      g.fillStyle(0xffffff).fillCircle(13, 13, 11);
+      g.lineStyle(3, 0xe53935).strokeCircle(13, 13, 10).strokeCircle(13, 13, 5);
+      g.fillStyle(0xe53935).fillCircle(13, 13, 2);
+      g.lineStyle(2, O).strokeCircle(13, 13, 12);
+    },
+  },
+  [TEX.stripe]: {
+    // 임시 점수 줄무늬
+    w: 16,
+    h: 16,
+    draw: (g, w, h) => {
+      g.fillStyle(0xf8bbd0).fillRect(0, 0, w, h);
+      // 바깥으로 삐져나간 선은 텍스처 크기로 잘린다
+      g.lineStyle(4, 0xf06292);
+      for (let i = -16; i <= 32; i += 8) g.lineBetween(i, h, i + 16, 0);
+      void w;
+    },
+  },
 };
 
 export function generatePlaceholders(scene: Phaser.Scene): void {

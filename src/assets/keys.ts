@@ -27,6 +27,29 @@ export const TEX = {
   playerBody: 'player_body',
   playerHeadFront: 'player_head_front',
   playerHeadBack: 'player_head_back',
+
+  // 동기 이동기 (파츠)
+  dongiBody: 'dongi_body',
+  dongiBodyBack: 'dongi_body_back',
+  dongiHeadFront: 'dongi_head_front',
+  dongiHeadBack: 'dongi_head_back',
+  dongiHairSpike: 'dongi_hair_spike',
+
+  // NPC 공용 표정·소품 (얼굴 위에 겹친다)
+  faceNormal: 'face_normal',
+  faceSleepy: 'face_sleepy',
+  faceSuspicious: 'face_suspicious',
+  facePhone: 'face_phone',
+  faceHappy: 'face_happy',
+  faceShock: 'face_shock',
+  hand: 'npc_hand',
+  phone: 'phone',
+  snack: 'snack',
+
+  // 표시
+  angerMark: 'anger_mark',
+  targetIcon: 'target_icon',
+  stripe: 'stripe',
 } as const;
 
 export type TextureKey = (typeof TEX)[keyof typeof TEX];
