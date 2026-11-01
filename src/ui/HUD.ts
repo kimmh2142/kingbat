@@ -2,14 +2,15 @@ import Phaser from 'phaser';
 import { TEX } from '../assets/keys';
 import { COLORS, FONT, GAME_WIDTH } from '../config';
 import { DEPTH } from '../systems/OfficeMap';
+import type { Life } from '../systems/Life';
 import type { Score } from '../systems/Score';
 
 const BAR_W = 300;
 const BAR_H = 18;
 
 /**
- * 상단 HUD (지금은 스테이지 + 킹받음 게이지만).
- * 하트·퇴근 시계·일시정지는 다음 단계에서 같은 줄에 붙인다.
+ * 상단 HUD: 스테이지 · 킹받음 게이지(확정 + 임시 줄무늬) · 하트.
+ * 퇴근 시계·일시정지는 다음 단계에서 같은 줄에 붙인다.
  */
 export class HUD {
   private readonly fill: Phaser.GameObjects.Graphics;
@@ -17,10 +18,12 @@ export class HUD {
   private readonly value: Phaser.GameObjects.Text;
   private readonly barX: number;
   private readonly barY: number;
+  private readonly hearts: Phaser.GameObjects.Image[] = [];
 
   constructor(
-    scene: Phaser.Scene,
+    private readonly scene: Phaser.Scene,
     private readonly score: Score,
+    life: Life,
     stageLabel: string,
   ) {
     const fixed = <T extends Phaser.GameObjects.Components.ScrollFactor & Phaser.GameObjects.Components.Depth>(o: T) =>
@@ -47,12 +50,52 @@ export class HUD {
       scene.add.text(this.barX + BAR_W + 10, 24, '', { fontFamily: FONT, fontSize: '16px', color: COLORS.text }).setOrigin(0, 0.5),
     );
 
+    for (let i = 0; i < life.max; i++) {
+      const x = GAME_WIDTH - 36 - (life.max - 1 - i) * 32;
+      this.hearts.push(fixed(scene.add.image(x, 24, i < life.hearts ? TEX.heartFull : TEX.heartEmpty)));
+    }
+    life.on('lose', (left: number) => this.breakHeart(left));
+
     score.on('change', () => this.refresh());
     this.refresh();
   }
 
   update(dt: number): void {
     this.temp.tilePositionX -= dt * 20;
+  }
+
+  /** 하트 하나가 크게 튀었다가 깨진다 */
+  private breakHeart(index: number): void {
+    const h = this.hearts[index];
+    if (!h) return;
+    h.setDepth(DEPTH.label + 45); // 컷인 어둡게 깔린 화면 위로
+    this.scene.tweens.add({
+      targets: h,
+      scale: 2.2,
+      angle: { from: -15, to: 15 },
+      duration: 160,
+      yoyo: true,
+      repeat: 1,
+      onComplete: () => {
+        h.setTexture(TEX.heartEmpty).setScale(1).setAngle(0).setDepth(DEPTH.label + 20);
+        for (let i = 0; i < 6; i++) {
+          const piece = this.scene.add
+            .image(h.x, h.y, TEX.heartFull)
+            .setScale(0.3)
+            .setScrollFactor(0)
+            .setDepth(DEPTH.label + 45);
+          this.scene.tweens.add({
+            targets: piece,
+            x: h.x + Phaser.Math.Between(-40, 40),
+            y: h.y + Phaser.Math.Between(10, 60),
+            angle: Phaser.Math.Between(-180, 180),
+            alpha: 0,
+            duration: 500,
+            onComplete: () => piece.destroy(),
+          });
+        }
+      },
+    });
   }
 
   private refresh(): void {

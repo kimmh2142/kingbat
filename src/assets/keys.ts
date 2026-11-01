@@ -50,6 +50,9 @@ export const TEX = {
   angerMark: 'anger_mark',
   targetIcon: 'target_icon',
   stripe: 'stripe',
+  heartFull: 'heart_full',
+  heartEmpty: 'heart_empty',
+  cutinArrow: 'cutin_arrow',
 } as const;
 
 export type TextureKey = (typeof TEX)[keyof typeof TEX];

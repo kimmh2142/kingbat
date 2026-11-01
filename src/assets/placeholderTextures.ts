@@ -503,7 +503,46 @@ const DEFS: Record<TextureKey, { w: number; h: number; draw: Draw }> = {
       void w;
     },
   },
+  [TEX.heartFull]: {
+    w: 30,
+    h: 28,
+    draw: (g) => drawHeart(g, 0xff4f8b, 0xffb3cd),
+  },
+  [TEX.heartEmpty]: {
+    w: 30,
+    h: 28,
+    draw: (g) => drawHeart(g, 0xe8dde3, 0xf6eff2),
+  },
+  [TEX.cutinArrow]: {
+    // 들킨 원인 지점을 가리키는 큰 화살표 (아래쪽을 가리킴)
+    w: 64,
+    h: 80,
+    draw: (g) => {
+      const pts = [
+        { x: 20, y: 2 },
+        { x: 44, y: 2 },
+        { x: 44, y: 40 },
+        { x: 62, y: 40 },
+        { x: 32, y: 78 },
+        { x: 2, y: 40 },
+        { x: 20, y: 40 },
+      ];
+      g.fillStyle(0xff3d6e).fillPoints(pts, true);
+      g.lineStyle(4, O).strokePoints(pts, true);
+      g.fillStyle(0xffffff, 0.6).fillRect(25, 8, 6, 26);
+    },
+  },
 };
+
+function drawHeart(g: Phaser.GameObjects.Graphics, fill: number, shine: number): void {
+  g.fillStyle(fill);
+  g.fillCircle(9, 10, 8).fillCircle(21, 10, 8).fillTriangle(2, 13, 28, 13, 15, 26);
+  g.lineStyle(3, O);
+  g.beginPath().arc(9, 10, 8, Math.PI * 0.8, Math.PI * 1.95).strokePath();
+  g.beginPath().arc(21, 10, 8, Math.PI * 1.05, Math.PI * 0.2).strokePath();
+  g.lineBetween(2.5, 14, 15, 26).lineBetween(27.5, 14, 15, 26);
+  g.fillStyle(shine).fillCircle(8, 8, 3);
+}
 
 export function generatePlaceholders(scene: Phaser.Scene): void {
   for (const [key, def] of Object.entries(DEFS)) {

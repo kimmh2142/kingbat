@@ -1,17 +1,19 @@
 import Phaser from 'phaser';
 import { FONT, GAME_HEIGHT, GAME_WIDTH } from '../config';
-import { CAUGHT_REASONS, type CaughtReasonId } from '../data/caughtReasons';
+import type { CaughtReasonId } from '../data/caughtReasons';
 import { PLAYER_START } from '../data/office7f';
-import { CAMERA, CAUGHT, POKE } from '../data/tuning';
+import { CAMERA, POKE } from '../data/tuning';
 import { DONGI } from '../npc/patterns/dongi';
 import { TargetController } from '../npc/TargetController';
 import { Player } from '../player/Player';
 import { Controls } from '../systems/Controls';
 import { DebugOverlay } from '../systems/DebugOverlay';
 import { Hide } from '../systems/Hide';
+import { Life } from '../systems/Life';
 import { DEPTH, OfficeMap } from '../systems/OfficeMap';
 import { Poke } from '../systems/Poke';
 import { Score } from '../systems/Score';
+import { CaughtCutin } from '../ui/CaughtCutin';
 import { HUD } from '../ui/HUD';
 import { Prompt } from '../ui/Prompt';
 import { VisionCone } from '../ui/VisionCone';
@@ -33,8 +35,12 @@ export class OfficeScene extends Phaser.Scene {
   private touch!: TouchControls;
   private hide!: Hide;
   private goalAnnounced = false;
-  /** 들킨 직후 화면이 멈춰 있는 남은 시간 */
-  private frozen = 0;
+  private life!: Life;
+  private cutin!: CaughtCutin;
+  /** 하트를 다 잃어서 실패 화면이 떠 있음 */
+  private failed = false;
+  /** 이번 프레임에 화면을 터치했는가 (컷인 넘기기) */
+  private tapped = false;
   private caughtCount = 0;
 
   constructor() {
@@ -42,6 +48,12 @@ export class OfficeScene extends Phaser.Scene {
   }
 
   create(): void {
+    // scene.restart()는 생성자를 다시 부르지 않으므로 판마다 상태를 여기서 초기화한다
+    this.failed = false;
+    this.tapped = false;
+    this.caughtCount = 0;
+    this.goalAnnounced = false;
+
     this.map = new OfficeMap(this, 1);
     this.touch = new TouchControls(this);
     this.controls = new Controls(this, this.touch);
@@ -60,12 +72,17 @@ export class OfficeScene extends Phaser.Scene {
     this.poke = new Poke(this, this.score);
     this.hide = new Hide(this, this.score);
     this.score.on('change', () => this.announceGoal());
-    this.hud = new HUD(this, this.score, `STAGE 1 · ${DONGI.name}`);
+    this.life = new Life();
+    this.hud = new HUD(this, this.score, this.life, `STAGE 1 · ${DONGI.name}`);
+    this.cutin = new CaughtCutin(this);
+    this.input.on(Phaser.Input.Events.POINTER_DOWN, () => (this.tapped = true));
     this.prompt = new Prompt(this);
     this.targetCone = new VisionCone(this);
 
     // 물리 계산이 끝난 뒤 그림 위치를 맞춘다
-    this.events.on(Phaser.Scenes.Events.POST_UPDATE, () => this.player.syncView());
+    const sync = () => this.player.syncView();
+    this.events.on(Phaser.Scenes.Events.POST_UPDATE, sync);
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => this.events.off(Phaser.Scenes.Events.POST_UPDATE, sync));
     this.player.syncView();
 
     this.setupCamera();
@@ -95,10 +112,12 @@ export class OfficeScene extends Phaser.Scene {
   update(_time: number, delta: number): void {
     const dt = delta / 1000;
 
-    if (this.frozen > 0) {
-      this.frozen -= dt;
+    if (this.paused) {
+      // 컷인·실패 화면: 게임은 멈추고 캐릭터 연출만 움직인다
       this.player.update(new Phaser.Math.Vector2(), dt);
       this.target.view.update(dt);
+      this.cutin.update(dt, this.controls.justPressed('Space') || this.tapped);
+      if (this.failed && (this.controls.justPressed('Space') || this.controls.justPressed('Enter'))) this.retry();
     } else {
       const move = this.controls.getMove().clone();
       if (this.poke.active) move.scale(POKE.moveMultiplier);
@@ -118,7 +137,7 @@ export class OfficeScene extends Phaser.Scene {
     this.target.view.setAnger(this.score.total / this.score.goal);
     const near = Phaser.Math.Distance.Between(this.player.x, this.player.y, this.target.x, this.target.y) < 110;
     this.target.view.setLabelFaded(near && this.player.y < this.target.y);
-    const canPoke = this.frozen <= 0 && !this.poke.active && this.target.pokeCheck(this.player.x, this.player.y, POKE.range) === 'ok';
+    const canPoke = !this.paused && !this.poke.active && this.target.pokeCheck(this.player.x, this.player.y, POKE.range) === 'ok';
     this.prompt.show(this.player.x, this.player.y - 122, this.promptText(canPoke));
     // [숨기] 버튼은 숨을 수 있는 곳 근처에서만 진하게
     this.touch.setDisabled('hide', !this.hide.nearby);
@@ -133,11 +152,20 @@ export class OfficeScene extends Phaser.Scene {
       poking: this.poke.active,
       caught: this.caughtCount,
       hidden: this.hide.hidden,
+      hearts: this.life.hearts,
+      cutin: this.cutin.active,
+      failed: this.failed,
     };
+    this.tapped = false;
+  }
+
+  /** 컷인이나 실패 화면 때문에 게임이 멈춰 있음 */
+  private get paused(): boolean {
+    return this.cutin.active || this.failed;
   }
 
   private promptText(canPoke: boolean): string | null {
-    if (this.frozen > 0 || this.hide.hidden) return null;
+    if (this.paused || this.hide.hidden) return null;
     const touch = this.controls.isTouch;
     if (canPoke) return touch ? '콕 버튼 꾹!' : 'Space 꾹 → 콕!';
     if (this.hide.nearby) {
@@ -176,46 +204,50 @@ export class OfficeScene extends Phaser.Scene {
     if (guilty && t.canSee(this.player.x, this.player.y)) this.onCaught('turned');
   }
 
-  /**
-   * 들킴 처리 (임시). 정식 컷인·하트 감소는 다음 단계에서 CaughtCutin과 Life로 옮긴다.
-   */
+  /** 들킴: 임시 점수 소멸 → 컷인(하트 -1) → 하트가 없으면 실패 화면 */
   private onCaught(reason: CaughtReasonId): void {
     this.caughtCount += 1;
     this.poke.cancel(this.target);
     this.score.loseTemp();
     this.target.onCaught();
-    this.frozen = CAUGHT.freezeSeconds;
-    this.cameras.main.shake(180, 0.006);
-
-    const r = CAUGHT_REASONS[reason];
-    const title = this.add
-      .text(GAME_WIDTH / 2, GAME_HEIGHT / 2 - 20, r.text, {
-        fontFamily: FONT,
-        fontSize: '56px',
-        color: '#ffffff',
-        stroke: '#e0457b',
-        strokeThickness: 12,
-      })
-      .setOrigin(0.5);
-    const tip = this.add
-      .text(GAME_WIDTH / 2, GAME_HEIGHT / 2 + 40, `TIP  ${r.tip}`, {
-        fontFamily: FONT,
-        fontSize: '20px',
-        color: '#5a3a4a',
-        backgroundColor: '#ffffffee',
-        padding: { x: 12, y: 6 },
-      })
-      .setOrigin(0.5);
-    const box = this.add.container(0, 0, [title, tip]).setScrollFactor(0).setDepth(DEPTH.label + 30);
-    title.setScale(2.2).setAngle(-6);
-    this.tweens.add({ targets: title, scale: 1, duration: 220, ease: 'Back.Out' });
-    this.tweens.add({
-      targets: box,
-      alpha: 0,
-      delay: CAUGHT.freezeSeconds * 1000 - 250,
-      duration: 250,
-      onComplete: () => box.destroy(),
+    this.cutin.play({
+      reason,
+      cause: { x: this.target.x, y: this.target.y - 70 },
+      follow: this.player.cameraTarget,
+      onHit: () => this.life.lose(reason),
+      onDone: () => {
+        if (!this.life.alive) this.showFail();
+      },
     });
+  }
+
+  /** 하트 0개: 간이 실패 화면 (정식 실패 화면은 이후 단계) */
+  private showFail(): void {
+    this.failed = true;
+    const cx = GAME_WIDTH / 2;
+    const cy = GAME_HEIGHT / 2;
+    const dim = this.add.rectangle(0, 0, GAME_WIDTH, GAME_HEIGHT, 0x2a1d24, 0.6).setOrigin(0);
+    const stamp = this.add
+      .text(cx, cy - 50, '딱 걸렸다!', { fontFamily: FONT, fontSize: '72px', color: '#ff3d6e', stroke: '#ffffff', strokeThickness: 10 })
+      .setOrigin(0.5)
+      .setAngle(-8)
+      .setScale(2.5);
+    const sub = this.add
+      .text(cx, cy + 20, '동기: "야! 너였구나!"', { fontFamily: FONT, fontSize: '22px', color: '#ffffff' })
+      .setOrigin(0.5);
+    const btnBg = this.add.rectangle(cx, cy + 90, 220, 56, 0xffd54f).setStrokeStyle(4, 0x5a3a4a);
+    const btnText = this.add.text(cx, cy + 90, '다시 도전', { fontFamily: FONT, fontSize: '26px', color: '#5a3a4a' }).setOrigin(0.5);
+    const hint = this.add
+      .text(cx, cy + 135, this.controls.isTouch ? '버튼을 눌러요' : 'Space / Enter', { fontFamily: FONT, fontSize: '16px', color: '#ffffff' })
+      .setOrigin(0.5);
+    for (const o of [dim, stamp, sub, btnBg, btnText, hint]) o.setScrollFactor(0).setDepth(DEPTH.label + 50);
+    this.tweens.add({ targets: stamp, scale: 1, duration: 260, ease: 'Back.Out' });
+    btnBg.setInteractive({ useHandCursor: true }).once(Phaser.Input.Events.GAMEOBJECT_POINTER_UP, () => this.retry());
+  }
+
+  /** 이 스테이지만 처음부터 다시 (도입 컷신은 없음) */
+  private retry(): void {
+    this.scene.restart();
   }
 
   private setupDebug(): void {

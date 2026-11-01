@@ -41,13 +41,15 @@ export class Controls {
     window.addEventListener('keydown', onDown);
     window.addEventListener('keyup', onUp);
     window.addEventListener('blur', onBlur);
+    // 매 프레임 끝에 "방금 눌림" 기록을 비운다
+    const clearPressed = () => this.pressed.clear();
+    scene.events.on(Phaser.Scenes.Events.POST_UPDATE, clearPressed);
     scene.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
       window.removeEventListener('keydown', onDown);
       window.removeEventListener('keyup', onUp);
       window.removeEventListener('blur', onBlur);
+      scene.events.off(Phaser.Scenes.Events.POST_UPDATE, clearPressed);
     });
-    // 매 프레임 끝에 "방금 눌림" 기록을 비운다
-    scene.events.on(Phaser.Scenes.Events.POST_UPDATE, () => this.pressed.clear());
   }
 
   isDown(code: string): boolean {

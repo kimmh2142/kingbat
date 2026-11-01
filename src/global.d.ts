@@ -8,6 +8,9 @@ interface Window {
     poking?: boolean;
     caught?: number;
     hidden?: boolean;
+    hearts?: number;
+    cutin?: boolean;
+    failed?: boolean;
   };
   __kingbatTest?: { teleport(x: number, y: number): void };
 }

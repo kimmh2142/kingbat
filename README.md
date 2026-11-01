@@ -40,6 +40,7 @@ npm run dev      # 개발 서버 실행
 | `npm run check:dongi` | 동기 상태 전환 기록, 콕 찌르기, 돌아볼 때 들킴 확인 (약 1분) |
 | `npm run check:mobile` | 휴대폰 가로 화면 흉내: 조이스틱 이동, [콕] 버튼, 두 손가락 동시 터치, 세로 안내 확인 |
 | `npm run check:hide` | 찌르기 → 화분 뒤 숨기 → 확정, 내 자리 일하는 척, 범위 밖 Shift 확인 |
+| `npm run check:caught` | 3번 들키기 → 하트 3→0, 컷인 캡처·Space로 넘기기, 실패 화면 → 다시 도전 (약 1~2분) |
 
 ## 휴대폰으로 접속하기
 

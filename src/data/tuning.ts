@@ -42,8 +42,10 @@ export const SCORE = {
 };
 
 export const CAUGHT = {
-  /** 들켰을 때 화면이 멈추는 시간(초). 정식 컷인은 다음 단계 */
-  freezeSeconds: 1.6,
+  /** 들킴 컷인 길이(초). 이 동안 게임(퇴근 시계 포함)이 멈춘다 */
+  cutinSeconds: 2.4,
+  /** 이 시간(초)이 지나면 Space·터치로 컷인을 넘길 수 있다 */
+  skipAfter: 0.8,
 };
 
 export const HIDE = {
@@ -51,4 +53,9 @@ export const HIDE = {
   confirmSeconds: 0.5,
   /** 숨는 자리로 미끄러져 들어가는 시간(초) */
   snapSeconds: 0.15,
+};
+
+export const LIFE = {
+  /** 시작 하트 수 */
+  hearts: 3,
 };
