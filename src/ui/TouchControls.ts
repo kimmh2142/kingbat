@@ -15,6 +15,8 @@ interface ButtonDef {
 
 const JOY_RADIUS = 56;
 const JOY_DEADZONE = 0.18;
+/** 안 쓸 때 조이스틱이 쉬는 자리 (왼쪽 아래) */
+const JOY_REST = { x: 120, y: GAME_HEIGHT - 120 };
 const BUTTONS: ButtonDef[] = [
   { id: 'poke', label: '콕', x: GAME_WIDTH - 86, y: GAME_HEIGHT - 86, r: 56, color: 0xffd54f },
   { id: 'hide', label: '숨기', x: GAME_WIDTH - 200, y: GAME_HEIGHT - 56, r: 40, color: 0x90caf9 },
@@ -23,7 +25,7 @@ const BUTTONS: ButtonDef[] = [
 
 /**
  * 모바일 가로 모드 조작.
- * - 왼쪽 절반: 누른 자리에 조이스틱이 생긴다 (떼면 사라짐)
+ * - 왼쪽 아래에 조이스틱이 흐리게 떠 있다. 왼쪽 절반 어디를 눌러도 그 자리로 따라오고, 떼면 제자리로 돌아간다
  * - 오른쪽 아래: 버튼. 여러 손가락을 동시에 쓸 수 있다.
  * 터치 기기에서만 보인다 (?touch=1 로 PC에서도 강제 표시).
  */
@@ -48,8 +50,8 @@ export class TouchControls {
     const fixed = <T extends Phaser.GameObjects.Components.ScrollFactor & Phaser.GameObjects.Components.Depth>(o: T) =>
       o.setScrollFactor(0).setDepth(DEPTH.label + 40);
 
-    this.joyBase = fixed(scene.add.circle(0, 0, JOY_RADIUS, 0xffffff, 0.25).setStrokeStyle(4, COLORS.outline, 0.5));
-    this.joyKnob = fixed(scene.add.circle(0, 0, 26, 0xffffff, 0.85).setStrokeStyle(4, COLORS.outline));
+    this.joyBase = fixed(scene.add.circle(JOY_REST.x, JOY_REST.y, JOY_RADIUS, 0xffffff, 0.25).setStrokeStyle(4, COLORS.outline, 0.5));
+    this.joyKnob = fixed(scene.add.circle(JOY_REST.x, JOY_REST.y, 26, 0xffffff, 0.85).setStrokeStyle(4, COLORS.outline));
     this.showJoystick(false);
 
     for (const b of BUTTONS) {
@@ -145,17 +147,20 @@ export class TouchControls {
     if (p.id === this.joyPointer) {
       this.joyPointer = null;
       this.move.set(0, 0);
+      this.joyBase.setPosition(JOY_REST.x, JOY_REST.y);
+      this.joyKnob.setPosition(JOY_REST.x, JOY_REST.y);
       this.showJoystick(false);
     }
     if (this.held.delete(p.id)) this.refresh();
   }
 
+  /** 터치 기기면 늘 보이고, 쓰는 중에만 진하게 */
   private showJoystick(on: boolean): void {
-    this.joyBase.setVisible(on);
-    this.joyKnob.setVisible(on);
+    for (const o of [this.joyBase, this.joyKnob]) o.setVisible(this.enabled).setAlpha(on ? 1 : 0.5);
   }
 
   private refresh(): void {
+    this.showJoystick(this.joyPointer !== null);
     for (const [id, view] of this.views) {
       view.setVisible(this.enabled);
       const pressed = this.isDown(id);

@@ -59,3 +59,21 @@ export const LIFE = {
   /** 시작 하트 수 */
   hearts: 3,
 };
+
+export const INTRO = {
+  /** 시작 후 카메라가 출발하기까지 (초) */
+  delay: 0.3,
+  /** 타깃까지 카메라 이동 (초) */
+  panTo: 0.9,
+  /** 타깃을 보여주는 시간 (초) */
+  hold: 1.3,
+  /** 내 자리로 돌아오는 카메라 이동 (초) */
+  panBack: 0.7,
+};
+
+export const TARGET_ARROW = {
+  /** 화살표가 붙는 화면 안쪽 여백 (위는 HUD, 아래는 아이템 칸을 피한다) */
+  marginX: 40,
+  marginTop: 72,
+  marginBottom: 84,
+};

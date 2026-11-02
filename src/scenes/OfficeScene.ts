@@ -24,6 +24,8 @@ import { CaughtCutin } from '../ui/CaughtCutin';
 import { HUD } from '../ui/HUD';
 import { ItemBar } from '../ui/ItemBar';
 import { Prompt } from '../ui/Prompt';
+import { TargetArrow } from '../ui/TargetArrow';
+import { TargetIntro } from '../ui/TargetIntro';
 import { VisionCone } from '../ui/VisionCone';
 import { TouchControls } from '../ui/TouchControls';
 
@@ -59,13 +61,17 @@ export class OfficeScene extends Phaser.Scene {
   private pranks!: Pranks;
   /** Space(모바일 [콕])를 누르고 있는 시간. 짧게 떼면 아이템 사용 */
   private actionHoldT = 0;
+  /** 시작 타깃 소개 (끝나면 null) */
+  private intro: TargetIntro | null = null;
+  private targetArrow!: TargetArrow;
 
   constructor() {
     super('Office');
   }
 
-  create(): void {
+  create(data?: { retry?: boolean }): void {
     // scene.restart()는 생성자를 다시 부르지 않으므로 판마다 상태를 여기서 초기화한다
+    this.intro = null;
     this.failed = false;
     this.tapped = false;
     this.caughtCount = 0;
@@ -115,8 +121,21 @@ export class OfficeScene extends Phaser.Scene {
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => this.events.off(Phaser.Scenes.Events.POST_UPDATE, sync));
     this.player.syncView();
 
+    this.targetArrow = new TargetArrow(this);
     this.setupCamera();
     this.setupDebug();
+    // 시작 타깃 소개. 다시 도전(하트 0개·야근)이면 생략.
+    // Playwright 확인 스크립트는 바로 플레이해야 하므로 생략한다 (?intro=1이면 보여줌)
+    const params = new URLSearchParams(location.search);
+    const skipIntro = data?.retry || params.has('overview') || (navigator.webdriver && !params.has('intro'));
+    if (!skipIntro) {
+      this.intro = new TargetIntro(
+        this,
+        this.target,
+        () => this.player.cameraTarget,
+        () => this.followPlayer(),
+      );
+    }
     if (import.meta.env.DEV) {
       // 개발 중 테스트용 (빌드에는 빠진다)
       window.__kingbatTest = {
@@ -154,6 +173,7 @@ export class OfficeScene extends Phaser.Scene {
       this.target.view.update(dt);
       this.daeri.view.update(dt);
       this.cutin.update(dt, this.controls.justPressed('Space') || this.tapped);
+      if (this.intro?.active && (this.controls.justPressed('Space') || this.tapped)) this.intro.skip();
       if (this.failed && (this.controls.justPressed('Space') || this.controls.justPressed('Enter'))) this.retry();
     } else {
       // 대리가 옆을 지나가면 가끔 붙잡는다 (숨어 있거나 찌르는 중이면 안 붙잡음)
@@ -196,6 +216,7 @@ export class OfficeScene extends Phaser.Scene {
     this.targetCone.update(dt, looking ? { x: t.x, y: t.y, dir: t.lookDir, ...t.pattern.look } : null);
     this.daeriCone.update(dt, this.daeri.cone);
     this.drawGrabRing();
+    this.targetArrow.update(this.cameras.main, this.paused ? null : this.target);
     this.target.view.setAnger(this.score.total / this.score.goal);
     const near = Phaser.Math.Distance.Between(this.player.x, this.player.y, this.target.x, this.target.y) < 110;
     this.target.view.setLabelFaded(near && this.player.y < this.target.y);
@@ -217,6 +238,7 @@ export class OfficeScene extends Phaser.Scene {
       hidden: this.hide.hidden,
       hearts: this.life.hearts,
       cutin: this.cutin.active,
+      intro: !!this.intro?.active,
       failed: this.failed,
       remaining: Math.round(this.clock.remaining * 10) / 10,
       daeri: { state: this.daeri.state, x: Math.round(this.daeri.x), y: Math.round(this.daeri.y), route: this.daeri.routeIndex },
@@ -234,9 +256,9 @@ export class OfficeScene extends Phaser.Scene {
     this.tapped = false;
   }
 
-  /** 컷인이나 실패 화면 때문에 게임이 멈춰 있음 */
+  /** 시작 소개·컷인·실패 화면 때문에 게임이 멈춰 있음 */
   private get paused(): boolean {
-    return this.cutin.active || this.failed;
+    return !!this.intro?.active || this.cutin.active || this.failed;
   }
 
   /** 머리 위 진행 원: 대리에게 붙잡혀 있는 동안 남은 시간(주황), 아이템 붙이는 중(분홍) */
@@ -359,7 +381,7 @@ export class OfficeScene extends Phaser.Scene {
 
   /** 이 스테이지만 처음부터 다시 (도입 컷신은 없음) */
   private retry(): void {
-    this.scene.restart();
+    this.scene.restart({ retry: true });
   }
 
   private setupDebug(): void {
@@ -425,10 +447,14 @@ export class OfficeScene extends Phaser.Scene {
     });
   }
 
+  private followPlayer(): void {
+    this.cameras.main.startFollow(this.player.cameraTarget, true, CAMERA.lerp, CAMERA.lerp, 0, 40);
+  }
+
   private setupCamera(): void {
     const cam = this.cameras.main;
     cam.setBounds(0, 0, this.map.width, this.map.height).setRoundPixels(true);
-    cam.startFollow(this.player.cameraTarget, true, CAMERA.lerp, CAMERA.lerp, 0, 40);
+    this.followPlayer();
     cam.setDeadzone(CAMERA.deadzoneW, CAMERA.deadzoneH);
 
     // ?overview=1 : 맵 전체를 한 화면에 (맵 확인용)

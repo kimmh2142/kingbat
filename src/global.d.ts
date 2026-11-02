@@ -10,6 +10,7 @@ interface Window {
     hidden?: boolean;
     hearts?: number;
     cutin?: boolean;
+    intro?: boolean;
     failed?: boolean;
     remaining?: number;
     daeri?: { state: string; x: number; y: number; route?: number };
