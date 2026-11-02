@@ -120,4 +120,6 @@ export interface PatrolPattern {
   react: { duration: Range; pose: Pose };
   /** 지나가다 플레이어를 붙잡기 ("커피 좀 사 올래?") */
   grab?: { chance: number; radius: number; seconds: number; cooldown: number; line: string; thanks: string };
+  /** 빈손인 플레이어가 시야에 들어오면 잠깐 세운다 ("뭐 해요?"). cooldown은 풀려난 뒤부터 */
+  stop?: { seconds: number; cooldown: number; line: string };
 }

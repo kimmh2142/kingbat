@@ -13,7 +13,7 @@ interface Window {
     intro?: boolean;
     failed?: boolean;
     remaining?: number;
-    daeri?: { state: string; x: number; y: number; route?: number };
+    daeri?: { kind?: string; state: string; x: number; y: number; route?: number };
     caughtBy?: Record<string, number>;
     items?: {
       slots: (string | null)[];
@@ -23,6 +23,7 @@ interface Window {
       postit: boolean;
       gum: boolean;
       bag: { x: number; y: number };
+      guide?: string;
     };
   };
   __kingbatTest?: { teleport(x: number, y: number): void; setRemaining(seconds: number): void; forceGrab(): void; giveItem(id: string): boolean };

@@ -21,6 +21,9 @@ const STATE_NAMES: Record<PatrolState, string> = {
   grab: '붙잡는 중',
 };
 
+/** 붙잡은 이유: 시야에 들어와서(뭐 해요?) / 옆을 지나가다(커피 심부름) */
+export type GrabKind = 'stop' | 'coffee';
+
 const FACING_VEC: Record<Facing, Point> = {
   down: { x: 0, y: 1 },
   up: { x: 0, y: -1 },
@@ -45,6 +48,12 @@ export class PatrolController {
   private readonly seat: Point;
   /** 발견·붙잡기가 끝나면 돌아갈 상태 */
   private resume: PatrolState = 'work';
+  /** 멈췄을 때 하던 일의 남은 시간 (커피 타다가 멈추면 이어서) */
+  private resumeTimer = 0;
+  /** 지금 붙잡은 이유 */
+  grabKind: GrabKind = 'coffee';
+  /** "뭐 해요?" 재사용 대기 시간 */
+  stopCooldown = 0;
   /** 이번 왕복에 고른 경로 */
   routeIndex = 0;
   /** 개발 테스트용: 붙잡기 확률 덮어쓰기 */
@@ -109,7 +118,7 @@ export class PatrolController {
   /** 플레이어를 발견해 들켰을 때: 그쪽을 보고 잠깐 멈춘다 */
   onCaught(px: number, py: number): void {
     this.lookAt(px, py);
-    this.resume = this.state === 'react' || this.state === 'grab' ? this.resume : this.state;
+    if (this.state !== 'react' && this.state !== 'grab') this.pause();
     this.state = 'react';
     this.timer = rand(this.pattern.react.duration);
     this.view.setPose(this.pattern.react.pose);
@@ -117,7 +126,8 @@ export class PatrolController {
 
   /** 붙잡는 중이면 남은 비율 1 → 0 */
   get grabRatio(): number {
-    return this.state === 'grab' && this.pattern.grab ? this.timer / this.pattern.grab.seconds : 0;
+    const total = this.grabKind === 'stop' ? this.pattern.stop?.seconds : this.pattern.grab?.seconds;
+    return this.state === 'grab' && total ? this.timer / total : 0;
   }
 
   /**
@@ -133,7 +143,8 @@ export class PatrolController {
     if (dist > G.radius || this.grabRolled || this.grabCooldown > 0 || !canBeGrabbed) return false;
     this.grabRolled = true;
     if (Math.random() >= (this.grabChanceOverride ?? G.chance)) return false;
-    this.resume = this.state;
+    this.pause();
+    this.grabKind = 'coffee';
     this.state = 'grab';
     this.timer = G.seconds;
     this.grabCooldown = G.cooldown;
@@ -142,8 +153,33 @@ export class PatrolController {
     return true;
   }
 
+  /**
+   * 빈손인 플레이어가 시야에 들어오면 멈춰 세운다 ("뭐 해요?"). 하트·점수는 그대로, 시간만 뺏긴다.
+   * 장난 중이거나 임시 점수를 들고 있으면 이게 아니라 들킴이다 (OfficeScene.checkCaught).
+   * @returns 지금 붙잡기 시작했는가
+   */
+  tryStop(px: number, py: number, innocent: boolean): boolean {
+    const S = this.pattern.stop;
+    if (!S || !innocent || this.stopCooldown > 0 || !this.canSee(px, py)) return false;
+    this.pause();
+    this.grabKind = 'stop';
+    this.state = 'grab';
+    this.timer = S.seconds;
+    this.stopCooldown = S.seconds + S.cooldown;
+    this.lookAt(px, py);
+    this.view.setPose({ ...this.pattern.walkPose, face: this.pattern.react.pose.face, bubble: S.line });
+    return true;
+  }
+
+  /** 하던 일을 잠깐 멈춘다 (발견·붙잡기 뒤 이어서 하려고) */
+  private pause(): void {
+    this.resume = this.state;
+    this.resumeTimer = this.timer;
+  }
+
   update(dt: number): void {
     this.grabCooldown = Math.max(0, this.grabCooldown - dt);
+    this.stopCooldown = Math.max(0, this.stopCooldown - dt);
     if (this.state === 'go' || this.state === 'return') {
       this.walk(dt);
     } else {
@@ -160,7 +196,7 @@ export class PatrolController {
       case 'stay':
         return this.enter('return');
       case 'grab':
-        this.view.say(this.pattern.grab?.thanks ?? '', 1.2);
+        if (this.grabKind === 'coffee') this.view.say(this.pattern.grab?.thanks ?? '', 1.2);
         return this.enter(this.resume, true);
       case 'react':
         return this.enter(this.resume, true);
@@ -198,7 +234,7 @@ export class PatrolController {
         v.setPose(P.walkPose);
         break;
       case 'stay':
-        if (!resuming) this.timer = rand(P.stay.duration);
+        this.timer = resuming ? this.resumeTimer : rand(P.stay.duration);
         this.dir = FACING_VEC[P.stay.facing];
         v.standAt(this.pos.x, this.pos.y, P.stay.facing);
         v.setPose(P.stay.pose);

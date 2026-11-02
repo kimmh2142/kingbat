@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
 import { COLORS, FONT, GAME_HEIGHT, GAME_WIDTH } from '../config';
-import { ITEMS } from '../data/items';
+import { ITEMS, type ItemId } from '../data/items';
 import { DEPTH } from '../systems/OfficeMap';
 import type { Items } from '../systems/Items';
 import type { TouchControls } from './TouchControls';
@@ -17,7 +17,7 @@ export class ItemBar {
   private readonly slots: { bg: Phaser.GameObjects.Graphics; icon: Phaser.GameObjects.Image; root: Phaser.GameObjects.Container }[] = [];
 
   constructor(
-    scene: Phaser.Scene,
+    private readonly scene: Phaser.Scene,
     private readonly items: Items,
     touch: TouchControls,
   ) {
@@ -35,7 +35,33 @@ export class ItemBar {
       touch.addTapZone(x - SIZE / 2, Y - SIZE / 2, SIZE, SIZE, () => items.select(i));
     }
     items.on('change', () => this.refresh());
+    items.on('picked', (id: ItemId, slot: number, wx: number, wy: number) => this.flyIn(id, slot, wx, wy));
     this.refresh();
+  }
+
+  /** 주운 아이콘이 맵 위치에서 칸으로 날아 들어간다. 도착할 때까지 칸 아이콘은 숨긴다 */
+  private flyIn(id: ItemId, slot: number, wx: number, wy: number): void {
+    const cam = this.scene.cameras.main;
+    const s = this.slots[slot];
+    const fly = this.scene.add
+      .image(wx - cam.worldView.x, wy - cam.worldView.y, ITEMS[id].icon)
+      .setScrollFactor(0)
+      .setDepth(DEPTH.label + 25)
+      .setScale(1.4);
+    s.icon.setAlpha(0);
+    this.scene.tweens.add({
+      targets: fly,
+      x: s.root.x,
+      y: s.root.y - 2,
+      scale: 1,
+      duration: 450,
+      ease: 'Cubic.easeIn',
+      onComplete: () => {
+        fly.destroy();
+        s.icon.setAlpha(1);
+        this.scene.tweens.add({ targets: s.root, scale: s.root.scale * 1.25, duration: 90, yoyo: true });
+      },
+    });
   }
 
   private refresh(): void {

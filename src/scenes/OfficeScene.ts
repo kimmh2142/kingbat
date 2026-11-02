@@ -21,6 +21,7 @@ import { Pranks } from '../systems/Pranks';
 import { Score } from '../systems/Score';
 import { WorkClock } from '../systems/WorkClock';
 import { CaughtCutin } from '../ui/CaughtCutin';
+import { GuideToast } from '../ui/GuideToast';
 import { HUD } from '../ui/HUD';
 import { ItemBar } from '../ui/ItemBar';
 import { Prompt } from '../ui/Prompt';
@@ -64,6 +65,9 @@ export class OfficeScene extends Phaser.Scene {
   /** 시작 타깃 소개 (끝나면 null) */
   private intro: TargetIntro | null = null;
   private targetArrow!: TargetArrow;
+  /** 첫 아이템을 주울 때까지 아이템 쪽을 가리키는 노란 화살표 */
+  private itemArrow!: TargetArrow;
+  private guide!: GuideToast;
 
   constructor() {
     super('Office');
@@ -104,6 +108,15 @@ export class OfficeScene extends Phaser.Scene {
     // 숨어서 확정까지 마친 채 껌 반응이 들어오면 바로 확정
     this.pranks.on('gumTouched', () => this.hide.confirmLate(this.player));
     new ItemBar(this, this.items, this.touch);
+    // 아이템 안내: 첫 아이템이 생기면 한 번, 종류마다 처음 주우면 사용법 한 번
+    this.guide = new GuideToast(this);
+    this.items.once('spawned', () => this.guide.show('아이템이 생겼다! 지나가면 주워요'));
+    const taught = new Set<ItemId>();
+    this.items.on('picked', (id: ItemId) => {
+      if (taught.has(id)) return;
+      taught.add(id);
+      this.guide.show(ITEMS[id].howTo.replace('{key}', this.controls.isTouch ? '[아이템] 버튼' : 'Space 짧게'), 4);
+    });
     this.life = new Life();
     this.clock = new WorkClock(STAGES[1]);
     this.clock.once('timeout', () => this.showFail('overtime'));
@@ -122,6 +135,7 @@ export class OfficeScene extends Phaser.Scene {
     this.player.syncView();
 
     this.targetArrow = new TargetArrow(this);
+    this.itemArrow = new TargetArrow(this, { color: 0xf9a825, icon: ITEMS.postit.icon });
     this.setupCamera();
     this.setupDebug();
     // 시작 타깃 소개. 다시 도전(하트 0개·야근)이면 생략.
@@ -176,8 +190,11 @@ export class OfficeScene extends Phaser.Scene {
       if (this.intro?.active && (this.controls.justPressed('Space') || this.tapped)) this.intro.skip();
       if (this.failed && (this.controls.justPressed('Space') || this.controls.justPressed('Enter'))) this.retry();
     } else {
-      // 대리가 옆을 지나가면 가끔 붙잡는다 (숨어 있거나 찌르는 중이면 안 붙잡음)
-      this.daeri.tryGrab(this.player.x, this.player.y, !this.hide.hidden && !this.poke.active && !this.pranks.active);
+      // 대리: 빈손으로 시야에 들어오면 "뭐 해요?" 하고 세우고, 옆을 지나가면 가끔 커피 심부름으로 붙잡는다
+      // (숨어 있거나 장난 중이면 안 붙잡음. 장난 중·임시 점수를 들고 보이면 들킴)
+      const free = !this.hide.hidden && !this.poke.active && !this.pranks.active;
+      this.daeri.tryStop(this.player.x, this.player.y, free && this.score.temp === 0);
+      this.daeri.tryGrab(this.player.x, this.player.y, free);
       const grabbed = this.daeri.state === 'grab';
       const sticking = this.pranks.active;
       const move = this.controls.getMove().clone();
@@ -217,6 +234,7 @@ export class OfficeScene extends Phaser.Scene {
     this.daeriCone.update(dt, this.daeri.cone);
     this.drawGrabRing();
     this.targetArrow.update(this.cameras.main, this.paused ? null : this.target);
+    this.itemArrow.update(this.cameras.main, this.paused ? null : this.firstItemToFind());
     this.target.view.setAnger(this.score.total / this.score.goal);
     const near = Phaser.Math.Distance.Between(this.player.x, this.player.y, this.target.x, this.target.y) < 110;
     this.target.view.setLabelFaded(near && this.player.y < this.target.y);
@@ -241,7 +259,7 @@ export class OfficeScene extends Phaser.Scene {
       intro: !!this.intro?.active,
       failed: this.failed,
       remaining: Math.round(this.clock.remaining * 10) / 10,
-      daeri: { state: this.daeri.state, x: Math.round(this.daeri.x), y: Math.round(this.daeri.y), route: this.daeri.routeIndex },
+      daeri: { kind: this.daeri.grabKind, state: this.daeri.state, x: Math.round(this.daeri.x), y: Math.round(this.daeri.y), route: this.daeri.routeIndex },
       caughtBy: this.life.caughtBy,
       items: {
         slots: [...this.items.slots],
@@ -251,9 +269,21 @@ export class OfficeScene extends Phaser.Scene {
         postit: this.pranks.postitOn,
         gum: this.pranks.gumOnBag,
         bag: this.pranks.bag,
+        guide: this.guide.message,
       },
     };
     this.tapped = false;
+  }
+
+  /** 아직 아무것도 안 주웠으면 가장 가까운 맵 아이템 (노란 화살표용). 화살표는 몸통 기준이라 아래로 보정 */
+  private firstItemToFind(): { x: number; y: number } | null {
+    if (this.items.pickedAny || !this.items.onMap.length) return null;
+    const p = this.player;
+    const m = [...this.items.onMap].sort(
+      (a, b) => Phaser.Math.Distance.Between(p.x, p.y, a.spot.x, a.spot.y) - Phaser.Math.Distance.Between(p.x, p.y, b.spot.x, b.spot.y),
+    )[0];
+    this.itemArrow.setIcon(ITEMS[m.id].icon);
+    return { x: m.spot.x, y: m.spot.y + 24 };
   }
 
   /** 시작 소개·컷인·실패 화면 때문에 게임이 멈춰 있음 */
@@ -412,7 +442,7 @@ export class OfficeScene extends Phaser.Scene {
       const d = this.daeri;
       return [
         `── ${d.pattern.name}`,
-        `상태 ${d.stateName}(${d.routeName})  남은 ${d.remaining.toFixed(1)}초  시야 ${d.watching ? 'O' : '-'}  붙잡기 대기 ${d.grabCooldown.toFixed(0)}초`,
+        `상태 ${d.stateName}(${d.routeName})  남은 ${d.remaining.toFixed(1)}초  시야 ${d.watching ? 'O' : '-'}  붙잡기 대기 ${d.grabCooldown.toFixed(0)}초  뭐해요 대기 ${d.stopCooldown.toFixed(0)}초${d.state === 'grab' ? `  (${d.grabKind === 'stop' ? '뭐 해요?' : '커피'})` : ''}`,
       ];
     });
     this.debug.addInfo(() => {

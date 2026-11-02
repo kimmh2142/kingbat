@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { TEX } from '../assets/keys';
+import { TEX, type TextureKey } from '../assets/keys';
 import { COLORS, GAME_HEIGHT, GAME_WIDTH } from '../config';
 import { TARGET_ARROW } from '../data/tuning';
 import { DEPTH } from '../systems/OfficeMap';
@@ -7,14 +7,16 @@ import { DEPTH } from '../systems/OfficeMap';
 /**
  * 공략 대상이 화면 밖에 있을 때 화면 가장자리에서 그쪽을 가리키는 표시 (타깃 아이콘 + 화살표).
  * 화면 안에 들어오면 사라진다. 거리는 보여주지 않는다.
+ * 첫 아이템 안내에도 쓴다 (노란 화살표 + 아이템 아이콘).
  */
 export class TargetArrow {
   private readonly root: Phaser.GameObjects.Container;
   private readonly arrow: Phaser.GameObjects.Graphics;
+  private readonly icon: Phaser.GameObjects.Image;
 
-  constructor(scene: Phaser.Scene) {
+  constructor(scene: Phaser.Scene, opts: { color?: number; icon?: TextureKey } = {}) {
     this.arrow = scene.add.graphics();
-    this.arrow.fillStyle(0xe53935).lineStyle(3, COLORS.outline);
+    this.arrow.fillStyle(opts.color ?? 0xe53935).lineStyle(3, COLORS.outline);
     this.arrow.beginPath();
     this.arrow.moveTo(34, 0);
     this.arrow.lineTo(20, -10);
@@ -22,9 +24,13 @@ export class TargetArrow {
     this.arrow.closePath();
     this.arrow.fillPath().strokePath();
     const bg = scene.add.circle(0, 0, 18, 0xffffff, 0.92).setStrokeStyle(3, COLORS.outline);
-    const icon = scene.add.image(0, 0, TEX.targetIcon);
-    this.root = scene.add.container(0, 0, [this.arrow, bg, icon]).setScrollFactor(0).setDepth(DEPTH.label + 15).setVisible(false);
+    this.icon = scene.add.image(0, 0, opts.icon ?? TEX.targetIcon);
+    this.root = scene.add.container(0, 0, [this.arrow, bg, this.icon]).setScrollFactor(0).setDepth(DEPTH.label + 15).setVisible(false);
     scene.tweens.add({ targets: this.root, scale: 1.12, duration: 500, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
+  }
+
+  setIcon(key: TextureKey): void {
+    if (this.icon.texture.key !== key) this.icon.setTexture(key);
   }
 
   /** 대상 위치(월드)를 넣으면 화면 밖일 때만 보인다. null이면 숨긴다 */
