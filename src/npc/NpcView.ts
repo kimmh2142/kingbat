@@ -31,6 +31,8 @@ export class NpcView {
   private readonly label: Phaser.GameObjects.Container;
   private readonly anger: Phaser.GameObjects.Image;
   private readonly marker?: Phaser.GameObjects.Graphics;
+  /** 등에 붙은 포스트잇 */
+  private readonly note: Phaser.GameObjects.Image;
 
   private pose: Pose = {};
   private facing: Facing = 'down';
@@ -54,6 +56,8 @@ export class NpcView {
       this.spike = scene.add.image(0, HEAD_Y - 44, look.spike).setOrigin(0.5, 1).setVisible(false);
       partList.push(this.spike);
     }
+    this.note = scene.add.image(0, -22, TEX.postitNote).setVisible(false);
+    partList.splice(1, 0, this.note);
     this.parts = scene.add.container(0, 0, partList);
 
     this.bubbleBg = scene.add.graphics();
@@ -143,6 +147,11 @@ export class NpcView {
     this.label.setAlpha(faded ? 0.3 : 1);
   }
 
+  /** 등에 포스트잇이 붙어 있는지. 앞모습일 땐 몸 뒤로 귀퉁이만 삐져나온다 */
+  setBackNote(on: boolean): void {
+    this.note.setVisible(on);
+  }
+
   /** 킹받음 0~1 → 머리 위 핏대 크기 */
   setAnger(ratio: number): void {
     this.anger.setVisible(ratio > 0.01);
@@ -177,6 +186,13 @@ export class NpcView {
       this.spike.setVisible(!!p.spike);
       this.spike.y = HEAD_Y - 44 + nod;
       this.spike.scaleY = 1 + Math.sin(this.t * 30) * 0.08;
+    }
+
+    // 등 포스트잇: 뒷모습이면 등 한가운데, 앞모습이면 몸 뒤에서 귀퉁이만
+    if (this.note.visible) {
+      if (back) this.parts.moveAbove(this.note, this.body);
+      else this.parts.moveBelow(this.note, this.body);
+      this.note.setPosition(back ? 0 : 19, back ? -22 : -30).setAngle(back ? -8 : 14).setScale(back ? 1 : 0.8);
     }
 
     // 움찔

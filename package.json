@@ -13,7 +13,8 @@
     "check:hide": "node scripts/check-hide.mjs",
     "check:caught": "node scripts/check-caught.mjs",
     "check:clock": "node scripts/check-clock.mjs",
-    "check:daeri": "node scripts/check-daeri.mjs"
+    "check:daeri": "node scripts/check-daeri.mjs",
+    "check:items": "node scripts/check-items.mjs"
   },
   "dependencies": {
     "@fontsource/jua": "^5.3.0",

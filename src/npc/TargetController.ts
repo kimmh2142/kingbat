@@ -73,7 +73,12 @@ export class TargetController {
   /** 확인 사이클이 끝난 뒤 돌아갈 상태 */
   private resume: TargetState = 'work';
   private sawPlayer = false;
-  private readonly seat: Point;
+  /** 의자 위치 (앉았을 때 발 위치) */
+  readonly seat: Point;
+  /** 탕비실에 도착했을 때 (등에 붙은 포스트잇을 알아챈다) */
+  onArrive?: () => void;
+  /** 탕비실에서 돌아와 자리에 앉았을 때 (가방을 만진다) */
+  onSeatedBack?: () => void;
 
   constructor(
     scene: Phaser.Scene,
@@ -111,6 +116,11 @@ export class TargetController {
   /** 뒤돌아보고 있는 중 (보이면 들킨다) */
   get isLooking(): boolean {
     return this.state === 'look';
+  }
+
+  /** 자리를 비운 중 (탕비실 가는 길·탕비실·돌아오는 길) */
+  get awayFromSeat(): boolean {
+    return !this.atSeat;
   }
 
   /** 방심 타임 점수 배율 */
@@ -345,7 +355,11 @@ export class TargetController {
       if (this.state === 'leaving') {
         this.tripTimer = rand(this.pattern.trip.interval);
         this.enter('away');
-      } else this.enter('work');
+        this.onArrive?.();
+      } else {
+        this.enter('work');
+        this.onSeatedBack?.();
+      }
       return;
     }
     const dx = target.x - this.pos.x;

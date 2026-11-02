@@ -530,6 +530,76 @@ const DEFS: Record<TextureKey, { w: number; h: number; draw: Draw }> = {
     },
   },
 
+  // ------------------------------------------------------------ 아이템
+  [TEX.itemPostit]: {
+    // 노란 포스트잇 묶음 (슬롯·맵 아이콘)
+    w: 36,
+    h: 36,
+    draw: (g) => {
+      g.fillStyle(0xfff176).fillRect(8, 8, 24, 24);
+      g.lineStyle(2, O).strokeRect(8, 8, 24, 24);
+      g.fillStyle(0xffee58).fillRect(4, 4, 24, 24);
+      g.lineStyle(LINE, O).strokeRect(4, 4, 24, 24);
+      g.lineStyle(2, 0xf9a825).lineBetween(9, 13, 23, 13).lineBetween(9, 19, 23, 19).lineBetween(9, 25, 18, 25);
+    },
+  },
+  [TEX.itemGum]: {
+    // 분홍 껌 한 통
+    w: 36,
+    h: 36,
+    draw: (g) => {
+      g.fillStyle(0xf48fb1).fillRoundedRect(4, 9, 28, 18, 4);
+      g.lineStyle(LINE, O).strokeRoundedRect(4, 9, 28, 18, 4);
+      g.fillStyle(0xffffff).fillRect(12, 9, 12, 18);
+      g.lineStyle(2, O).lineBetween(12, 9, 12, 27).lineBetween(24, 9, 24, 27);
+      g.fillStyle(0xe91e63).fillCircle(18, 18, 3.5);
+    },
+  },
+  [TEX.parcel]: {
+    // 입구 택배 상자 (아이템이 나오는 곳, 기준점 아래쪽 가운데)
+    w: 60,
+    h: 48,
+    draw: (g, w, h) => {
+      g.fillStyle(0xd7a86e).fillRect(3, 12, w - 6, h - 15);
+      g.lineStyle(LINE, O).strokeRect(3, 12, w - 6, h - 15);
+      g.fillStyle(0xe8c08a).fillRect(3, 4, w - 6, 10);
+      g.lineStyle(LINE, O).strokeRect(3, 4, w - 6, 10);
+      g.fillStyle(0xfff3c4).fillRect(w / 2 - 5, 4, 10, h - 7);
+      g.lineStyle(2, O).strokeRect(w / 2 - 5, 4, 10, h - 7);
+    },
+  },
+  [TEX.postitNote]: {
+    // 동기 등에 붙은 포스트잇 "오늘도 월급루팡" (글자는 너무 작아 줄로만)
+    w: 22,
+    h: 22,
+    draw: (g) => {
+      g.fillStyle(0xffee58).fillRect(2, 2, 18, 18);
+      g.lineStyle(2, O).strokeRect(2, 2, 18, 18);
+      g.lineStyle(2, 0xe53935).lineBetween(5, 8, 17, 8).lineBetween(5, 13, 15, 13);
+    },
+  },
+  [TEX.gumBlob]: {
+    w: 20,
+    h: 14,
+    draw: (g) => {
+      g.fillStyle(0xf48fb1).fillEllipse(10, 7, 16, 10);
+      g.lineStyle(2, O).strokeEllipse(10, 7, 16, 10);
+      g.fillStyle(0xfce4ec).fillCircle(7, 5, 2);
+    },
+  },
+  [TEX.dongiBag]: {
+    // 동기 의자 옆 가방 (기준점 아래쪽 가운데). 손잡이에 껌을 붙인다
+    w: 40,
+    h: 40,
+    draw: (g) => {
+      g.lineStyle(5, O).beginPath().arc(20, 16, 10, Math.PI, 0).strokePath();
+      g.lineStyle(3, 0x8d6e63).beginPath().arc(20, 16, 10, Math.PI, 0).strokePath();
+      g.fillStyle(0x8d6e63).fillRoundedRect(4, 14, 32, 24, 6);
+      g.lineStyle(LINE, O).strokeRoundedRect(4, 14, 32, 24, 6);
+      g.fillStyle(0xa1887f).fillRect(8, 22, 24, 4);
+    },
+  },
+
   // ------------------------------------------------------------ 표시
   [TEX.angerMark]: {
     // 만화식 핏대 (+자 모양 네 갈래)

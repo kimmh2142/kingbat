@@ -14,6 +14,15 @@ interface Window {
     remaining?: number;
     daeri?: { state: string; x: number; y: number; route?: number };
     caughtBy?: Record<string, number>;
+    items?: {
+      slots: (string | null)[];
+      selected: number;
+      onMap: { id: string; spot: string; x: number; y: number }[];
+      sticking: boolean;
+      postit: boolean;
+      gum: boolean;
+      bag: { x: number; y: number };
+    };
   };
-  __kingbatTest?: { teleport(x: number, y: number): void; setRemaining(seconds: number): void; forceGrab(): void };
+  __kingbatTest?: { teleport(x: number, y: number): void; setRemaining(seconds: number): void; forceGrab(): void; giveItem(id: string): boolean };
 }

@@ -53,6 +53,14 @@ export const TEX = {
   phone: 'phone',
   snack: 'snack',
 
+  // 아이템과 장난 흔적
+  itemPostit: 'item_postit',
+  itemGum: 'item_gum',
+  parcel: 'parcel',
+  postitNote: 'postit_note',
+  gumBlob: 'gum_blob',
+  dongiBag: 'dongi_bag',
+
   // 표시
   angerMark: 'anger_mark',
   targetIcon: 'target_icon',

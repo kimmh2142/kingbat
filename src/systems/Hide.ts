@@ -84,6 +84,17 @@ export class Hide {
     if (spot.kind !== 'seat') popWord(this.scene, spot.hx, spot.hy - 90, '쉿…', { color: '#5a3a4a', size: 18 });
   }
 
+  /**
+   * 숨은 채 이미 확정까지 마친 상태에서 늦게 들어온 점수(껌 반응 등)를 바로 확정한다.
+   * @returns 확정했는가
+   */
+  confirmLate(player: Player): boolean {
+    if (!this.spot || !this.confirmed) return false;
+    const gained = this.score.confirm();
+    if (gained > 0) popWord(this.scene, player.x, player.y - 100, `확정! +${Math.floor(gained)}`, { color: '#e0457b', size: 30 });
+    return true;
+  }
+
   private exit(player: Player): void {
     this.spot = null;
     player.unhide();

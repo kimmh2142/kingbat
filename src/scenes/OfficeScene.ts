@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import { FONT, GAME_HEIGHT, GAME_WIDTH } from '../config';
 import type { CaughtReasonId } from '../data/caughtReasons';
+import { ITEM_RULES, ITEM_SPAWNS, ITEMS, type ItemId } from '../data/items';
 import { PLAYER_START } from '../data/office7f';
 import { STAGES } from '../data/stages';
 import { CAMERA, POKE } from '../data/tuning';
@@ -12,13 +13,16 @@ import { Player } from '../player/Player';
 import { Controls } from '../systems/Controls';
 import { DebugOverlay } from '../systems/DebugOverlay';
 import { Hide } from '../systems/Hide';
+import { Items } from '../systems/Items';
 import { Life } from '../systems/Life';
 import { DEPTH, OfficeMap } from '../systems/OfficeMap';
 import { Poke } from '../systems/Poke';
+import { Pranks } from '../systems/Pranks';
 import { Score } from '../systems/Score';
 import { WorkClock } from '../systems/WorkClock';
 import { CaughtCutin } from '../ui/CaughtCutin';
 import { HUD } from '../ui/HUD';
+import { ItemBar } from '../ui/ItemBar';
 import { Prompt } from '../ui/Prompt';
 import { VisionCone } from '../ui/VisionCone';
 import { TouchControls } from '../ui/TouchControls';
@@ -51,6 +55,10 @@ export class OfficeScene extends Phaser.Scene {
   /** 이번 프레임에 화면을 터치했는가 (컷인 넘기기) */
   private tapped = false;
   private caughtCount = 0;
+  private items!: Items;
+  private pranks!: Pranks;
+  /** Space(모바일 [콕])를 누르고 있는 시간. 짧게 떼면 아이템 사용 */
+  private actionHoldT = 0;
 
   constructor() {
     super('Office');
@@ -62,6 +70,7 @@ export class OfficeScene extends Phaser.Scene {
     this.tapped = false;
     this.caughtCount = 0;
     this.goalAnnounced = false;
+    this.actionHoldT = 0;
 
     this.map = new OfficeMap(this, 1);
     this.touch = new TouchControls(this);
@@ -84,6 +93,11 @@ export class OfficeScene extends Phaser.Scene {
     this.poke = new Poke(this, this.score);
     this.hide = new Hide(this, this.score);
     this.score.on('change', () => this.announceGoal());
+    this.items = new Items(this);
+    this.pranks = new Pranks(this, this.score, this.items, this.target);
+    // 숨어서 확정까지 마친 채 껌 반응이 들어오면 바로 확정
+    this.pranks.on('gumTouched', () => this.hide.confirmLate(this.player));
+    new ItemBar(this, this.items, this.touch);
     this.life = new Life();
     this.clock = new WorkClock(STAGES[1]);
     this.clock.once('timeout', () => this.showFail('overtime'));
@@ -111,6 +125,7 @@ export class OfficeScene extends Phaser.Scene {
           this.cameras.main.centerOn(x, y);
         },
         setRemaining: (seconds: number) => this.clock.setRemaining(seconds),
+        giveItem: (id: string) => this.items.give(id as ItemId),
         forceGrab: () => {
           this.daeri.grabChanceOverride = 1;
           this.daeri.grabCooldown = 0;
@@ -118,7 +133,7 @@ export class OfficeScene extends Phaser.Scene {
       };
     }
     this.keyHint = this.add
-      .text(8, GAME_HEIGHT - 8, 'WASD·방향키 이동   Space 꾹: 콕   Shift 꾹: 숨기·확정   ` 디버그', {
+      .text(8, GAME_HEIGHT - 8, ['WASD 이동   Space 꾹: 콕 · 짧게: 아이템', '1·2·3 슬롯   Shift 꾹: 숨기·확정   ` 디버그'], {
         fontFamily: FONT,
         fontSize: '15px',
         color: '#ffffff',
@@ -142,14 +157,31 @@ export class OfficeScene extends Phaser.Scene {
       if (this.failed && (this.controls.justPressed('Space') || this.controls.justPressed('Enter'))) this.retry();
     } else {
       // 대리가 옆을 지나가면 가끔 붙잡는다 (숨어 있거나 찌르는 중이면 안 붙잡음)
-      this.daeri.tryGrab(this.player.x, this.player.y, !this.hide.hidden && !this.poke.active);
+      this.daeri.tryGrab(this.player.x, this.player.y, !this.hide.hidden && !this.poke.active && !this.pranks.active);
       const grabbed = this.daeri.state === 'grab';
+      const sticking = this.pranks.active;
       const move = this.controls.getMove().clone();
-      if (this.poke.active || grabbed) move.scale(grabbed ? 0 : POKE.moveMultiplier);
+      if (this.poke.active || grabbed || sticking) move.scale(grabbed || sticking ? 0 : POKE.moveMultiplier);
       this.player.update(move, dt);
+
+      // 아이템: 1/2/3으로 고르고, Space를 짧게 눌렀다 떼면(모바일 [아이템]) 쓴다. 꾹 누르면 콕
+      const slot = this.controls.slotPressed;
+      if (slot >= 0) this.items.select(slot);
+      const hasItem = !!this.items.selectedItem;
+      const held = this.controls.actionHeld && !this.hide.hidden && !grabbed && !sticking;
+      if (held) this.actionHoldT += dt;
+      else {
+        const tap = this.actionHoldT > 0 && this.actionHoldT < POKE.holdThreshold;
+        if (tap && hasItem && !this.poke.active) this.pranks.tryUse(this.player);
+        this.actionHoldT = 0;
+      }
+      if (this.controls.itemTapped && !this.hide.hidden && !grabbed && !this.poke.active) this.pranks.tryUse(this.player);
+      this.items.update(dt, this.player);
+      this.pranks.update(dt, this.player);
+
       // 숨어 있거나 붙잡혀 있는 동안은 찌를 수 없다
-      this.poke.update(dt, this.controls.actionHeld && !this.hide.hidden && !grabbed, this.player, this.target);
-      this.hide.update(dt, this.controls.hideHeld && !grabbed, this.player, this.map, this.poke.active);
+      this.poke.update(dt, held, this.player, this.target, hasItem);
+      this.hide.update(dt, this.controls.hideHeld && !grabbed, this.player, this.map, this.poke.active || this.pranks.active);
       this.target.update(dt);
       this.daeri.update(dt);
       this.checkCaught();
@@ -171,6 +203,7 @@ export class OfficeScene extends Phaser.Scene {
     this.prompt.show(this.player.x, this.player.y - 122, this.promptText(canPoke));
     // [숨기] 버튼은 숨을 수 있는 곳 근처에서만 진하게
     this.touch.setDisabled('hide', !this.hide.nearby);
+    this.touch.setDisabled('item', !this.items.selectedItem);
     this.keyHint.setVisible(!this.controls.isTouch);
     this.hud.update(dt);
     this.debug.update();
@@ -188,6 +221,15 @@ export class OfficeScene extends Phaser.Scene {
       remaining: Math.round(this.clock.remaining * 10) / 10,
       daeri: { state: this.daeri.state, x: Math.round(this.daeri.x), y: Math.round(this.daeri.y), route: this.daeri.routeIndex },
       caughtBy: this.life.caughtBy,
+      items: {
+        slots: [...this.items.slots],
+        selected: this.items.selected,
+        onMap: this.items.onMap.map((m) => ({ id: m.id, spot: m.spot.id, x: m.spot.x, y: m.spot.y })),
+        sticking: this.pranks.active,
+        postit: this.pranks.postitOn,
+        gum: this.pranks.gumOnBag,
+        bag: this.pranks.bag,
+      },
     };
     this.tapped = false;
   }
@@ -197,10 +239,18 @@ export class OfficeScene extends Phaser.Scene {
     return this.cutin.active || this.failed;
   }
 
-  /** 붙잡혀 있는 동안 머리 위에 남은 시간 원 */
+  /** 머리 위 진행 원: 대리에게 붙잡혀 있는 동안 남은 시간(주황), 아이템 붙이는 중(분홍) */
   private drawGrabRing(): void {
-    const r = this.daeri.grabRatio;
     this.grabRing.clear();
+    if (this.pranks.active) {
+      const x = this.player.x;
+      const y = this.player.y - 118;
+      this.grabRing.fillStyle(0xffffff, 0.9).fillCircle(x, y, 15);
+      this.grabRing.fillStyle(0xf06292).slice(x, y, 13, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * this.pranks.progress, false).fillPath();
+      this.grabRing.lineStyle(3, 0x5a3a4a).strokeCircle(x, y, 15);
+      return;
+    }
+    const r = this.daeri.grabRatio;
     if (r <= 0) return;
     const x = this.player.x;
     const y = this.player.y - 118;
@@ -210,8 +260,13 @@ export class OfficeScene extends Phaser.Scene {
   }
 
   private promptText(canPoke: boolean): string | null {
-    if (this.paused || this.hide.hidden) return null;
+    if (this.paused || this.hide.hidden || this.pranks.active) return null;
     const touch = this.controls.isTouch;
+    const item = this.items.selectedItem;
+    if (item && this.pranks.check(this.player.x, this.player.y).ok) {
+      const use = touch ? `아이템 버튼: ${ITEMS[item].hint}` : `Space 짧게: ${ITEMS[item].hint}`;
+      return canPoke ? [use, touch ? '콕 버튼 꾹: 콕' : 'Space 꾹: 콕'].join('\n') : use;
+    }
     if (canPoke) return touch ? '콕 버튼 꾹!' : 'Space 꾹 → 콕!';
     if (this.hide.nearby) {
       const what = this.hide.nearby.kind === 'seat' ? '일하는 척' : '숨기';
@@ -244,19 +299,21 @@ export class OfficeScene extends Phaser.Scene {
   /** 장난 중이거나 임시 점수를 들고 있을 때 돌아본 대상에게 보이면 들킨다 */
   private checkCaught(): void {
     if (this.hide.hidden) return; // 숨어 있으면 안 보인다
-    const guilty = this.poke.active || this.score.temp > 0;
+    const sticking = this.pranks.active;
+    const guilty = this.poke.active || sticking || this.score.temp > 0;
     if (!guilty) return;
     const { x, y } = this.player;
     const t = this.target;
-    if (t.isLooking && t.canSee(x, y)) return this.onCaught('turned', 'target');
+    if (t.isLooking && t.canSee(x, y)) return this.onCaught(sticking ? 'sticking' : 'turned', 'target');
     // 순찰 중인 대리 시야 (바닥 부채꼴)
-    if (this.daeri.canSee(x, y)) return this.onCaught('escaping', 'daeri');
+    if (this.daeri.canSee(x, y)) return this.onCaught(sticking ? 'sticking' : 'escaping', 'daeri');
   }
 
   /** 들킴: 임시 점수 소멸 → 컷인(하트 -1) → 하트가 없으면 실패 화면 */
   private onCaught(reason: CaughtReasonId, by: 'target' | 'daeri'): void {
     this.caughtCount += 1;
     this.poke.cancel(this.target);
+    this.pranks.cancel();
     this.score.loseTemp();
     const who = by === 'target' ? this.target : this.daeri;
     if (by === 'target') this.target.onCaught();
@@ -336,8 +393,24 @@ export class OfficeScene extends Phaser.Scene {
         `상태 ${d.stateName}(${d.routeName})  남은 ${d.remaining.toFixed(1)}초  시야 ${d.watching ? 'O' : '-'}  붙잡기 대기 ${d.grabCooldown.toFixed(0)}초`,
       ];
     });
+    this.debug.addInfo(() => {
+      const it = this.items;
+      const pr = this.pranks;
+      const slots = it.slots.map((s, i) => (i === it.selected ? `[${s ? ITEMS[s].name : '빈칸'}]` : s ? ITEMS[s].name : '빈칸')).join(' ');
+      const onMap = it.onMap.map((m) => `${ITEMS[m.id].name}@${m.spot.name}`).join(', ') || '-';
+      const pending = it.pending.map((t) => `${t.toFixed(0)}초`).join(', ') || '-';
+      return [
+        '── 아이템',
+        `슬롯 ${slots}   맵 ${onMap}`,
+        `다시 생김 ${pending}   붙이는 중 ${pr.active ? `${(pr.progress * 100).toFixed(0)}%` : '-'}   포스트잇 ${pr.postitOn ? 'O' : '-'}   껌 ${pr.gumOnBag ? 'O' : '-'}`,
+      ];
+    });
     this.debug.addWorldDrawer((g) => {
       this.map.drawDebug(g);
+      // 아이템 생성 지점(노랑)과 동기 가방 껌 범위(분홍)
+      g.lineStyle(2, 0xf9a825, 0.9);
+      for (const s of ITEM_SPAWNS) g.strokeCircle(s.x, s.y, ITEM_RULES.pickupRadius);
+      g.lineStyle(2, 0xec407a, 0.9).strokeCircle(this.pranks.bag.x, this.pranks.bag.y, ITEM_RULES.gumRange);
       const t = this.target;
       // 콕 찌르기 범위
       g.lineStyle(2, 0xff4f8b, 0.8).strokeCircle(t.x, t.y, POKE.range);

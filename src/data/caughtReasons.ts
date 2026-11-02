@@ -7,6 +7,7 @@ export const CAUGHT_REASONS = {
   callEnded: { text: '통화가 끝났다!', tip: '"그럼 이따 뵙겠습니다"는 중단 신호' },
   doubleCheck: { text: '두 번 확인했다!', tip: '돌아선 뒤 조용하면 한 번 더 본다' },
   footsteps: { text: '발소리를 들켰다!', tip: '가까이선 천천히 걷자' },
+  sticking: { text: '붙이다 들켰다!', tip: '붙이는 데 시간이 걸려. 전조부터 보자' },
   escaping: { text: '도망치다 들켰다!', tip: '복귀 경로를 먼저 확인하자' },
 } as const;
 

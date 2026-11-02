@@ -81,6 +81,17 @@ export class Controls {
     return this.down.has('ShiftLeft') || this.down.has('ShiftRight') || !!this.touch?.isDown('hide');
   }
 
+  /** 슬롯 고르기: 1/2/3 (숫자패드 포함). 이번 프레임에 누른 칸 번호(0부터), 없으면 -1 */
+  get slotPressed(): number {
+    for (let i = 0; i < 3; i++) if (this.pressed.has(`Digit${i + 1}`) || this.pressed.has(`Numpad${i + 1}`)) return i;
+    return -1;
+  }
+
+  /** 터치 [아이템] 버튼을 눌렀는가 (키보드는 Space 짧게, 씬에서 판정) */
+  get itemTapped(): boolean {
+    return !!this.touch?.justPressed('item');
+  }
+
   /** 지금 터치 조작을 쓰는 중인가 (안내 문구를 바꿀 때) */
   get isTouch(): boolean {
     return !!this.touch?.enabled;

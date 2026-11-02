@@ -2,7 +2,7 @@ import Phaser from 'phaser';
 import { COLORS, FONT, GAME_HEIGHT, GAME_WIDTH } from '../config';
 import { DEPTH } from '../systems/OfficeMap';
 
-export type TouchButtonId = 'poke' | 'hide';
+export type TouchButtonId = 'poke' | 'hide' | 'item';
 
 interface ButtonDef {
   id: TouchButtonId;
@@ -18,6 +18,7 @@ const JOY_DEADZONE = 0.18;
 const BUTTONS: ButtonDef[] = [
   { id: 'poke', label: '콕', x: GAME_WIDTH - 86, y: GAME_HEIGHT - 86, r: 56, color: 0xffd54f },
   { id: 'hide', label: '숨기', x: GAME_WIDTH - 200, y: GAME_HEIGHT - 56, r: 40, color: 0x90caf9 },
+  { id: 'item', label: '아이템', x: GAME_WIDTH - 66, y: GAME_HEIGHT - 196, r: 40, color: 0xf8bbd0 },
 ];
 
 /**
@@ -35,6 +36,10 @@ export class TouchControls {
   private readonly held = new Map<number, TouchButtonId>();
   private readonly views = new Map<TouchButtonId, Phaser.GameObjects.Container>();
   private readonly disabled = new Set<TouchButtonId>();
+  /** 이번 프레임에 새로 누른 버튼 */
+  private readonly pressed = new Set<TouchButtonId>();
+  /** 누르면 바로 실행되는 영역 (아이템 칸 등). 조이스틱보다 먼저 본다 */
+  private readonly zones: { x: number; y: number; w: number; h: number; onTap: () => void }[] = [];
 
   constructor(scene: Phaser.Scene) {
     const forced = new URLSearchParams(location.search).get('touch') === '1';
@@ -59,6 +64,9 @@ export class TouchControls {
     scene.input.on(Phaser.Input.Events.POINTER_MOVE, this.onMove, this);
     scene.input.on(Phaser.Input.Events.POINTER_UP, this.onUp, this);
     scene.input.on(Phaser.Input.Events.POINTER_UP_OUTSIDE, this.onUp, this);
+    const clearPressed = () => this.pressed.clear();
+    scene.events.on(Phaser.Scenes.Events.POST_UPDATE, clearPressed);
+    scene.events.once(Phaser.Scenes.Events.SHUTDOWN, () => scene.events.off(Phaser.Scenes.Events.POST_UPDATE, clearPressed));
     this.refresh();
   }
 
@@ -73,7 +81,17 @@ export class TouchControls {
     return false;
   }
 
-  /** 아직 기능이 없는 버튼은 회색으로 */
+  /** 이번 프레임에 새로 눌렸는가 */
+  justPressed(id: TouchButtonId): boolean {
+    return this.pressed.has(id) && !this.disabled.has(id);
+  }
+
+  /** 화면 고정 좌표 영역을 누르면 onTap (마우스 클릭도 된다) */
+  addTapZone(x: number, y: number, w: number, h: number, onTap: () => void): void {
+    this.zones.push({ x, y, w, h, onTap });
+  }
+
+  /** 지금 쓸 수 없는 버튼은 흐리게 */
   setDisabled(id: TouchButtonId, off: boolean): void {
     if (off) this.disabled.add(id);
     else this.disabled.delete(id);
@@ -81,6 +99,11 @@ export class TouchControls {
   }
 
   private onDown(p: Phaser.Input.Pointer): void {
+    const zone = this.zones.find((z) => p.x >= z.x && p.x <= z.x + z.w && p.y >= z.y && p.y <= z.y + z.h);
+    if (zone) {
+      zone.onTap();
+      return;
+    }
     // 터치가 한 번이라도 들어오면 표시 (pointer: coarse를 못 잡는 기기 대비)
     if (p.wasTouch && !this.enabled) {
       this.enabled = true;
@@ -91,6 +114,7 @@ export class TouchControls {
     const button = BUTTONS.find((b) => Phaser.Math.Distance.Between(p.x, p.y, b.x, b.y) <= b.r + 12);
     if (button) {
       this.held.set(p.id, button.id);
+      this.pressed.add(button.id);
       this.refresh();
       return;
     }
