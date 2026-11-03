@@ -22,7 +22,7 @@ const waitFor = async (fn, ms = 60000) => {
   }
   return false;
 };
-const useItem = () => page.keyboard.press('KeyF');
+const useItem = () => page.keyboard.press('KeyZ');
 const tapSpace = async () => {
   await page.keyboard.down('Space');
   await page.waitForTimeout(40);
@@ -32,7 +32,10 @@ async function fresh(url = BASE) {
   await page.goto(url);
   await page.waitForSelector('canvas');
   await page.waitForTimeout(800);
-  await page.evaluate(() => window.__kingbatTest.setRemaining(999));
+  await page.evaluate(() => {
+    window.__kingbatTest.setRemaining(999);
+    window.__kingbatTest.calmDaeri(); // 대리 "뭐 해요?"·커피 붙잡기가 우연히 끼어들지 않게
+  });
 }
 const log = [];
 
@@ -57,9 +60,15 @@ await page.waitForTimeout(100);
 const sel2 = (await k()).items.selected;
 await page.keyboard.press('Digit1');
 await page.waitForTimeout(100);
-log.push(['1/2/3 고르기', { 둘째: sel2, 첫째: (await k()).items.selected }]);
+const sel1 = (await k()).items.selected;
+await page.keyboard.press('KeyX');
+await page.waitForTimeout(100);
+const x1 = (await k()).items.selected;
+await page.keyboard.press('KeyX');
+await page.waitForTimeout(100);
+log.push(['1/2/3·X 고르기', { 둘째: sel2, 첫째: sel1, X한번: x1, X두번: (await k()).items.selected }]);
 
-// 3) 포스트잇: 동기가 평소 업무 중일 때 등 뒤에서 Space 짧게는 콕만(아이템 그대로) → F로 붙이면 바로 확정
+// 3) 포스트잇: 동기가 평소 업무 중일 때 등 뒤에서 Space 짧게는 콕만(아이템 그대로) → Z로 붙이면 바로 확정
 await fresh();
 await page.evaluate(() => window.__kingbatTest.giveItem('postit'));
 await waitFor((s) => s.target.state === 'back');
@@ -88,7 +97,7 @@ await tp(t.x + 120, t.y + 120);
 await page.waitForTimeout(200);
 await page.screenshot({ path: 'screenshots/item-postit-back.png' });
 await tp(664, 940);
-const peeled = await waitFor((s) => s.target.state === 'away' && !s.items.postit, 20000);
+const peeled = await waitFor((s) => s.target.state === 'away' && !s.items.postit, 50000); // 탕비실 가는 간격 30~40초
 log.push(['탕비실 도착 후 떼기', peeled]);
 
 // 4) 껌: 자리에 있을 땐 안 됨 → 자리를 비웠을 때 붙이기 → 돌아와 반응 + 점수

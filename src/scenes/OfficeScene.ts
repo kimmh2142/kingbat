@@ -117,7 +117,7 @@ export class OfficeScene extends Phaser.Scene {
     this.items.on('picked', (id: ItemId) => {
       if (taught.has(id)) return;
       taught.add(id);
-      this.guide.show(ITEMS[id].howTo.replace('{key}', this.controls.isTouch ? '[아이템] 버튼' : 'F'), 4);
+      this.guide.show(ITEMS[id].howTo.replace('{key}', this.controls.isTouch ? '[아이템] 버튼' : 'Z'), 4);
     });
     this.life = new Life();
     this.clock = new WorkClock(STAGES[1]);
@@ -165,10 +165,15 @@ export class OfficeScene extends Phaser.Scene {
           this.daeri.grabChanceOverride = 1;
           this.daeri.grabCooldown = 0;
         },
+        // 대리가 붙잡지 않게 한다 (대리와 상관없는 확인이 우연히 막히지 않도록)
+        calmDaeri: () => {
+          this.daeri.grabCooldown = 1e9;
+          this.daeri.stopCooldown = 1e9;
+        },
       };
     }
     this.keyHint = this.add
-      .text(8, GAME_HEIGHT - 8, ['WASD 이동   Space 꾹: 콕   F: 아이템', '1·2·3 슬롯   Shift 꾹: 숨기·확정   ` 디버그'], {
+      .text(8, GAME_HEIGHT - 8, ['방향키 이동   Space 꾹: 콕   Z: 아이템 쓰기', 'X: 아이템 바꾸기   Shift 꾹: 숨기·확정   ` 디버그'], {
         fontFamily: FONT,
         fontSize: '15px',
         color: '#ffffff',
@@ -204,9 +209,10 @@ export class OfficeScene extends Phaser.Scene {
       if (this.poke.active || grabbed || sticking) move.scale(grabbed || sticking ? 0 : POKE.moveMultiplier);
       this.player.update(move, dt);
 
-      // 아이템: 1/2/3으로 고르고 F(모바일 [아이템])로 쓴다. Space(모바일 [콕])는 콕만
+      // 아이템: X(다음 칸) 또는 1/2/3으로 고르고 Z·F(모바일 [아이템])로 쓴다. Space(모바일 [콕])는 콕만
       const slot = this.controls.slotPressed;
       if (slot >= 0) this.items.select(slot);
+      else if (this.controls.cyclePressed) this.items.cycle();
       const held = this.controls.actionHeld && !this.hide.hidden && !grabbed && !sticking;
       if (this.controls.itemPressed && !this.hide.hidden && !grabbed && !this.poke.active) this.pranks.tryUse(this.player);
       this.items.update(dt, this.player);
@@ -314,7 +320,7 @@ export class OfficeScene extends Phaser.Scene {
     const touch = this.controls.isTouch;
     const item = this.items.selectedItem;
     if (item && this.pranks.check(this.player.x, this.player.y).ok) {
-      const use = touch ? `아이템 버튼: ${ITEMS[item].hint}` : `F: ${ITEMS[item].hint}`;
+      const use = touch ? `아이템 버튼: ${ITEMS[item].hint}` : `Z: ${ITEMS[item].hint}`;
       return canPoke ? [use, touch ? '콕 버튼 꾹: 콕' : 'Space 꾹: 콕'].join('\n') : use;
     }
     if (canPoke) return touch ? '콕 버튼 꾹!' : 'Space 꾹 → 콕!';

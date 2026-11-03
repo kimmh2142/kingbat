@@ -21,7 +21,7 @@ export interface MapItem {
  * 맵에서 줍는 아이템 (크레이지아케이드식).
  * - 생성 지점 중 빈 곳에 생기고, 걸어서 닿으면 슬롯에 들어간다.
  * - 하나를 주우면 respawn초 뒤 방금 주운 곳이 아닌 다른 곳에 새로 생긴다.
- * - 슬롯 3칸, 1/2/3으로 고른다. 쓰는 건 Pranks가 한다.
+ * - 슬롯 3칸, 1/2/3으로 고르거나 X로 다음 칸(아이템 있는 칸)으로 넘긴다. 쓰는 건 Pranks가 한다.
  * 이벤트: 'change'(슬롯), 'spawned'(MapItem), 'picked'(id, 슬롯 번호, 월드 x, y)
  */
 export class Items extends Phaser.Events.EventEmitter {
@@ -54,6 +54,18 @@ export class Items extends Phaser.Events.EventEmitter {
     if (index < 0 || index >= this.slots.length) return;
     this.selected = index;
     this.emit('change');
+  }
+
+  /** 다음 아이템이 있는 칸으로 넘긴다 (빈 칸은 건너뛰고 1 → 2 → 3 → 1). 아이템이 없으면 그대로 */
+  cycle(): void {
+    const n = this.slots.length;
+    for (let d = 1; d <= n; d++) {
+      const i = (this.selected + d) % n;
+      if (this.slots[i]) {
+        this.select(i);
+        return;
+      }
+    }
   }
 
   /** 고른 슬롯의 아이템을 다 썼을 때 */

@@ -87,9 +87,14 @@ export class Controls {
     return -1;
   }
 
-  /** 아이템 쓰기(F / 터치 [아이템])를 이번 프레임에 눌렀는가 */
+  /** 아이템 쓰기(Z, WASD용 F / 터치 [아이템])를 이번 프레임에 눌렀는가 */
   get itemPressed(): boolean {
-    return this.pressed.has('KeyF') || !!this.touch?.justPressed('item');
+    return this.pressed.has('KeyZ') || this.pressed.has('KeyF') || !!this.touch?.justPressed('item');
+  }
+
+  /** 다음 아이템 칸으로 넘기기(X)를 이번 프레임에 눌렀는가 */
+  get cyclePressed(): boolean {
+    return this.pressed.has('KeyX');
   }
 
   /** 지금 터치 조작을 쓰는 중인가 (안내 문구를 바꿀 때) */
