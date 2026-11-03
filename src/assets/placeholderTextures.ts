@@ -7,6 +7,25 @@ import { TEX, type TextureKey } from './keys';
 
 const O = COLORS.outline;
 const LINE = 3;
+/** 회색 엑스트라 직원 기본 색 (살짝 보랏빛 회색) */
+const EXTRA = 0xd9d6de;
+const EXTRA_DARK = 0xa9a5b2;
+
+/** 엑스트라 직원 얼굴 (귀 + 얼굴 원). 표정은 face_* 를 겹친다 */
+function extraFace(g: Phaser.GameObjects.Graphics, r = 21): void {
+  g.fillStyle(EXTRA).fillCircle(8, 36, 5).fillCircle(50, 36, 5);
+  g.lineStyle(2, O).strokeCircle(8, 36, 5).strokeCircle(50, 36, 5);
+  g.fillStyle(EXTRA).fillCircle(29, 33, r);
+  g.lineStyle(LINE, O).strokeCircle(29, 33, r);
+}
+
+/** 엑스트라 직원 뒤통수 */
+function extraBack(g: Phaser.GameObjects.Graphics): void {
+  g.fillStyle(EXTRA).fillCircle(8, 36, 5).fillCircle(50, 36, 5);
+  g.lineStyle(2, O).strokeCircle(8, 36, 5).strokeCircle(50, 36, 5);
+  g.fillStyle(EXTRA_DARK).fillCircle(29, 33, 21);
+  g.lineStyle(LINE, O).strokeCircle(29, 33, 21);
+}
 
 type Draw = (g: Phaser.GameObjects.Graphics, w: number, h: number) => void;
 
@@ -424,6 +443,89 @@ const DEFS: Record<TextureKey, { w: number; h: number; draw: Draw }> = {
       g.fillStyle(0x8d6e63).fillRect(2, 2, 12, 4);
       g.lineStyle(2, O).strokeRect(2, 2, 12, 4);
       g.fillStyle(0xa1887f).fillRect(3, 10, 10, 4);
+    },
+  },
+
+  // ------------------------------------------------------------ 회색 엑스트라 직원
+  // 주인공·공략 대상·방해 NPC가 눈에 띄도록 배경 인물은 회색 한 톤. 진하기는 tint로 바꾼다.
+  [TEX.extraBody]: {
+    // 셔츠 + 진회색 넥타이
+    w: 44,
+    h: 40,
+    draw: (g, w) => {
+      g.fillStyle(0x9e9aa6).fillRect(12, 26, w - 24, 8);
+      g.fillStyle(0x7d7986).fillRect(12, 34, 8, 5).fillRect(w - 20, 34, 8, 5);
+      g.fillStyle(EXTRA).fillRoundedRect(7, 1, w - 14, 27, 8);
+      g.lineStyle(LINE, O).strokeRoundedRect(7, 1, w - 14, 27, 8);
+      g.fillStyle(EXTRA_DARK).fillTriangle(w / 2 - 3, 4, w / 2 + 3, 4, w / 2, 20);
+    },
+  },
+  [TEX.extraBodyBack]: {
+    w: 44,
+    h: 40,
+    draw: (g, w) => {
+      g.fillStyle(0x9e9aa6).fillRect(12, 26, w - 24, 8);
+      g.fillStyle(0x7d7986).fillRect(12, 34, 8, 5).fillRect(w - 20, 34, 8, 5);
+      g.fillStyle(EXTRA).fillRoundedRect(7, 1, w - 14, 27, 8);
+      g.lineStyle(LINE, O).strokeRoundedRect(7, 1, w - 14, 27, 8);
+    },
+  },
+  [TEX.extraHeadA]: {
+    // 짧은 가르마 머리
+    w: 58,
+    h: 56,
+    draw: (g) => {
+      extraFace(g);
+      g.fillStyle(EXTRA_DARK).slice(29, 33, 22, Math.PI * 1.05, Math.PI * 1.95, false).fillPath();
+      g.fillStyle(EXTRA).fillTriangle(27, 12, 33, 12, 30, 22);
+    },
+  },
+  [TEX.extraHeadABack]: {
+    w: 58,
+    h: 56,
+    draw: (g) => extraBack(g),
+  },
+  [TEX.extraHeadB]: {
+    // 단발
+    w: 58,
+    h: 56,
+    draw: (g) => {
+      g.fillStyle(EXTRA_DARK).fillRoundedRect(7, 13, 44, 36, 14);
+      g.lineStyle(LINE, O).strokeRoundedRect(7, 13, 44, 36, 14);
+      extraFace(g, 19);
+      g.fillStyle(EXTRA_DARK).slice(29, 31, 21, Math.PI * 1.05, Math.PI * 1.95, false).fillPath();
+    },
+  },
+  [TEX.extraHeadBBack]: {
+    w: 58,
+    h: 56,
+    draw: (g) => {
+      g.fillStyle(EXTRA_DARK).fillRoundedRect(7, 13, 44, 36, 14);
+      g.lineStyle(LINE, O).strokeRoundedRect(7, 13, 44, 36, 14);
+      extraBack(g);
+    },
+  },
+  [TEX.extraHeadC]: {
+    // 동그란 안경 + 짧은 머리
+    w: 58,
+    h: 56,
+    draw: (g) => {
+      extraFace(g);
+      g.fillStyle(EXTRA_DARK).slice(29, 33, 22, Math.PI * 1.1, Math.PI * 1.9, false).fillPath();
+      g.lineStyle(2, O).strokeCircle(22, 30, 6).strokeCircle(36, 30, 6).lineBetween(28, 30, 30, 30);
+    },
+  },
+  [TEX.extraHeadCBack]: {
+    w: 58,
+    h: 56,
+    draw: (g) => extraBack(g),
+  },
+  [TEX.extraHand]: {
+    w: 14,
+    h: 14,
+    draw: (g) => {
+      g.fillStyle(EXTRA).fillCircle(7, 7, 5);
+      g.lineStyle(2, O).strokeCircle(7, 7, 5);
     },
   },
 

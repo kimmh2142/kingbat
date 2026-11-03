@@ -42,6 +42,17 @@ export const TEX = {
   daeriHeadBack: 'daeri_head_back',
   coffeeCup: 'coffee_cup',
 
+  // 회색 엑스트라 직원 (배경 인물, 몸은 공용 + 머리 3종)
+  extraBody: 'extra_body',
+  extraBodyBack: 'extra_body_back',
+  extraHeadA: 'extra_head_a',
+  extraHeadABack: 'extra_head_a_back',
+  extraHeadB: 'extra_head_b',
+  extraHeadBBack: 'extra_head_b_back',
+  extraHeadC: 'extra_head_c',
+  extraHeadCBack: 'extra_head_c_back',
+  extraHand: 'extra_hand',
+
   // NPC 공용 표정·소품 (얼굴 위에 겹친다)
   faceNormal: 'face_normal',
   faceSleepy: 'face_sleepy',

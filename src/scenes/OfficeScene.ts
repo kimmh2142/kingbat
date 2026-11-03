@@ -6,6 +6,7 @@ import { PLAYER_START } from '../data/office7f';
 import { STAGES } from '../data/stages';
 import { CAMERA, POKE } from '../data/tuning';
 import { DAERI } from '../npc/patterns/daeri';
+import { Extras } from '../npc/Extras';
 import { DONGI } from '../npc/patterns/dongi';
 import { PatrolController } from '../npc/PatrolController';
 import { TargetController } from '../npc/TargetController';
@@ -66,6 +67,7 @@ export class OfficeScene extends Phaser.Scene {
   /** 첫 아이템을 주울 때까지 아이템 쪽을 가리키는 노란 화살표 */
   private itemArrow!: TargetArrow;
   private guide!: GuideToast;
+  private extras!: Extras;
 
   constructor() {
     super('Office');
@@ -93,6 +95,10 @@ export class OfficeScene extends Phaser.Scene {
     this.targetBlocker.setBodySize(34, 60);
     this.physics.add.collider(this.player.feet, this.targetBlocker);
 
+    // 회색 엑스트라 직원: 빈자리에 앉아 있거나 돌아다니고, 플레이어를 가로막는다
+    this.extras = new Extras(this, this.map.desks);
+    this.physics.add.collider(this.player.feet, this.extras.blockers);
+
     // 방해 NPC: 대리 김카페 (탕비실 ↔ 자리 왕복, 걸을 때 바닥에 시야 부채꼴)
     this.daeri = new PatrolController(this, DAERI, this.map.desks.find((d) => d.owner === 'daeri')!);
 
@@ -102,6 +108,7 @@ export class OfficeScene extends Phaser.Scene {
     this.score.on('change', () => this.announceGoal());
     this.items = new Items(this);
     this.pranks = new Pranks(this, this.score, this.items, this.target);
+    this.pranks.laughFrom = (x, y) => this.extras.nearestTo(x, y, 320);
     new ItemBar(this, this.items, this.touch);
     // 아이템 안내: 첫 아이템이 생기면 한 번, 종류마다 처음 주우면 사용법 한 번
     this.guide = new GuideToast(this);
@@ -181,6 +188,7 @@ export class OfficeScene extends Phaser.Scene {
       this.player.update(new Phaser.Math.Vector2(), dt);
       this.target.view.update(dt);
       this.daeri.view.update(dt);
+      this.extras.updateView(dt);
       this.cutin.update(dt, this.controls.justPressed('Space') || this.tapped);
       if (this.intro?.active && (this.controls.justPressed('Space') || this.tapped)) this.intro.skip();
       if (this.failed && (this.controls.justPressed('Space') || this.controls.justPressed('Enter'))) this.retry();
@@ -209,6 +217,7 @@ export class OfficeScene extends Phaser.Scene {
       this.hide.update(dt, this.controls.hideHeld && !grabbed, this.player, this.map, this.poke.active || this.pranks.active);
       this.target.update(dt);
       this.daeri.update(dt);
+      this.extras.update(dt, this.player);
       this.checkCaught();
       // 컷인·실패 화면 동안은 퇴근 시계도 멈춘다
       if (!this.paused) this.clock.update(dt);
@@ -249,6 +258,7 @@ export class OfficeScene extends Phaser.Scene {
       remaining: Math.round(this.clock.remaining * 10) / 10,
       daeri: { kind: this.daeri.grabKind, state: this.daeri.state, x: Math.round(this.daeri.x), y: Math.round(this.daeri.y), route: this.daeri.routeIndex },
       caughtBy: this.life.caughtBy,
+      extras: this.extras.list.map((e) => ({ state: e.state, x: Math.round(e.pos.x), y: Math.round(e.pos.y), blocked: e.blockedT > 0 })),
       items: {
         slots: [...this.items.slots],
         selected: this.items.selected,
@@ -445,8 +455,13 @@ export class OfficeScene extends Phaser.Scene {
         `다시 생김 ${pending}   붙이는 중 ${pr.active ? `${(pr.progress * 100).toFixed(0)}%` : '-'}   포스트잇 ${pr.postitOn ? 'O' : '-'}   껌 ${pr.gumOnBag ? 'O' : '-'}`,
       ];
     });
+    this.debug.addInfo(() => {
+      const ex = this.extras;
+      return ['── 엑스트라', `앉음 ${ex.list.length - ex.walkingCount}  돌아다님 ${ex.walkingCount}  빈자리 ${ex.seats.filter((s) => !s.taken).length}`];
+    });
     this.debug.addWorldDrawer((g) => {
       this.map.drawDebug(g);
+      this.extras.drawDebug(g);
       // 아이템 생성 지점(노랑)과 동기 가방 껌 범위(분홍)
       g.lineStyle(2, 0xf9a825, 0.9);
       for (const s of ITEM_SPAWNS) g.strokeCircle(s.x, s.y, ITEM_RULES.pickupRadius);

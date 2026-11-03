@@ -15,6 +15,7 @@ interface Window {
     remaining?: number;
     daeri?: { kind?: string; state: string; x: number; y: number; route?: number };
     caughtBy?: Record<string, number>;
+    extras?: { state: string; x: number; y: number; blocked: boolean }[];
     items?: {
       slots: (string | null)[];
       selected: number;

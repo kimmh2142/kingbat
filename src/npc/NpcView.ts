@@ -66,8 +66,9 @@ export class NpcView {
 
     this.root = scene.add.container(0, 0, [shadow, this.parts, this.bubble]);
 
-    this.handL = scene.add.image(-14, 0, TEX.hand);
-    this.handR = scene.add.image(14, 0, TEX.hand);
+    this.handL = scene.add.image(-14, 0, look.hand ?? TEX.hand);
+    this.handR = scene.add.image(14, 0, look.hand ?? TEX.hand);
+    if (look.tint !== undefined) for (const o of [this.body, this.head, this.handL, this.handR]) o.setTint(look.tint);
     this.prop = scene.add.image(0, -10, TEX.phone).setVisible(false);
     this.hands = scene.add.container(0, 0, [this.prop, this.handL, this.handR]);
 
@@ -80,7 +81,7 @@ export class NpcView {
     pill.lineStyle(3, COLORS.outline).strokeRoundedRect(-w / 2, -h / 2, w, h, h / 2);
     const labelParts: Phaser.GameObjects.GameObject[] = [pill, name];
     if (isTarget) labelParts.push(scene.add.image(-w / 2 - 12, 0, TEX.targetIcon));
-    this.label = scene.add.container(0, LABEL_Y, labelParts).setDepth(DEPTH.label - 2);
+    this.label = scene.add.container(0, LABEL_Y, labelParts).setDepth(DEPTH.label - 2).setVisible(!!look.rank);
 
     this.anger = scene.add.image(0, 0, TEX.angerMark).setDepth(DEPTH.label - 1).setVisible(false);
 

@@ -27,6 +27,8 @@ export class Pranks extends Phaser.Events.EventEmitter {
   readonly bag: { x: number; y: number };
   private readonly gumView: Phaser.GameObjects.Image;
   private laughT = 0;
+  /** "킥킥"을 띄울 사람 (대상 근처 엑스트라). 없으면 대상 주변 아무 데나 */
+  laughFrom: (x: number, y: number) => { x: number; y: number } | null = () => null;
 
   constructor(
     private readonly scene: Phaser.Scene,
@@ -98,7 +100,10 @@ export class Pranks extends Phaser.Events.EventEmitter {
       if (this.laughT <= 0) {
         this.laughT = rand(ITEM_RULES.laughEvery);
         const a = Math.random() * Math.PI * 2;
-        popWord(this.scene, this.target.x + Math.cos(a) * 120, this.target.y - 40 + Math.sin(a) * 60, '킥킥', {
+        const who = this.laughFrom(this.target.x, this.target.y);
+        const lx = who ? who.x : this.target.x + Math.cos(a) * 120;
+        const ly = who ? who.y - 100 : this.target.y - 40 + Math.sin(a) * 60;
+        popWord(this.scene, lx, ly, '킥킥', {
           color: '#8d7f99',
           size: 18,
         });

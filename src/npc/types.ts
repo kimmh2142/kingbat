@@ -40,8 +40,13 @@ export interface NpcLook {
   headFront: TextureKey;
   headBack: TextureKey;
   spike?: TextureKey;
+  /** 머리 위 직급 라벨. 빈 문자열이면 라벨 없음 (엑스트라 직원) */
   rank: string;
   rankColor: number;
+  /** 손 그림 (기본 TEX.hand) */
+  hand?: TextureKey;
+  /** 몸·머리·손 색 곱하기 (엑스트라 직원 진하기) */
+  tint?: number;
 }
 
 /** 공략 대상 행동 패턴. 수치·대사·자세는 전부 여기서 정하고 TargetController는 순서만 돌린다. */
