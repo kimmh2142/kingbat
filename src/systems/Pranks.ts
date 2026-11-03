@@ -13,8 +13,9 @@ const rand = (r: Range) => Phaser.Math.FloatBetween(r[0], r[1]);
 
 /**
  * 아이템 장난 (Lv1 포스트잇·껌).
- * - 고른 아이템을 Space 짧게(모바일 [아이템])로 쓴다. 붙이는 동안(useSeconds)은 움직일 수 없고, 보이면 들킨다.
- * - 포스트잇: 동기 등 뒤에서. 붙으면 바로 임시 점수. 동기가 탕비실에 도착해 알아챌 때까지 붙어 있다.
+ * - 고른 아이템을 F(모바일 [아이템])로 쓴다. 붙이는 동안(useSeconds)은 움직일 수 없고, 보이면 들킨다.
+ * - 점수는 임시가 아니라 바로 확정된다 (붙이는 동안 들키는 위험이 대가).
+ * - 포스트잇: 동기 등 뒤에서. 붙으면 바로 점수. 동기가 탕비실에 도착해 알아챌 때까지 붙어 있다.
  * - 껌: 동기가 자리를 비웠을 때 가방 손잡이에. 점수는 동기가 돌아와 가방을 만질 때 들어온다.
  * - 연타 방지: 붙어 있는 동안은 같은 장난을 다시 못 한다.
  */
@@ -69,7 +70,7 @@ export class Pranks extends Phaser.Events.EventEmitter {
     return { ok: true };
   }
 
-  /** Space 짧게 / [아이템]: 쓸 수 있으면 붙이기 시작 */
+  /** F / [아이템]: 쓸 수 있으면 붙이기 시작 */
   tryUse(player: Player): boolean {
     if (this.action) return false;
     const c = this.check(player.x, player.y);
@@ -126,7 +127,7 @@ export class Pranks extends Phaser.Events.EventEmitter {
       this.laughT = 1;
       this.target.view.setBackNote(true);
       this.target.view.jolt();
-      this.score.addTemp(def.points);
+      this.score.addConfirmed(def.points);
       popWord(this.scene, this.target.x, this.target.y - 50, `착! +${def.points}`, { size: 28 });
     } else {
       this.gumOnBag = true;
@@ -152,7 +153,6 @@ export class Pranks extends Phaser.Events.EventEmitter {
     this.target.view.say('뭐야, 끈적해!', 1.8);
     this.target.view.jolt();
     popWord(this.scene, this.bag.x, this.bag.y - 50, `쭈욱~ +${def.points}`, { color: '#ec407a', size: 28 });
-    this.score.addTemp(def.points);
-    this.emit('gumTouched', def.points);
+    this.score.addConfirmed(def.points);
   }
 }

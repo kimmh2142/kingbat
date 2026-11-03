@@ -20,6 +20,14 @@ export class Score extends Phaser.Events.EventEmitter {
     this.emit('change');
   }
 
+  /** 아이템 장난처럼 바로 확정되는 점수 */
+  addConfirmed(points: number): void {
+    this.confirmed = Math.min(this.goal, this.confirmed + points);
+    // 확정 + 임시가 목표를 넘지 않게
+    this.temp = Math.min(this.temp, this.goal - this.confirmed);
+    this.emit('change');
+  }
+
   confirm(): number {
     const gained = this.temp;
     this.confirmed = Math.min(this.goal, this.confirmed + this.temp);

@@ -3,7 +3,7 @@ interface Window {
   __kingbat?: {
     player?: { x: number; y: number };
     debug?: boolean;
-    target?: { state: string; x: number; y: number; side?: number };
+    target?: { state: string; x: number; y: number; side?: number; left?: number };
     score?: { confirmed: number; temp: number };
     poking?: boolean;
     caught?: number;

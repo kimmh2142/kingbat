@@ -60,8 +60,6 @@ export class OfficeScene extends Phaser.Scene {
   private caughtCount = 0;
   private items!: Items;
   private pranks!: Pranks;
-  /** Space(모바일 [콕])를 누르고 있는 시간. 짧게 떼면 아이템 사용 */
-  private actionHoldT = 0;
   /** 시작 타깃 소개 (끝나면 null) */
   private intro: TargetIntro | null = null;
   private targetArrow!: TargetArrow;
@@ -80,7 +78,6 @@ export class OfficeScene extends Phaser.Scene {
     this.tapped = false;
     this.caughtCount = 0;
     this.goalAnnounced = false;
-    this.actionHoldT = 0;
 
     this.map = new OfficeMap(this, 1);
     this.touch = new TouchControls(this);
@@ -105,8 +102,6 @@ export class OfficeScene extends Phaser.Scene {
     this.score.on('change', () => this.announceGoal());
     this.items = new Items(this);
     this.pranks = new Pranks(this, this.score, this.items, this.target);
-    // 숨어서 확정까지 마친 채 껌 반응이 들어오면 바로 확정
-    this.pranks.on('gumTouched', () => this.hide.confirmLate(this.player));
     new ItemBar(this, this.items, this.touch);
     // 아이템 안내: 첫 아이템이 생기면 한 번, 종류마다 처음 주우면 사용법 한 번
     this.guide = new GuideToast(this);
@@ -115,7 +110,7 @@ export class OfficeScene extends Phaser.Scene {
     this.items.on('picked', (id: ItemId) => {
       if (taught.has(id)) return;
       taught.add(id);
-      this.guide.show(ITEMS[id].howTo.replace('{key}', this.controls.isTouch ? '[아이템] 버튼' : 'Space 짧게'), 4);
+      this.guide.show(ITEMS[id].howTo.replace('{key}', this.controls.isTouch ? '[아이템] 버튼' : 'F'), 4);
     });
     this.life = new Life();
     this.clock = new WorkClock(STAGES[1]);
@@ -166,7 +161,7 @@ export class OfficeScene extends Phaser.Scene {
       };
     }
     this.keyHint = this.add
-      .text(8, GAME_HEIGHT - 8, ['WASD 이동   Space 꾹: 콕 · 짧게: 아이템', '1·2·3 슬롯   Shift 꾹: 숨기·확정   ` 디버그'], {
+      .text(8, GAME_HEIGHT - 8, ['WASD 이동   Space 꾹: 콕   F: 아이템', '1·2·3 슬롯   Shift 꾹: 숨기·확정   ` 디버그'], {
         fontFamily: FONT,
         fontSize: '15px',
         color: '#ffffff',
@@ -201,23 +196,16 @@ export class OfficeScene extends Phaser.Scene {
       if (this.poke.active || grabbed || sticking) move.scale(grabbed || sticking ? 0 : POKE.moveMultiplier);
       this.player.update(move, dt);
 
-      // 아이템: 1/2/3으로 고르고, Space를 짧게 눌렀다 떼면(모바일 [아이템]) 쓴다. 꾹 누르면 콕
+      // 아이템: 1/2/3으로 고르고 F(모바일 [아이템])로 쓴다. Space(모바일 [콕])는 콕만
       const slot = this.controls.slotPressed;
       if (slot >= 0) this.items.select(slot);
-      const hasItem = !!this.items.selectedItem;
       const held = this.controls.actionHeld && !this.hide.hidden && !grabbed && !sticking;
-      if (held) this.actionHoldT += dt;
-      else {
-        const tap = this.actionHoldT > 0 && this.actionHoldT < POKE.holdThreshold;
-        if (tap && hasItem && !this.poke.active) this.pranks.tryUse(this.player);
-        this.actionHoldT = 0;
-      }
-      if (this.controls.itemTapped && !this.hide.hidden && !grabbed && !this.poke.active) this.pranks.tryUse(this.player);
+      if (this.controls.itemPressed && !this.hide.hidden && !grabbed && !this.poke.active) this.pranks.tryUse(this.player);
       this.items.update(dt, this.player);
       this.pranks.update(dt, this.player);
 
       // 숨어 있거나 붙잡혀 있는 동안은 찌를 수 없다
-      this.poke.update(dt, held, this.player, this.target, hasItem);
+      this.poke.update(dt, held, this.player, this.target);
       this.hide.update(dt, this.controls.hideHeld && !grabbed, this.player, this.map, this.poke.active || this.pranks.active);
       this.target.update(dt);
       this.daeri.update(dt);
@@ -249,7 +237,7 @@ export class OfficeScene extends Phaser.Scene {
     window.__kingbat = {
       player: { x: Math.round(this.player.x), y: Math.round(this.player.y) },
       debug: this.debug.enabled,
-      target: { state: this.target.state, x: Math.round(this.target.x), y: Math.round(this.target.y), side: this.target.lookSide },
+      target: { state: this.target.state, x: Math.round(this.target.x), y: Math.round(this.target.y), side: this.target.lookSide, left: this.target.remaining },
       score: { confirmed: this.score.confirmed, temp: this.score.temp },
       poking: this.poke.active,
       caught: this.caughtCount,
@@ -316,7 +304,7 @@ export class OfficeScene extends Phaser.Scene {
     const touch = this.controls.isTouch;
     const item = this.items.selectedItem;
     if (item && this.pranks.check(this.player.x, this.player.y).ok) {
-      const use = touch ? `아이템 버튼: ${ITEMS[item].hint}` : `Space 짧게: ${ITEMS[item].hint}`;
+      const use = touch ? `아이템 버튼: ${ITEMS[item].hint}` : `F: ${ITEMS[item].hint}`;
       return canPoke ? [use, touch ? '콕 버튼 꾹: 콕' : 'Space 꾹: 콕'].join('\n') : use;
     }
     if (canPoke) return touch ? '콕 버튼 꾹!' : 'Space 꾹 → 콕!';

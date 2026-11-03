@@ -17,8 +17,6 @@ export const CAMERA = {
 };
 
 export const POKE = {
-  /** Space를 이 시간(초) 이상 누르면 콕 찌르기 (짧게 누르면 나중에 아이템 사용) */
-  holdThreshold: 0.15,
   /** 등 뒤 이 거리(px) 안에서 찌를 수 있다 */
   range: 84,
   /** 초당 콕 횟수: 처음 → 최대. accelTime초 동안 점점 빨라진다 */

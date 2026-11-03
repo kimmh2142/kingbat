@@ -87,9 +87,9 @@ export class Controls {
     return -1;
   }
 
-  /** 터치 [아이템] 버튼을 눌렀는가 (키보드는 Space 짧게, 씬에서 판정) */
-  get itemTapped(): boolean {
-    return !!this.touch?.justPressed('item');
+  /** 아이템 쓰기(F / 터치 [아이템])를 이번 프레임에 눌렀는가 */
+  get itemPressed(): boolean {
+    return this.pressed.has('KeyF') || !!this.touch?.justPressed('item');
   }
 
   /** 지금 터치 조작을 쓰는 중인가 (안내 문구를 바꿀 때) */

@@ -30,11 +30,8 @@ export class Poke {
     return Phaser.Math.Linear(POKE.rateStart, POKE.rateMax, t * t);
   }
 
-  /**
-   * @param hasItem 아이템을 고른 상태면 짧게 누르기는 아이템 사용이라 holdThreshold만큼 기다린다.
-   *                아이템이 없으면 누르자마자 찌른다.
-   */
-  update(dt: number, held: boolean, player: Player, target: TargetController, hasItem = false): void {
+  /** 누르자마자 찌른다 (아이템은 F / [아이템]으로 따로 쓴다) */
+  update(dt: number, held: boolean, player: Player, target: TargetController): void {
     if (!held) {
       this.holdTime = 0;
       this.stop(target);
@@ -42,7 +39,6 @@ export class Poke {
     }
     const justPressed = this.holdTime === 0;
     this.holdTime += dt;
-    if (this.holdTime < (hasItem ? POKE.holdThreshold : 0)) return;
 
     const where = target.pokeCheck(player.x, player.y, POKE.range);
     if (where !== 'ok') {
