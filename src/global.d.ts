@@ -28,5 +28,6 @@ interface Window {
     };
   };
   __kingbatTest?: { teleport(x: number, y: number): void; setRemaining(seconds: number): void; forceGrab(): void; giveItem(id: string): boolean };
+  __kingbatStory?: { step(): number; total: number };
   __kingbatTitle?: { howToOpen(): boolean; howToPage(): number; selected(): number };
 }

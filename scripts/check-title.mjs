@@ -1,5 +1,5 @@
 // 타이틀 화면 확인 (?title=1): 캡처, ↓/↑ 고르기, [게임 방법] 4쪽 넘기기·Esc 닫기, 모바일 터치로 열고 닫기,
-// [게임 시작] → 게임 화면.
+// [게임 시작] → 도입 컷신.
 // 사용법: npm run dev 를 켠 상태에서  node scripts/check-title.mjs
 import { chromium } from 'playwright';
 import { mkdirSync } from 'node:fs';
@@ -39,7 +39,7 @@ log.push(['게임 방법', { 열림: opened.open, 마지막쪽: last.page, Esc�
 await page.keyboard.press('ArrowUp');
 await page.keyboard.press('Space');
 await page.waitForTimeout(800);
-const game = await page.evaluate(() => ({ title: !!window.__kingbatTitle, intro: window.__kingbat?.intro }));
+const game = await page.evaluate(() => ({ title: !!window.__kingbatTitle, 컷신: !!window.__kingbatStory }));
 await page.waitForTimeout(400);
 await page.screenshot({ path: 'screenshots/title-start.png' });
 log.push(['게임 시작', game]);

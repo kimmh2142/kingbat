@@ -18,7 +18,7 @@ const BTN_H = 58;
 /**
  * 처음 접속하면 나오는 타이틀 화면: 제목, 콕 찌르는 장면, [게임 시작]·[게임 방법].
  * 키보드는 ↑↓ + Space/Enter, 마우스·터치는 버튼을 누른다.
- * (나중에 오프닝 독백 컷신은 [게임 시작]과 게임 사이에 끼운다)
+ * [게임 시작] → 스테이지 도입 컷신(StoryScene) → 게임. 오프닝 독백은 나중에 그 앞에 끼운다.
  */
 export class TitleScene extends Phaser.Scene {
   private buttons: MenuButton[] = [];
@@ -67,7 +67,8 @@ export class TitleScene extends Phaser.Scene {
   }
 
   private startGame(): void {
-    this.scene.start('Office');
+    // 도입 컷신 → 게임 (컷신에서 건너뛰기 가능)
+    this.scene.start('Story', { stage: 1 });
   }
 
   private makeLogo(): void {

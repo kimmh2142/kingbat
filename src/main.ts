@@ -3,6 +3,7 @@ import '@fontsource/jua/index.css';
 import { FONT, GAME_HEIGHT, GAME_WIDTH } from './config';
 import { BootScene } from './scenes/BootScene';
 import { OfficeScene } from './scenes/OfficeScene';
+import { StoryScene } from './scenes/StoryScene';
 import { TitleScene } from './scenes/TitleScene';
 
 // 길게 누를 때 뜨는 컨텍스트 메뉴 막기 (모바일 롱프레스, PC 우클릭)
@@ -35,6 +36,6 @@ loadFonts().then(() => {
       arcade: { debug: false },
     },
     input: { activePointers: 3 },
-    scene: [BootScene, TitleScene, OfficeScene],
+    scene: [BootScene, TitleScene, StoryScene, OfficeScene],
   });
 });

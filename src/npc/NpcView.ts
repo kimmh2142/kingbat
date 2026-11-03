@@ -153,6 +153,11 @@ export class NpcView {
     this.note.setVisible(on);
   }
 
+  /** 컷신에서 장면을 바꿀 때 */
+  destroy(): void {
+    for (const o of [this.root, this.hands, this.label, this.anger, this.marker]) o?.destroy();
+  }
+
   /** 킹받음 0~1 → 머리 위 핏대 크기 */
   setAnger(ratio: number): void {
     this.anger.setVisible(ratio > 0.01);
