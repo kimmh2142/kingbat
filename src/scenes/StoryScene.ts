@@ -1,7 +1,7 @@
 import Phaser from 'phaser';
 import { TEX } from '../assets/keys';
 import { COLORS, FONT, GAME_HEIGHT, GAME_WIDTH } from '../config';
-import { POKE_CAPTION, SPEAKERS, STORIES, type StageStory, type StoryShot } from '../data/dialogue';
+import { SPEAKERS, STORIES, type StageStory, type StoryShot } from '../data/dialogue';
 import { NpcView } from '../npc/NpcView';
 import { DONGI } from '../npc/patterns/dongi';
 import { popWord } from '../ui/Popups';
@@ -16,8 +16,10 @@ const TYPE_SPEED = 0.035;
 /** 오프닝 독백: 천천히, 줄이 바뀔 때마다 잠깐 멈춘다 */
 const MONO_SPEED = 0.07;
 const MONO_LINE_PAUSE = 0.45;
-/** 독백이 다 나온 뒤 정적 (초). 그다음 저절로 "…콕." 장면으로 */
+/** 독백이 다 나온 뒤 정적 (초). 그다음 저절로 다음 장면으로 */
 const MONO_HOLD = 1.4;
+/** 독백 화면이 서서히 사라지는 시간 (ms) */
+const MONO_FADE = 500;
 
 /**
  * 스테이지 도입 컷신: 목표 대상이 왜 킹받게 했는지 짧은 장면 몇 개 + 대사창.
@@ -38,6 +40,8 @@ export class StoryScene extends Phaser.Scene {
   private typeText!: Phaser.GameObjects.Text;
   private box!: Phaser.GameObjects.Graphics;
   private holdT = -1;
+  /** 독백에서 넘어갈 때 서서히 사라지는 독백 화면 */
+  private monoFade?: Phaser.GameObjects.Container;
   private nextMark!: Phaser.GameObjects.Text;
   private full = '';
   private shown = 0;
@@ -123,8 +127,16 @@ export class StoryScene extends Phaser.Scene {
     }
     this.holdT = -1;
     if (this.step >= this.story.steps.length - 1) return this.finish();
+    // 독백 화면은 바로 지우지 않고 다음 장면 위에서 서서히 사라지게 한다
+    const carry = this.story.steps[this.step].shot === 'monologue' ? [...this.shotUi.list] : [];
+    this.shotUi.remove(carry);
     this.step += 1;
     this.showStep();
+    if (carry.length) {
+      const fade = (this.monoFade = this.add.container(0, 0, carry));
+      this.ui.add(fade);
+      this.tweens.add({ targets: fade, alpha: 0, duration: MONO_FADE, onComplete: () => fade.destroy() });
+    }
   }
 
   private finish(): void {
@@ -200,6 +212,8 @@ export class StoryScene extends Phaser.Scene {
     this.world = [];
     this.npcs = [];
     this.shotUi.removeAll(true);
+    this.monoFade?.destroy();
+    this.monoFade = undefined;
     this.tweens.killAll();
     this.nextMark.setY(GAME_HEIGHT - 28);
     this.tweens.add({ targets: this.nextMark, y: GAME_HEIGHT - 28 + 5, duration: 400, yoyo: true, repeat: -1 });
@@ -216,8 +230,6 @@ export class StoryScene extends Phaser.Scene {
     switch (kind) {
       case 'monologue':
         return this.monologueSet();
-      case 'poke':
-        return this.pokeSet();
       case 'ask':
         return this.officeSet(0, false);
       case 'dump':
@@ -243,46 +255,6 @@ export class StoryScene extends Phaser.Scene {
     text.setY(GAME_HEIGHT / 2 - 8 - text.height / 2).setText('');
     this.shotUi.add([dark, text]);
     this.typeText = text;
-  }
-
-  /** 현실: 내 자리에서 비장하게 손가락 하나 들고 허공에 "…콕." */
-  private pokeSet(): void {
-    const deskX = 490;
-    const deskY = 345;
-    this.desk(deskX, deskY, true);
-    const me = this.me(deskX, deskY - 62);
-    // 검지 하나 든 손: 책상 아래에서 천천히 올라와 앞으로 콕
-    const hand = this.keep(this.add.container(deskX + 30, deskY - 40).setDepth(deskY + 2));
-    const fist = this.add.circle(0, 0, 6, 0xffe0c8).setStrokeStyle(2, COLORS.outline);
-    const finger = this.add.rectangle(0, -9, 4, 9, 0xffe0c8).setStrokeStyle(2, COLORS.outline);
-    hand.add([finger, fist]);
-    this.tweens.add({ targets: hand, y: deskY - 96, x: deskX + 34, duration: 1100, delay: 300, ease: 'Sine.easeOut' });
-    this.tweens.add({
-      targets: hand,
-      x: deskX + 44,
-      duration: 110,
-      delay: 1650,
-      yoyo: true,
-      onComplete: () => {
-        const t = this.keep(
-          this.add
-            .text(deskX + 58, deskY - 112, '콕.', { fontFamily: FONT, fontSize: '11px', color: '#8d7f99', stroke: '#ffffff', strokeThickness: 3 })
-            .setOrigin(0.5)
-            .setDepth(9000),
-        );
-        this.tweens.add({ targets: t, y: t.y - 6, alpha: 0.6, duration: 900 });
-      },
-    });
-    // 비장하게 숨 고르기
-    this.tweens.add({ targets: me, scaleY: 1.02, duration: 700, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
-    this.cameras.main.setZoom(3).centerOn(deskX + 10, deskY - 80);
-
-    const cap = this.add
-      .text(GAME_WIDTH / 2, 66, POKE_CAPTION, { fontFamily: FONT, fontSize: '26px', color: '#ffffff', stroke: COLORS.text, strokeThickness: 6 })
-      .setOrigin(0.5)
-      .setAlpha(0);
-    this.shotUi.add(cap);
-    this.tweens.add({ targets: cap, alpha: 1, delay: 2100, duration: 400 });
   }
 
   /** 내 자리: 나는 앉아 있고 동기가 옆에 서서 부탁한다 */

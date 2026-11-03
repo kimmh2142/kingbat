@@ -4,7 +4,7 @@
 export type Speaker = 'dongi' | 'me' | 'none';
 
 /** 장면 연출 종류 (StoryScene에 같은 이름의 연출이 있다) */
-export type StoryShot = 'monologue' | 'poke' | 'ask' | 'dump' | 'reply' | 'shopping' | 'angry' | 'vow';
+export type StoryShot = 'monologue' | 'ask' | 'dump' | 'reply' | 'shopping' | 'angry' | 'vow';
 
 export interface StoryStep {
   shot: StoryShot;
@@ -28,7 +28,7 @@ export interface StageStory {
 
 /**
  * 오프닝 독백 (reference/ 오프닝 독백 원문). 검은 화면에 한 줄씩 진지하게 나온 뒤,
- * 현실의 주인공은 허공에 "…콕." 하는 게 웃음 포인트.
+ * 서서히 밝아지며 동기 컷신으로 이어진다.
  * 원문/순화본은 팀 확인 중이라 글만 바꾸면 되게 따로 둔다. 순화본 예:
  *   나, / 조금도 혼나고 싶지 않다. / 나, / 오로지 킹받게만 하고 싶다. //
  *   그저 찌르고 또 찌르고, / 그러고도 또 찌르고만 싶다. //
@@ -48,19 +48,15 @@ export const MONOLOGUE = [
   '오늘 내게 와준다면.',
 ].join('\n');
 
-/** 독백 뒤 "…콕." 장면 자막 */
-export const POKE_CAPTION = '(현실: 소심한 사원 3년 차)';
-
 // STAGE 1 빌런 포인트 (기준 문서 PART 3): 일을 떠넘겨 놓고 몰래 쇼핑몰을 본다.
 export const STORIES: Record<number, StageStory> = {
   1: {
     title: 'STAGE 1',
     subtitle: '동기 이동기',
     quote: '"야, 우리 동기잖아!"',
-    // 오프닝(독백 → …콕)은 게임을 처음 시작할 때 STAGE 1 앞에만 나온다
+    // 오프닝 독백은 게임을 처음 시작할 때 STAGE 1 앞에만 나온다
     steps: [
       { shot: 'monologue', who: 'none', text: MONOLOGUE },
-      { shot: 'poke', who: 'me', text: '…콕.' },
       { shot: 'ask', who: 'dongi', text: '저기… 나 오늘 진짜 너무 바빠서 그러는데 ㅠㅠ' },
       { shot: 'dump', who: 'dongi', text: '이것 좀 대신 처리해 줄 수 있을까? 우리 동기잖아~ ㅠㅠㅠ' },
       { shot: 'reply', who: 'me', text: '어… 어어, 그래… 줘 봐…' },
