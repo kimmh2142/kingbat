@@ -12,6 +12,9 @@ interface Window {
     cutin?: boolean;
     intro?: boolean;
     failed?: boolean;
+    cleared?: boolean;
+    resultReady?: boolean;
+    mission?: boolean;
     remaining?: number;
     daeri?: { kind?: string; state: string; x: number; y: number; route?: number };
     caughtBy?: Record<string, number>;
@@ -27,7 +30,7 @@ interface Window {
       guide?: string;
     };
   };
-  __kingbatTest?: { teleport(x: number, y: number): void; setRemaining(seconds: number): void; forceGrab(): void; calmDaeri(): void; giveItem(id: string): boolean };
+  __kingbatTest?: { teleport(x: number, y: number): void; setRemaining(seconds: number): void; forceGrab(): void; calmDaeri(): void; addScore(points: number): void; loseAll(): void; giveItem(id: string): boolean };
   __kingbatTexture?: (key: string) => string;
   __kingbatStory?: { step(): number; total: number; typing(): boolean };
   __kingbatTitle?: { howToOpen(): boolean; howToPage(): number; selected(): number };

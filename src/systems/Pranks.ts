@@ -16,6 +16,7 @@ const rand = (r: Range) => Phaser.Math.FloatBetween(r[0], r[1]);
  * - 고른 아이템을 F(모바일 [아이템])로 쓴다. 붙이는 동안(useSeconds)은 움직일 수 없고, 보이면 들킨다.
  * - 점수는 임시가 아니라 바로 확정된다 (붙이는 동안 들키는 위험이 대가).
  * - 포스트잇: 동기 등 뒤에서. 붙으면 바로 점수. 동기가 탕비실에 도착해 알아챌 때까지 붙어 있다.
+ *   붙인 채로 탕비실에 도착하면 'parade' (특별 미션 "월급루팡 퍼레이드" 성공).
  * - 껌: 동기가 자리를 비웠을 때 가방 손잡이에. 점수는 동기가 돌아와 가방을 만질 때 들어온다.
  * - 연타 방지: 붙어 있는 동안은 같은 장난을 다시 못 한다.
  */
@@ -98,7 +99,8 @@ export class Pranks extends Phaser.Events.EventEmitter {
     if (this.postitOn) {
       this.laughT -= dt;
       if (this.laughT <= 0) {
-        this.laughT = rand(ITEM_RULES.laughEvery);
+        // 걸어가는 동안(퍼레이드)은 지나가는 직원들이 더 자주 웃는다
+        this.laughT = rand(this.target.awayFromSeat ? ITEM_RULES.laughEveryWalking : ITEM_RULES.laughEvery);
         const a = Math.random() * Math.PI * 2;
         const who = this.laughFrom(this.target.x, this.target.y);
         const lx = who ? who.x : this.target.x + Math.cos(a) * 120;
@@ -146,8 +148,10 @@ export class Pranks extends Phaser.Events.EventEmitter {
     if (!this.postitOn) return;
     this.postitOn = false;
     this.target.view.setBackNote(false);
-    this.target.view.say('뭐야 이거?!', 1.8);
+    this.target.view.say('뭐야? 왜 다들 웃어?!', 2.2);
+    this.target.view.jolt();
     popWord(this.scene, this.target.x, this.target.y - 60, '휙!', { color: '#5a3a4a', size: 22 });
+    this.emit('parade');
   }
 
   /** 자리로 돌아와 가방을 만진다: 껌이 붙어 있으면 반응 + 점수 */

@@ -42,7 +42,8 @@ for (let round = 1; round <= 3; round++) {
   const s = await k();
   log.push([`${round}번째 들킨 뒤`, { hearts: s.hearts, failed: s.failed, temp: s.score.temp }]);
 }
-await page.waitForTimeout(400);
+// 결과 창은 뜬 직후 잠깐 입력을 막는다 (콕 하던 Space가 바로 넘기지 않게)
+await page.waitForFunction(() => window.__kingbat.resultReady, null, { timeout: 15000 });
 await page.screenshot({ path: 'screenshots/fail.png' });
 await page.keyboard.press('Space');
 await page.waitForTimeout(800);

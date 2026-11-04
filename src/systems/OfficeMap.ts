@@ -18,7 +18,7 @@ import {
 } from '../data/office7f';
 import { HIDE_RADIUS, PROP_DEFS, type PropType } from '../data/props';
 
-/** 숨기 장소 (내 자리 포함). Shift로 숨고, 숨어 있으면 점수가 확정된다. */
+/** 숨기 장소 (내 자리 포함). E로 숨고, 숨어 있으면 점수가 확정된다. */
 export interface HideSpot {
   id: string;
   /** 'seat' = 내 자리 (앉아서 일하는 척) */

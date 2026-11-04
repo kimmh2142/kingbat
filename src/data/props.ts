@@ -22,7 +22,7 @@ export interface PropDef {
   texture: TextureKey;
   /** 충돌 영역 크기. 없으면 지나갈 수 있다. */
   collider?: { w: number; h: number };
-  /** 근처에서 Shift로 숨을 수 있는 소품 */
+  /** 근처에서 E로 숨을 수 있는 소품 */
   hide?: boolean;
 }
 

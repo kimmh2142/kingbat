@@ -88,9 +88,9 @@ const p = await k();
 log.push(['포스트잇', { 붙이는중: sticking, 붙음: stuck, Space짧게아이템유지: spaceKept, score: p.score, slots: p.items.slots, poking: p.poking }]);
 // 등 뒤에서 보이게 캡처: 동기가 탕비실 갈 때까지 숨어 있다가 걸어가는 모습
 await tp(664, 940);
-await page.keyboard.down('ShiftLeft');
+await page.keyboard.down('KeyE');
 await waitFor((s) => s.target.state === 'leaving', 60000);
-await page.keyboard.up('ShiftLeft');
+await page.keyboard.up('KeyE');
 await waitFor((s) => s.target.x < 1000, 10000);
 const t = (await k()).target;
 await tp(t.x + 120, t.y + 120);

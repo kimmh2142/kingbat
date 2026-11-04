@@ -6,6 +6,9 @@ import type { Life } from '../systems/Life';
 import type { Score } from '../systems/Score';
 import type { WorkClock } from '../systems/WorkClock';
 
+/** 특별 미션 칸 (상단 줄 바로 아래 왼쪽) */
+const MISSION_Y = 58;
+
 const BAR_W = 210;
 const BAR_H = 18;
 const CLOCK_X = 668;
@@ -25,6 +28,8 @@ export class HUD {
   private readonly hearts: Phaser.GameObjects.Image[] = [];
   private readonly clockText: Phaser.GameObjects.Text;
   private readonly clockBar: Phaser.GameObjects.Graphics;
+  private readonly missionBg: Phaser.GameObjects.Graphics;
+  private readonly missionText: Phaser.GameObjects.Text;
   private t = 0;
 
   constructor(
@@ -71,6 +76,26 @@ export class HUD {
 
     score.on('change', () => this.refresh());
     this.refresh();
+
+    const m = clock.stage.mission;
+    this.missionBg = fixed(scene.add.graphics());
+    this.missionText = fixed(
+      scene.add.text(26, MISSION_Y, '', { fontFamily: FONT, fontSize: '15px', color: COLORS.text }).setOrigin(0, 0.5),
+    );
+    this.setMission(false, m.name, m.goal);
+  }
+
+  /** 미션 칸: 진행 중이면 할 일, 성공하면 체크 */
+  setMission(done: boolean, name: string, goal: string): void {
+    this.missionText.setText(done ? `✔ ${name} 성공!` : `★ ${name} · ${goal}`);
+    this.missionText.setColor(done ? '#2e7d5b' : COLORS.text);
+    const w = this.missionText.width + 28;
+    this.missionBg.clear();
+    this.missionBg.fillStyle(done ? 0xdff5e9 : 0xfff8d6, 0.95).fillRoundedRect(12, MISSION_Y - 13, w, 26, 13);
+    this.missionBg.lineStyle(2, COLORS.outline).strokeRoundedRect(12, MISSION_Y - 13, w, 26, 13);
+    if (done) {
+      this.scene.tweens.add({ targets: [this.missionText], scale: { from: 1.25, to: 1 }, duration: 300, ease: 'Back.Out' });
+    }
   }
 
   update(dt: number): void {

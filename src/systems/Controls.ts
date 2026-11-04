@@ -76,9 +76,9 @@ export class Controls {
     return this.down.has('Space') || !!this.touch?.isDown('poke');
   }
 
-  /** 숨기·일하는 척(Shift / 터치 [숨기])을 누르고 있는가 */
+  /** 숨기·일하는 척(E / 터치 [숨기])을 누르고 있는가. Shift는 윈도우 '필터 키'(8초 누르면 설정 창)와 겹쳐서 E로 */
   get hideHeld(): boolean {
-    return this.down.has('ShiftLeft') || this.down.has('ShiftRight') || !!this.touch?.isDown('hide');
+    return this.down.has('KeyE') || !!this.touch?.isDown('hide');
   }
 
   /** 슬롯 고르기: 1/2/3 (숫자패드 포함). 이번 프레임에 누른 칸 번호(0부터), 없으면 -1 */

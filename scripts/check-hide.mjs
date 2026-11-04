@@ -1,4 +1,4 @@
-// 숨기·확정 확인: 찌르기 → 화분 뒤 숨기 → 0.5초 뒤 확정, 내 자리 일하는 척, 범위 밖 Shift.
+// 숨기·확정 확인: 찌르기 → 화분 뒤 숨기 → 0.5초 뒤 확정, 내 자리 일하는 척, 범위 밖 E.
 // 사용법: npm run dev 를 켠 상태에서  node scripts/check-hide.mjs
 import { chromium } from 'playwright';
 import { mkdirSync } from 'node:fs';
@@ -27,39 +27,39 @@ await page.waitForTimeout(1500);
 await page.keyboard.up('Space');
 out.push(['찌른 뒤', (await k()).score]);
 
-// 2) 오른쪽 아래 화분(1268, 420) 근처로 가서 Shift 꾹
+// 2) 오른쪽 아래 화분(1268, 420) 근처로 가서 E 꾹
 await tp(1235, 380);
 await page.waitForTimeout(250);
 await page.screenshot({ path: 'screenshots/hide-near.png' });
-await page.keyboard.down('ShiftLeft');
+await page.keyboard.down('KeyE');
 await page.waitForTimeout(300);
 const mid = await k();
-out.push(['Shift 0.3초', { hidden: mid.hidden, score: mid.score, player: mid.player }]);
+out.push(['E 0.3초', { hidden: mid.hidden, score: mid.score, player: mid.player }]);
 await page.waitForTimeout(500);
 await page.screenshot({ path: 'screenshots/hide-spot.png' });
 const done = await k();
-out.push(['Shift 0.8초', { hidden: done.hidden, score: done.score }]);
-await page.keyboard.up('ShiftLeft');
+out.push(['E 0.8초', { hidden: done.hidden, score: done.score }]);
+await page.keyboard.up('KeyE');
 await page.waitForTimeout(100);
-out.push(['Shift 뗌', { hidden: (await k()).hidden }]);
+out.push(['E 뗌', { hidden: (await k()).hidden }]);
 
 // 3) 내 자리에서 일하는 척
 await tp(664, 930);
 await page.waitForTimeout(250);
-await page.keyboard.down('ShiftLeft');
+await page.keyboard.down('KeyE');
 await page.waitForTimeout(900);
 await page.screenshot({ path: 'screenshots/hide-seat.png' });
-out.push(['내 자리 Shift', { hidden: (await k()).hidden, player: (await k()).player }]);
-await page.keyboard.up('ShiftLeft');
+out.push(['내 자리 E', { hidden: (await k()).hidden, player: (await k()).player }]);
+await page.keyboard.up('KeyE');
 
-// 4) 숨을 곳 없는 데서 Shift
+// 4) 숨을 곳 없는 데서 E
 await tp(1000, 480);
 await page.waitForTimeout(250);
-await page.keyboard.down('ShiftLeft');
+await page.keyboard.down('KeyE');
 await page.waitForTimeout(300);
 await page.screenshot({ path: 'screenshots/hide-none.png' });
-out.push(['범위 밖 Shift', { hidden: (await k()).hidden }]);
-await page.keyboard.up('ShiftLeft');
+out.push(['범위 밖 E', { hidden: (await k()).hidden }]);
+await page.keyboard.up('KeyE');
 
 for (const [l, v] of out) console.log(l.padEnd(12), JSON.stringify(v));
 console.log(errors.length ? `콘솔 에러 ${errors.length}개:\n` + errors.join('\n') : '콘솔 에러 없음');

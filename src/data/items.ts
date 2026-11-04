@@ -63,4 +63,6 @@ export const ITEM_RULES = {
   gumOwnerAway: 160,
   /** 포스트잇이 붙어 있는 동안 주변 직원이 "킥킥" 웃는 간격(초) */
   laughEvery: [2.5, 4] as Range,
+  /** 포스트잇 붙인 대상이 걸어가는 동안(퍼레이드)은 더 자주 킥킥 */
+  laughEveryWalking: [0.8, 1.4] as Range,
 };

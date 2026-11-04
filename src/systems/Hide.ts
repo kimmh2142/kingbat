@@ -6,7 +6,7 @@ import type { HideSpot, OfficeMap } from './OfficeMap';
 import type { Score } from './Score';
 
 /**
- * Shift(모바일 [숨기])로 숨기·일하는 척. (Hit & Run의 "확정" 단계)
+ * E(모바일 [숨기])로 숨기·일하는 척. (Hit & Run의 "확정" 단계)
  * - 내 자리나 숨기 장소 범위 안에서만 된다. 누르면 물건 뒤(또는 의자)로 쏙 붙는다.
  * - 누르고 있는 동안 숨어 있고, 공략 대상이 돌아봐도 들키지 않는다.
  * - confirmSeconds 이상 버티면 임시 점수가 확정된다.
@@ -38,7 +38,7 @@ export class Hide {
   }
 
   /**
-   * @param held Shift / [숨기]를 누르고 있는가
+   * @param held E / [숨기]를 누르고 있는가
    * @param busy 찌르는 중이면 숨을 수 없다
    */
   update(dt: number, held: boolean, player: Player, map: OfficeMap, busy: boolean): void {

@@ -45,6 +45,7 @@ await page.evaluate(() => window.__kingbatTest.setRemaining(0.5));
 await page.waitForTimeout(1200);
 const f = await k();
 log.push(['시간 초과', { failed: f.failed, remaining: f.remaining }]);
+await page.waitForFunction(() => window.__kingbat.resultReady, null, { timeout: 15000 });
 await page.screenshot({ path: 'screenshots/overtime.png' });
 await page.keyboard.press('Enter');
 await page.waitForTimeout(800);

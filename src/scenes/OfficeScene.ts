@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { TEX } from '../assets/keys';
 import { FONT, GAME_HEIGHT, GAME_WIDTH } from '../config';
 import type { CaughtReasonId } from '../data/caughtReasons';
 import { ITEM_RULES, ITEM_SPAWNS, ITEMS, type ItemId } from '../data/items';
@@ -22,10 +23,12 @@ import { Pranks } from '../systems/Pranks';
 import { Score } from '../systems/Score';
 import { WorkClock } from '../systems/WorkClock';
 import { CaughtCutin } from '../ui/CaughtCutin';
+import { popWord } from '../ui/Popups';
 import { GuideToast } from '../ui/GuideToast';
 import { HUD } from '../ui/HUD';
 import { ItemBar } from '../ui/ItemBar';
 import { Prompt } from '../ui/Prompt';
+import { ResultPanel, type ResultKind } from '../ui/ResultPanel';
 import { TargetArrow } from '../ui/TargetArrow';
 import { TargetIntro } from '../ui/TargetIntro';
 import { VisionCone } from '../ui/VisionCone';
@@ -51,11 +54,17 @@ export class OfficeScene extends Phaser.Scene {
   private touch!: TouchControls;
   private hide!: Hide;
   private goalAnnounced = false;
+  /** 특별 미션 성공 */
+  private missionDone = false;
+  /** 클리어 화면이 떠 있음 */
+  private cleared = false;
   private life!: Life;
   private clock!: WorkClock;
   private cutin!: CaughtCutin;
-  /** 하트를 다 잃어서 실패 화면이 떠 있음 */
+  /** 실패 화면(하트 0개·야근)이 떠 있음 */
   private failed = false;
+  /** 결과 화면 (클리어·실패) */
+  private result: ResultPanel | null = null;
   /** 이번 프레임에 화면을 터치했는가 (컷인 넘기기) */
   private tapped = false;
   private caughtCount = 0;
@@ -77,9 +86,12 @@ export class OfficeScene extends Phaser.Scene {
     // scene.restart()는 생성자를 다시 부르지 않으므로 판마다 상태를 여기서 초기화한다
     this.intro = null;
     this.failed = false;
+    this.result = null;
     this.tapped = false;
     this.caughtCount = 0;
     this.goalAnnounced = false;
+    this.missionDone = false;
+    this.cleared = false;
 
     this.map = new OfficeMap(this, 1);
     this.touch = new TouchControls(this);
@@ -109,6 +121,7 @@ export class OfficeScene extends Phaser.Scene {
     this.items = new Items(this);
     this.pranks = new Pranks(this, this.score, this.items, this.target);
     this.pranks.laughFrom = (x, y) => this.extras.nearestTo(x, y, 320);
+    this.pranks.on('parade', () => this.completeMission());
     new ItemBar(this, this.items, this.touch);
     // 아이템 안내: 첫 아이템이 생기면 한 번, 종류마다 처음 주우면 사용법 한 번
     this.guide = new GuideToast(this);
@@ -170,10 +183,18 @@ export class OfficeScene extends Phaser.Scene {
           this.daeri.grabCooldown = 1e9;
           this.daeri.stopCooldown = 1e9;
         },
+        addScore: (points: number) => this.score.addConfirmed(points),
+        // 결과 화면 확인용: 하트를 다 잃은 것처럼
+        loseAll: () => {
+          this.life.lose('turned');
+          this.life.lose('turned');
+          this.life.lose('escaping');
+          this.showFail('caught');
+        },
       };
     }
     this.keyHint = this.add
-      .text(8, GAME_HEIGHT - 8, ['방향키 이동   Space 꾹: 콕   Z: 아이템 쓰기', 'X: 아이템 바꾸기   Shift 꾹: 숨기·확정   ` 디버그'], {
+      .text(8, GAME_HEIGHT - 8, ['방향키 이동   Space 꾹: 콕   Z: 아이템 쓰기', 'X: 아이템 바꾸기   E 꾹: 숨기·확정   ` 디버그'], {
         fontFamily: FONT,
         fontSize: '15px',
         color: '#ffffff',
@@ -196,7 +217,10 @@ export class OfficeScene extends Phaser.Scene {
       this.extras.updateView(dt);
       this.cutin.update(dt, this.controls.justPressed('Space') || this.tapped);
       if (this.intro?.active && (this.controls.justPressed('Space') || this.tapped)) this.intro.skip();
-      if (this.failed && (this.controls.justPressed('Space') || this.controls.justPressed('Enter'))) this.retry();
+      if (this.result) {
+        this.result.update(dt);
+        for (const code of ['Space', 'Enter', 'Escape']) if (this.controls.justPressed(code) && this.result.onKey(code)) break;
+      }
     } else {
       // 대리: 빈손으로 시야에 들어오면 "뭐 해요?" 하고 세우고, 옆을 지나가면 가끔 커피 심부름으로 붙잡는다
       // (숨어 있거나 장난 중이면 안 붙잡음. 장난 중·임시 점수를 들고 보이면 들킴)
@@ -261,6 +285,9 @@ export class OfficeScene extends Phaser.Scene {
       cutin: this.cutin.active,
       intro: !!this.intro?.active,
       failed: this.failed,
+      cleared: this.cleared,
+      resultReady: !!this.result?.ready,
+      mission: this.missionDone,
       remaining: Math.round(this.clock.remaining * 10) / 10,
       daeri: { kind: this.daeri.grabKind, state: this.daeri.state, x: Math.round(this.daeri.x), y: Math.round(this.daeri.y), route: this.daeri.routeIndex },
       caughtBy: this.life.caughtBy,
@@ -292,7 +319,7 @@ export class OfficeScene extends Phaser.Scene {
 
   /** 시작 소개·컷인·실패 화면 때문에 게임이 멈춰 있음 */
   private get paused(): boolean {
-    return !!this.intro?.active || this.cutin.active || this.failed;
+    return !!this.intro?.active || this.cutin.active || this.failed || this.cleared;
   }
 
   /** 머리 위 진행 원: 대리에게 붙잡혀 있는 동안 남은 시간(주황), 아이템 붙이는 중(분홍) */
@@ -326,22 +353,46 @@ export class OfficeScene extends Phaser.Scene {
     if (canPoke) return touch ? '콕 버튼 꾹!' : 'Space 꾹 → 콕!';
     if (this.hide.nearby) {
       const what = this.hide.nearby.kind === 'seat' ? '일하는 척' : '숨기';
-      return touch ? `숨기 버튼 꾹: ${what}` : `Shift 꾹: ${what}`;
+      return touch ? `숨기 버튼 꾹: ${what}` : `E 꾹: ${what}`;
     }
     return null;
   }
 
-  /** 확정 킹받음이 목표에 처음 닿았을 때 (특별 미션은 다음 단계에서 붙는다) */
+  /** 특별 미션 성공: 점수 바로 확정 + 크게 알림. 킹받음도 100이면 클리어 */
+  private completeMission(): void {
+    if (this.missionDone || this.failed || this.cleared) return;
+    this.missionDone = true;
+    const m = STAGES[1].mission;
+    this.hud.setMission(true, m.name, m.goal);
+    this.score.addConfirmed(m.points);
+    popWord(this, this.target.x, this.target.y - 120, `미션 성공! +${m.points}`, { size: 30, color: '#2e7d5b' });
+    this.banner(['특별 미션 성공!', `"${m.name}"`], '#2e9e6b');
+    this.checkClear();
+  }
+
+  /** 클리어 조건: 킹받음 100 확정 + 특별 미션 성공 (목숨이 남아 있을 때) */
+  private checkClear(): void {
+    if (this.cleared || this.failed || !this.life.alive) return;
+    if (this.missionDone && this.score.confirmed >= this.score.goal) this.showClear();
+  }
+
+  /** 확정 킹받음이 목표에 처음 닿았을 때: 미션이 남았으면 알려 준다 */
   private announceGoal(): void {
     if (this.goalAnnounced || this.score.confirmed < this.score.goal) return;
     this.goalAnnounced = true;
+    if (this.missionDone) return this.checkClear();
+    this.banner(['킹받음 100 달성!', `이제 특별 미션 "${STAGES[1].mission.name}"만!`], '#e0457b');
+  }
+
+  /** 화면 위쪽 큰 알림 (잠깐 떴다 사라짐) */
+  private banner(lines: string[], stroke: string): void {
     const t = this.add
-      .text(GAME_WIDTH / 2, 120, ['킹받음 100 달성!', '특별 미션은 아직 준비 중'], {
+      .text(GAME_WIDTH / 2, 130, lines, {
         fontFamily: FONT,
         fontSize: '30px',
         color: '#ffffff',
         align: 'center',
-        stroke: '#e0457b',
+        stroke,
         strokeThickness: 8,
       })
       .setOrigin(0.5)
@@ -385,32 +436,43 @@ export class OfficeScene extends Phaser.Scene {
     });
   }
 
-  /** 간이 실패 화면 (정식 실패 화면은 이후 단계). caught = 하트 0개, overtime = 시간 초과 */
+  /** 실패 화면. caught = 하트 0개, overtime = 시간 초과(야근 확정) */
   private showFail(kind: 'caught' | 'overtime'): void {
-    if (this.failed) return;
+    if (this.failed || this.cleared) return;
     this.failed = true;
+    this.showResult(kind);
+  }
+
+  /** 클리어 화면: 대상이 폭발하고 "공략 성공!" */
+  private showClear(): void {
+    if (this.failed || this.cleared) return;
+    this.cleared = true;
+    this.target.view.setPose({ face: TEX.faceShock });
+    this.target.view.say(STAGES[1].lines.clear, 3);
+    this.showResult('clear');
+  }
+
+  private showResult(kind: ResultKind): void {
     this.poke.cancel(this.target);
-    const overtime = kind === 'overtime';
-    const cx = GAME_WIDTH / 2;
-    const cy = GAME_HEIGHT / 2;
-    // 야근: 불 꺼진 사무실처럼 더 어둡게
-    const dim = this.add.rectangle(0, 0, GAME_WIDTH, GAME_HEIGHT, overtime ? 0x0d0a14 : 0x2a1d24, overtime ? 0.8 : 0.6).setOrigin(0);
-    const stamp = this.add
-      .text(cx, cy - 50, overtime ? '야근 확정!' : '딱 걸렸다!', { fontFamily: FONT, fontSize: '72px', color: '#ff3d6e', stroke: '#ffffff', strokeThickness: 10 })
-      .setOrigin(0.5)
-      .setAngle(-8)
-      .setScale(2.5);
-    const sub = this.add
-      .text(cx, cy + 20, overtime ? '퇴근 시계가 6시를 넘겼다… 오늘도 야근이다' : '동기: "야! 너였구나!"', { fontFamily: FONT, fontSize: '22px', color: '#ffffff' })
-      .setOrigin(0.5);
-    const btnBg = this.add.rectangle(cx, cy + 90, 220, 56, 0xffd54f).setStrokeStyle(4, 0x5a3a4a);
-    const btnText = this.add.text(cx, cy + 90, '다시 도전', { fontFamily: FONT, fontSize: '26px', color: '#5a3a4a' }).setOrigin(0.5);
-    const hint = this.add
-      .text(cx, cy + 135, this.controls.isTouch ? '버튼을 눌러요' : 'Space / Enter', { fontFamily: FONT, fontSize: '16px', color: '#ffffff' })
-      .setOrigin(0.5);
-    for (const o of [dim, stamp, sub, btnBg, btnText, hint]) o.setScrollFactor(0).setDepth(DEPTH.label + 50);
-    this.tweens.add({ targets: stamp, scale: 1, duration: 260, ease: 'Back.Out' });
-    btnBg.setInteractive({ useHandCursor: true }).once(Phaser.Input.Events.GAMEOBJECT_POINTER_UP, () => this.retry());
+    this.pranks.cancel();
+    this.result = new ResultPanel(
+      this,
+      {
+        kind,
+        stage: STAGES[1],
+        hearts: this.life.hearts,
+        maxHearts: this.life.max,
+        remaining: this.clock.remaining,
+        caughtCount: this.caughtCount,
+        caughtBy: this.life.caughtBy,
+        confirmed: this.score.confirmed,
+        goal: this.score.goal,
+        missionDone: this.missionDone,
+        touch: this.controls.isTouch,
+      },
+      () => this.retry(),
+      () => this.scene.start('Title'),
+    );
   }
 
   /** 이 스테이지만 처음부터 다시 (도입 컷신은 없음) */
