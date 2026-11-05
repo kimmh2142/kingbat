@@ -18,6 +18,7 @@ interface Window {
     /** 단계 안내: 지금 단계 id(다 끝나면 null)와 미션 칸 글 */
     tutorial?: { step: string | null; line: string };
     thought?: boolean;
+    minimap?: { big: boolean; x: number; y: number; w: number; h: number };
     remaining?: number;
     daeri?: { kind?: string; state: string; x: number; y: number; route?: number };
     caughtBy?: Record<string, number>;

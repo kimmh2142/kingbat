@@ -83,3 +83,15 @@ export const TARGET_ARROW = {
   marginTop: 94,
   marginBottom: 84,
 };
+
+/** 미니맵 (화면 px) */
+export const MINIMAP = {
+  /** 작은 미니맵 폭 (높이는 맵 비율대로) */
+  width: 190,
+  /** 화면 가장자리 여백 */
+  margin: 10,
+  /** 모바일: 오른쪽 아래는 버튼 자리라 오른쪽 위, HUD 바로 아래 */
+  touchTop: 52,
+  /** 크게 볼 때 폭 */
+  bigWidth: 720,
+};

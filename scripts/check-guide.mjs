@@ -62,6 +62,8 @@ await page.screenshot({ path: 'screenshots/guide-arrow.png' });
 // 5) 대리 "뭐 해요?": 빈손으로 걷는 대리 바로 앞에 서면 1.5초 붙잡히고 하트는 그대로
 await page.goto(BASE);
 await page.waitForSelector('canvas');
+// 캔버스가 생겨도 게임 장면이 아직 안 만들어졌을 수 있다
+await page.waitForFunction(() => !!window.__kingbatTest, null, { timeout: 15000 });
 await page.evaluate(() => window.__kingbatTest.setRemaining(999));
 await waitFor((s) => s.daeri.state === 'go', 60000);
 const d = (await k()).daeri;

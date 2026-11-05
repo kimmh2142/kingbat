@@ -29,6 +29,7 @@ import { popWord } from '../ui/Popups';
 import { GuideToast } from '../ui/GuideToast';
 import { HUD } from '../ui/HUD';
 import { ItemBar } from '../ui/ItemBar';
+import { MiniMap } from '../ui/MiniMap';
 import { Prompt } from '../ui/Prompt';
 import { ResultPanel, type ResultKind } from '../ui/ResultPanel';
 import { TargetArrow } from '../ui/TargetArrow';
@@ -81,6 +82,7 @@ export class OfficeScene extends Phaser.Scene {
   private extras!: Extras;
   /** STAGE 1 단계 안내 (상단 미션 칸) */
   private tutorial!: Tutorial;
+  private miniMap!: MiniMap;
   /** 처음 임시 점수가 생기면 내 자리를 가리키는 화살표(화면 밖)와 자리 위 표시(화면 안) */
   private seatArrow!: TargetArrow;
   private seatMark!: Phaser.GameObjects.Text;
@@ -183,6 +185,7 @@ export class OfficeScene extends Phaser.Scene {
     this.seatArrow = new TargetArrow(this, { color: 0xf06292, icon: TEX.chair, iconScale: 0.55 });
     this.itemArrow = new TargetArrow(this, { color: 0xf9a825, icon: ITEMS.postit.icon });
     this.setupCamera();
+    this.miniMap = new MiniMap(this, this.map, this.touch, this.controls.isTouch);
     this.setupDebug();
     // 시작 타깃 소개. 다시 도전(하트 0개·야근)이면 생략.
     // Playwright 확인 스크립트는 바로 플레이해야 하므로 생략한다 (?intro=1이면 보여줌)
@@ -225,7 +228,7 @@ export class OfficeScene extends Phaser.Scene {
       };
     }
     this.keyHint = this.add
-      .text(8, GAME_HEIGHT - 8, ['방향키 이동   Space 꾹: 콕   Z: 아이템 쓰기', 'X: 아이템 바꾸기   E 꾹: 숨기·확정   ` 디버그'], {
+      .text(8, GAME_HEIGHT - 8, ['방향키 이동   Space 꾹: 콕   Z: 아이템 쓰기', 'X: 아이템 바꾸기   E 꾹: 숨기·확정   M: 지도   ` 디버그'], {
         fontFamily: FONT,
         fontSize: '15px',
         color: '#ffffff',
@@ -308,6 +311,19 @@ export class OfficeScene extends Phaser.Scene {
     this.touch.setDisabled('item', !this.items.selectedItem);
     this.keyHint.setVisible(!this.controls.isTouch);
     this.hud.update(dt);
+    // 미니맵: 결과 화면·시작 소개 중엔 숨긴다. M을 누르고 있으면 크게
+    this.miniMap.update(
+      dt,
+      {
+        player: this.player,
+        target: this.target,
+        daeri: this.daeri,
+        items: this.items.onMap.map((m) => m.spot),
+        view: this.cameras.main.worldView,
+      },
+      this.controls.isDown('KeyM'),
+      !!this.result || !!this.intro?.active,
+    );
     this.debug.update();
     window.__kingbat = {
       player: { x: Math.round(this.player.x), y: Math.round(this.player.y) },
@@ -326,6 +342,7 @@ export class OfficeScene extends Phaser.Scene {
       mission: this.missionDone,
       tutorial: { step: this.tutorial.current, line: this.hud.missionLine },
       thought: !!this.thought,
+      minimap: { big: this.miniMap.isBig, ...this.miniMap.rect },
       remaining: Math.round(this.clock.remaining * 10) / 10,
       daeri: { kind: this.daeri.grabKind, state: this.daeri.state, x: Math.round(this.daeri.x), y: Math.round(this.daeri.y), route: this.daeri.routeIndex },
       caughtBy: this.life.caughtBy,

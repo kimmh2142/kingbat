@@ -41,7 +41,7 @@ export class TouchControls {
   /** 이번 프레임에 새로 누른 버튼 */
   private readonly pressed = new Set<TouchButtonId>();
   /** 누르면 바로 실행되는 영역 (아이템 칸 등). 조이스틱보다 먼저 본다 */
-  private readonly zones: { x: number; y: number; w: number; h: number; onTap: () => void }[] = [];
+  private readonly zones: { x: number; y: number; w: number; h: number; onTap: () => void; enabled?: () => boolean }[] = [];
 
   constructor(scene: Phaser.Scene) {
     const forced = new URLSearchParams(location.search).get('touch') === '1';
@@ -88,9 +88,9 @@ export class TouchControls {
     return this.pressed.has(id) && !this.disabled.has(id);
   }
 
-  /** 화면 고정 좌표 영역을 누르면 onTap (마우스 클릭도 된다) */
-  addTapZone(x: number, y: number, w: number, h: number, onTap: () => void): void {
-    this.zones.push({ x, y, w, h, onTap });
+  /** 화면 고정 좌표 영역을 누르면 onTap (마우스 클릭도 된다). enabled가 false인 동안은 없는 셈 */
+  addTapZone(x: number, y: number, w: number, h: number, onTap: () => void, enabled?: () => boolean): void {
+    this.zones.push({ x, y, w, h, onTap, enabled });
   }
 
   /** 지금 쓸 수 없는 버튼은 흐리게 */
@@ -101,7 +101,7 @@ export class TouchControls {
   }
 
   private onDown(p: Phaser.Input.Pointer): void {
-    const zone = this.zones.find((z) => p.x >= z.x && p.x <= z.x + z.w && p.y >= z.y && p.y <= z.y + z.h);
+    const zone = this.zones.find((z) => (z.enabled?.() ?? true) && p.x >= z.x && p.x <= z.x + z.w && p.y >= z.y && p.y <= z.y + z.h);
     if (zone) {
       zone.onTap();
       return;
