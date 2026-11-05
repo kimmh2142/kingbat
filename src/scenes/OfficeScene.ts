@@ -555,6 +555,18 @@ export class OfficeScene extends Phaser.Scene {
   private setupCamera(): void {
     const cam = this.cameras.main;
     cam.setBounds(0, 0, this.map.width, this.map.height).setRoundPixels(true);
+    // 맵은 넓게(0.8배) 보고, HUD·버튼·컷인 글자(화면 고정 = scrollFactor 0)는 1배 카메라로 따로 그린다
+    cam.setZoom(this.controls.isTouch ? CAMERA.zoomTouch : CAMERA.zoom);
+    const uiCam = this.cameras.add(0, 0, GAME_WIDTH, GAME_HEIGHT);
+    const split = () => {
+      const ui: Phaser.GameObjects.GameObject[] = [];
+      const world: Phaser.GameObjects.GameObject[] = [];
+      for (const o of this.children.list) ((o as unknown as { scrollFactorX: number }).scrollFactorX === 0 ? ui : world).push(o);
+      cam.ignore(ui);
+      uiCam.ignore(world);
+    };
+    this.events.on(Phaser.Scenes.Events.PRE_RENDER, split);
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => this.events.off(Phaser.Scenes.Events.PRE_RENDER, split));
     this.followPlayer();
     cam.setDeadzone(CAMERA.deadzoneW, CAMERA.deadzoneH);
 

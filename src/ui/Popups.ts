@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import { FONT } from '../config';
 import { DEPTH } from '../systems/OfficeMap';
+import { CAMERA } from '../data/tuning';
 
 /** 맵 위에 튀어 오르는 의성어 ("콕!") */
 export function popWord(
@@ -21,7 +22,7 @@ export function popWord(
     .setOrigin(0.5)
     .setDepth(DEPTH.label + 10)
     .setAngle(Phaser.Math.Between(-15, 15))
-    .setScale(0.4);
-  scene.tweens.add({ targets: t, scale: 1, duration: 90, ease: 'Back.Out' });
+    .setScale(0.4 * CAMERA.textScale);
+  scene.tweens.add({ targets: t, scale: CAMERA.textScale, duration: 90, ease: 'Back.Out' });
   scene.tweens.add({ targets: t, y: t.y - 30, alpha: 0, delay: 220, duration: 380, onComplete: () => t.destroy() });
 }

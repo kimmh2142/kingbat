@@ -48,7 +48,7 @@ log.push(['Space 넘기기', skipped]);
 
 // 3) 다시 도전이면 소개 생략 (야근 → Space)
 await page.evaluate(() => window.__kingbatTest.setRemaining(0.1));
-await waitFor((s) => s.failed, 3000);
+await waitFor((s) => s.failed && s.resultReady, 15000); // 결과 창은 뜬 직후 잠깐 입력을 막는다
 await page.keyboard.press('Space');
 await page.waitForTimeout(800);
 const re = await k();

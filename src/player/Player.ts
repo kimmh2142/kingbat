@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import { TEX } from '../assets/keys';
 import { COLORS, FONT } from '../config';
 import { PLAYER } from '../data/tuning';
+import { CAMERA } from '../data/tuning';
 
 /**
  * 주인공. 충돌은 발밑의 작은 상자(feet)가 담당하고,
@@ -135,6 +136,6 @@ export class Player {
     const bg = scene.add.graphics();
     bg.fillStyle(0x9575cd).fillRoundedRect(-w / 2, -h / 2, w, h, h / 2);
     bg.lineStyle(3, COLORS.outline).strokeRoundedRect(-w / 2, -h / 2, w, h, h / 2);
-    return scene.add.container(0, -96, [bg, t]);
+    return scene.add.container(0, -96, [bg, t]).setScale(CAMERA.textScale);
   }
 }

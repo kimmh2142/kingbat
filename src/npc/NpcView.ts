@@ -3,6 +3,7 @@ import { TEX } from '../assets/keys';
 import { COLORS, FONT } from '../config';
 import { DEPTH } from '../systems/OfficeMap';
 import type { Facing, NpcLook, Pose } from './types';
+import { CAMERA } from '../data/tuning';
 
 // 파츠 기준 좌표 (컨테이너 원점 = 발이 닿는 바닥, 앉았을 땐 의자 위치)
 const HEAD_Y = -30;
@@ -62,7 +63,7 @@ export class NpcView {
 
     this.bubbleBg = scene.add.graphics();
     this.bubbleText = scene.add.text(0, 0, '', { fontFamily: FONT, fontSize: '15px', color: COLORS.text }).setOrigin(0.5);
-    this.bubble = scene.add.container(16, BUBBLE_Y, [this.bubbleBg, this.bubbleText]).setVisible(false);
+    this.bubble = scene.add.container(16, BUBBLE_Y, [this.bubbleBg, this.bubbleText]).setVisible(false).setScale(CAMERA.textScale);
 
     this.root = scene.add.container(0, 0, [shadow, this.parts, this.bubble]);
 
@@ -81,7 +82,7 @@ export class NpcView {
     pill.lineStyle(3, COLORS.outline).strokeRoundedRect(-w / 2, -h / 2, w, h, h / 2);
     const labelParts: Phaser.GameObjects.GameObject[] = [pill, name];
     if (isTarget) labelParts.push(scene.add.image(-w / 2 - 12, 0, TEX.targetIcon));
-    this.label = scene.add.container(0, LABEL_Y, labelParts).setDepth(DEPTH.label - 2).setVisible(!!look.rank);
+    this.label = scene.add.container(0, LABEL_Y, labelParts).setDepth(DEPTH.label - 2).setVisible(!!look.rank).setScale(CAMERA.textScale);
 
     this.anger = scene.add.image(0, 0, TEX.angerMark).setDepth(DEPTH.label - 1).setVisible(false);
 

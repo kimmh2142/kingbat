@@ -44,7 +44,7 @@ export class ItemBar {
     const cam = this.scene.cameras.main;
     const s = this.slots[slot];
     const fly = this.scene.add
-      .image(wx - cam.worldView.x, wy - cam.worldView.y, ITEMS[id].icon)
+      .image((wx - cam.worldView.x) * cam.zoom, (wy - cam.worldView.y) * cam.zoom, ITEMS[id].icon)
       .setScrollFactor(0)
       .setDepth(DEPTH.label + 25)
       .setScale(1.4);

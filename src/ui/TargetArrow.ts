@@ -40,9 +40,9 @@ export class TargetArrow {
       return;
     }
     const v = cam.worldView;
-    // 몸통 가운데 기준
-    const sx = target.x - v.x;
-    const sy = target.y - 50 - v.y;
+    // 몸통 가운데 기준. 화면 좌표 = (월드 - 보이는 영역 왼쪽 위) × 확대 배율
+    const sx = (target.x - v.x) * cam.zoom;
+    const sy = (target.y - 50 - v.y) * cam.zoom;
     const { marginX, marginTop, marginBottom } = TARGET_ARROW;
     const left = marginX;
     const right = GAME_WIDTH - marginX;

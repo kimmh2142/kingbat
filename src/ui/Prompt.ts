@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import { COLORS, FONT } from '../config';
 import { DEPTH } from '../systems/OfficeMap';
+import { CAMERA } from '../data/tuning';
 
 /** 플레이어 머리 위 행동 안내 ("Space 꾹 콕 찌르기") */
 export class Prompt {
@@ -12,7 +13,7 @@ export class Prompt {
   constructor(scene: Phaser.Scene) {
     this.bg = scene.add.graphics();
     this.text = scene.add.text(0, 0, '', { fontFamily: FONT, fontSize: '15px', color: COLORS.text }).setOrigin(0.5);
-    this.box = scene.add.container(0, 0, [this.bg, this.text]).setDepth(DEPTH.label + 5).setVisible(false);
+    this.box = scene.add.container(0, 0, [this.bg, this.text]).setDepth(DEPTH.label + 5).setVisible(false).setScale(CAMERA.textScale);
   }
 
   show(x: number, y: number, message: string | null): void {
