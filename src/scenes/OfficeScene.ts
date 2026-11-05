@@ -5,6 +5,7 @@ import type { CaughtReasonId } from '../data/caughtReasons';
 import { ITEM_RULES, ITEM_SPAWNS, ITEMS, type ItemId } from '../data/items';
 import { PLAYER_START } from '../data/office7f';
 import { STAGES } from '../data/stages';
+import { TUTORIAL_TEXT } from '../data/tutorial';
 import { CAMERA, POKE } from '../data/tuning';
 import { DAERI } from '../npc/patterns/daeri';
 import { Extras } from '../npc/Extras';
@@ -21,6 +22,7 @@ import { DEPTH, OfficeMap } from '../systems/OfficeMap';
 import { Poke } from '../systems/Poke';
 import { Pranks } from '../systems/Pranks';
 import { Score } from '../systems/Score';
+import { Tutorial } from '../systems/Tutorial';
 import { WorkClock } from '../systems/WorkClock';
 import { CaughtCutin } from '../ui/CaughtCutin';
 import { popWord } from '../ui/Popups';
@@ -77,6 +79,15 @@ export class OfficeScene extends Phaser.Scene {
   private itemArrow!: TargetArrow;
   private guide!: GuideToast;
   private extras!: Extras;
+  /** STAGE 1 단계 안내 (상단 미션 칸) */
+  private tutorial!: Tutorial;
+  /** 처음 임시 점수가 생기면 내 자리를 가리키는 화살표(화면 밖)와 자리 위 표시(화면 안) */
+  private seatArrow!: TargetArrow;
+  private seatMark!: Phaser.GameObjects.Text;
+  /** 동기가 처음 돌아보려 할 때 주인공 혼잣말 (한 번만) */
+  private thought: Phaser.GameObjects.Text | null = null;
+  private thoughtT = 0;
+  private thoughtShown = false;
 
   constructor() {
     super('Office');
@@ -92,6 +103,10 @@ export class OfficeScene extends Phaser.Scene {
     this.goalAnnounced = false;
     this.missionDone = false;
     this.cleared = false;
+    this.thought = null;
+    this.thoughtT = 0;
+    // 다시 도전이면 혼잣말은 이미 봤으니 생략
+    this.thoughtShown = !!data?.retry;
 
     this.map = new OfficeMap(this, 1);
     this.touch = new TouchControls(this);
@@ -136,12 +151,27 @@ export class OfficeScene extends Phaser.Scene {
     this.clock = new WorkClock(STAGES[1]);
     this.clock.once('timeout', () => this.showFail('overtime'));
     this.hud = new HUD(this, this.score, this.life, this.clock);
+    this.setupTutorial();
     this.cutin = new CaughtCutin(this);
     this.input.on(Phaser.Input.Events.POINTER_DOWN, () => (this.tapped = true));
     this.prompt = new Prompt(this);
     this.targetCone = new VisionCone(this);
     this.daeriCone = new VisionCone(this, 0xffa000);
     this.grabRing = this.add.graphics().setDepth(DEPTH.label + 6);
+    const seat = this.map.mySeat;
+    this.seatMark = this.add
+      .text(seat.x, seat.y - 70, this.controls.isTouch ? '▼ [숨기] 꾹!' : '▼ E 꾹!', {
+        fontFamily: FONT,
+        fontSize: '22px',
+        color: '#ffffff',
+        stroke: '#e0457b',
+        strokeThickness: 6,
+      })
+      .setOrigin(0.5, 1)
+      .setDepth(DEPTH.label + 4)
+      .setScale(CAMERA.textScale)
+      .setVisible(false);
+    this.tweens.add({ targets: this.seatMark, y: seat.y - 84, duration: 380, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
 
     // 물리 계산이 끝난 뒤 그림 위치를 맞춘다
     const sync = () => this.player.syncView();
@@ -150,6 +180,7 @@ export class OfficeScene extends Phaser.Scene {
     this.player.syncView();
 
     this.targetArrow = new TargetArrow(this);
+    this.seatArrow = new TargetArrow(this, { color: 0xf06292, icon: TEX.chair, iconScale: 0.55 });
     this.itemArrow = new TargetArrow(this, { color: 0xf9a825, icon: ITEMS.postit.icon });
     this.setupCamera();
     this.setupDebug();
@@ -266,7 +297,12 @@ export class OfficeScene extends Phaser.Scene {
     const near = Phaser.Math.Distance.Between(this.player.x, this.player.y, this.target.x, this.target.y) < 110;
     this.target.view.setLabelFaded(near && this.player.y < this.target.y);
     const canPoke = !this.paused && !this.poke.active && this.target.pokeCheck(this.player.x, this.player.y, POKE.range) === 'ok';
-    this.prompt.show(this.player.x, this.player.y - 122, this.promptText(canPoke));
+    // 지금 이 자리에서 아이템을 쓸 수 있으면 발밑 원이 초록, 안내도 초록 바탕
+    const canUse = !this.paused && !this.hide.hidden && !this.pranks.active && !!this.items.selectedItem && this.pranks.check(this.player.x, this.player.y).ok;
+    this.target.view.setMarkerReady(canUse || canPoke);
+    this.prompt.show(this.player.x, this.player.y - 122, this.promptText(canPoke), canUse);
+    this.updateSeatGuide();
+    this.updateThought(dt);
     // [숨기] 버튼은 숨을 수 있는 곳 근처에서만 진하게
     this.touch.setDisabled('hide', !this.hide.nearby);
     this.touch.setDisabled('item', !this.items.selectedItem);
@@ -288,6 +324,8 @@ export class OfficeScene extends Phaser.Scene {
       cleared: this.cleared,
       resultReady: !!this.result?.ready,
       mission: this.missionDone,
+      tutorial: { step: this.tutorial.current, line: this.hud.missionLine },
+      thought: !!this.thought,
       remaining: Math.round(this.clock.remaining * 10) / 10,
       daeri: { kind: this.daeri.grabKind, state: this.daeri.state, x: Math.round(this.daeri.x), y: Math.round(this.daeri.y), route: this.daeri.routeIndex },
       caughtBy: this.life.caughtBy,
@@ -363,11 +401,82 @@ export class OfficeScene extends Phaser.Scene {
     if (this.missionDone || this.failed || this.cleared) return;
     this.missionDone = true;
     const m = STAGES[1].mission;
-    this.hud.setMission(true, m.name, m.goal);
+    this.tutorial.complete('parade');
     this.score.addConfirmed(m.points);
     popWord(this, this.target.x, this.target.y - 120, `미션 성공! +${m.points}`, { size: 30, color: '#2e7d5b' });
     this.banner(['특별 미션 성공!', `"${m.name}"`], '#2e9e6b');
     this.checkClear();
+  }
+
+  /** 단계 안내: 해낸 순간 체크하고 다음 할 일로 */
+  private setupTutorial(): void {
+    this.tutorial = new Tutorial();
+    const t = this.tutorial;
+    this.items.on('picked', (id: ItemId) => id === 'postit' && t.complete('pick'));
+    this.pranks.on('used', (id: ItemId) => {
+      if (id !== 'postit') return;
+      t.complete('pick');
+      t.complete('stick');
+    });
+    this.score.on('change', () => this.score.temp > 0 && t.complete('poke'));
+    this.hide.onConfirm = () => t.complete('confirm');
+    t.on('change', (id: string) => {
+      this.refreshMission();
+      if (t.finished) return;
+      popWord(this, this.player.x, this.player.y - 150, '✔ 좋아!', { color: '#2e9e6b', size: 24 });
+      // 처음 콕으로 임시 점수가 생겼을 때: 확정하러 가는 법
+      if (id === 'poke' && !t.done.has('confirm')) {
+        this.guide.show(TUTORIAL_TEXT.firstTemp[this.controls.isTouch ? 'touch' : 'pc'], 5);
+      }
+    });
+    this.refreshMission();
+  }
+
+  private refreshMission(): void {
+    const t = this.tutorial;
+    const line = t.text(this.controls.isTouch);
+    const all = t.finished && this.missionDone;
+    this.hud.setMission(all ? `✔ ${STAGES[1].mission.name} 성공! · ${line}` : `★ ${line}`, all);
+  }
+
+  /** 처음 임시 점수를 들고 있는 동안: 내 자리 위 "▼ E 꾹" + 화면 밖이면 가장자리 화살표 */
+  private updateSeatGuide(): void {
+    const t = this.tutorial;
+    const on = !this.paused && t.done.has('poke') && !t.done.has('confirm') && this.score.temp > 0 && !this.hide.hidden;
+    const seat = this.map.mySeat;
+    this.seatMark.setVisible(on);
+    this.seatArrow.update(this.cameras.main, on ? { x: seat.x, y: seat.y + 50 } : null);
+  }
+
+  /** 동기가 처음 돌아보려 할 때(의심 1단계) 가까이 있으면 주인공 혼잣말 한 번 */
+  private updateThought(dt: number): void {
+    const p = this.player;
+    if (!this.thoughtShown && !this.paused && this.target.state === 'suspect') {
+      const d = Phaser.Math.Distance.Between(p.x, p.y, this.target.x, this.target.y);
+      if (d <= TUTORIAL_TEXT.firstTellRange) {
+        this.thoughtShown = true;
+        this.thoughtT = TUTORIAL_TEXT.firstTellSeconds;
+        this.thought = this.add
+          .text(p.x, p.y, TUTORIAL_TEXT.firstTell, {
+            fontFamily: FONT,
+            fontSize: '16px',
+            color: '#5a3a4a',
+            backgroundColor: '#ffffff',
+            padding: { x: 10, y: 5 },
+          })
+          .setOrigin(0.5, 1)
+          .setDepth(DEPTH.label + 6)
+          .setScale(CAMERA.textScale * 0.6);
+        this.tweens.add({ targets: this.thought, scale: CAMERA.textScale, duration: 200, ease: 'Back.Out' });
+      }
+    }
+    if (!this.thought) return;
+    this.thought.setPosition(p.x, p.y - 140);
+    if (!this.paused) this.thoughtT -= dt;
+    if (this.thoughtT <= 0) {
+      this.thought.destroy();
+      this.thought = null;
+    }
   }
 
   /** 클리어 조건: 킹받음 100 확정 + 특별 미션 성공 (목숨이 남아 있을 때) */
@@ -554,9 +663,11 @@ export class OfficeScene extends Phaser.Scene {
 
   private setupCamera(): void {
     const cam = this.cameras.main;
-    cam.setBounds(0, 0, this.map.width, this.map.height).setRoundPixels(true);
     // 맵은 넓게(0.8배) 보고, HUD·버튼·컷인 글자(화면 고정 = scrollFactor 0)는 1배 카메라로 따로 그린다
     cam.setZoom(this.controls.isTouch ? CAMERA.zoomTouch : CAMERA.zoom);
+    // 맵 맨 위(탕비실·동기 자리)에서도 머리 위 글자가 HUD 아래로 보이게 위쪽에 HUD 높이만큼 여유를 둔다
+    const top = CAMERA.hudTop / cam.zoom;
+    cam.setBounds(0, -top, this.map.width, this.map.height + top).setRoundPixels(true);
     const uiCam = this.cameras.add(0, 0, GAME_WIDTH, GAME_HEIGHT);
     const split = () => {
       const ui: Phaser.GameObjects.GameObject[] = [];

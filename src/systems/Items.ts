@@ -36,6 +36,8 @@ export class Items extends Phaser.Events.EventEmitter {
   private fullWarned?: MapItem;
   /** 이번 판에 하나라도 주웠는가 (첫 아이템 안내용) */
   pickedAny = false;
+  /** 아직 첫 아이템을 안 만들었다 (첫 아이템은 정해진 곳에 정해진 것) */
+  private firstPending = true;
 
   constructor(private readonly scene: Phaser.Scene) {
     super();
@@ -135,8 +137,16 @@ export class Items extends Phaser.Events.EventEmitter {
     let free = ITEM_SPAWNS.filter((s) => !used.has(s) && s !== this.lastPicked);
     if (!free.length) free = ITEM_SPAWNS.filter((s) => !used.has(s));
     if (!free.length) return false;
-    const spot = Phaser.Utils.Array.GetRandom(free);
-    const id = this.pickType();
+    let spot: ItemSpawnSpot = Phaser.Utils.Array.GetRandom(free);
+    let id: ItemId;
+    const first = ITEM_SPAWNS.find((s) => s.id === ITEM_RULES.firstItem.spot);
+    if (this.firstPending && first && !used.has(first)) {
+      spot = first;
+      id = ITEM_RULES.firstItem.id;
+    } else {
+      id = this.pickType(spot);
+    }
+    this.firstPending = false;
     const glow = this.scene.add.ellipse(spot.x, spot.y, 64, 24, 0xfff176, 0.6).setStrokeStyle(2, 0xf9a825, 0.8).setDepth(DEPTH.floor + 5);
     const icon = this.scene.add.image(spot.x, spot.y - 26, ITEMS[id].icon).setDepth(spot.y);
     const sparkle = this.scene.add
@@ -151,9 +161,11 @@ export class Items extends Phaser.Events.EventEmitter {
     return true;
   }
 
-  /** 맵과 슬롯에 적은 종류를 우선 (한 종류만 계속 나오지 않게) */
-  private pickType(): ItemId {
-    const ids = Object.keys(ITEMS) as ItemId[];
+  /** 그 자리에 나올 수 있는 것 중 맵과 슬롯에 적은 종류를 우선 (한 종류만 계속 나오지 않게) */
+  private pickType(spot: ItemSpawnSpot): ItemId {
+    const all = Object.keys(ITEMS) as ItemId[];
+    const allowed = all.filter((id) => !spot.not?.includes(id));
+    const ids = allowed.length ? allowed : all;
     const count = (id: ItemId) => this.onMap.filter((m) => m.id === id).length + this.slots.filter((s) => s === id).length;
     const min = Math.min(...ids.map(count));
     return Phaser.Utils.Array.GetRandom(ids.filter((id) => count(id) === min));

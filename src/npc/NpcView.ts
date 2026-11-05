@@ -32,6 +32,7 @@ export class NpcView {
   private readonly label: Phaser.GameObjects.Container;
   private readonly anger: Phaser.GameObjects.Image;
   private readonly marker?: Phaser.GameObjects.Graphics;
+  private markerReady = false;
   /** 등에 붙은 포스트잇 */
   private readonly note: Phaser.GameObjects.Image;
 
@@ -89,22 +90,30 @@ export class NpcView {
     if (isTarget) {
       // 발밑 점선 원
       this.marker = scene.add.graphics().setDepth(DEPTH.floor + 5);
-      this.marker.lineStyle(3, 0xe53935, 0.8);
-      const n = 16;
-      for (let i = 0; i < n; i += 1) {
-        if (i % 2) continue;
-        const a0 = (i / n) * Math.PI * 2;
-        const a1 = ((i + 1) / n) * Math.PI * 2;
-        this.marker.beginPath();
-        for (let k = 0; k <= 4; k++) {
-          const a = a0 + ((a1 - a0) * k) / 4;
-          const px = Math.cos(a) * 34;
-          const py = Math.sin(a) * 14;
-          if (k === 0) this.marker.moveTo(px, py);
-          else this.marker.lineTo(px, py);
-        }
-        this.marker.strokePath();
+      this.drawMarker(false);
+    }
+  }
+
+  /** 발밑 점선 원. ready = 지금 붙이기·콕을 할 수 있는 거리(초록) */
+  private drawMarker(ready: boolean): void {
+    const m = this.marker;
+    if (!m) return;
+    m.clear();
+    m.lineStyle(ready ? 4 : 3, ready ? 0x2e9e6b : 0xe53935, ready ? 1 : 0.8);
+    const n = 16;
+    for (let i = 0; i < n; i += 1) {
+      if (i % 2) continue;
+      const a0 = (i / n) * Math.PI * 2;
+      const a1 = ((i + 1) / n) * Math.PI * 2;
+      m.beginPath();
+      for (let k = 0; k <= 4; k++) {
+        const a = a0 + ((a1 - a0) * k) / 4;
+        const px = Math.cos(a) * 34;
+        const py = Math.sin(a) * 14;
+        if (k === 0) m.moveTo(px, py);
+        else m.lineTo(px, py);
       }
+      m.strokePath();
     }
   }
 
@@ -145,6 +154,13 @@ export class NpcView {
   }
 
   /** 플레이어가 바로 뒤에 있을 때 라벨이 얼굴을 가리지 않게 옅게 */
+  /** 지금 장난칠 수 있는 거리면 발밑 원을 초록으로 */
+  setMarkerReady(ready: boolean): void {
+    if (this.markerReady === ready) return;
+    this.markerReady = ready;
+    this.drawMarker(ready);
+  }
+
   setLabelFaded(faded: boolean): void {
     this.label.setAlpha(faded ? 0.3 : 1);
   }

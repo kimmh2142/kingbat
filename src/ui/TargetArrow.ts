@@ -14,7 +14,7 @@ export class TargetArrow {
   private readonly arrow: Phaser.GameObjects.Graphics;
   private readonly icon: Phaser.GameObjects.Image;
 
-  constructor(scene: Phaser.Scene, opts: { color?: number; icon?: TextureKey } = {}) {
+  constructor(scene: Phaser.Scene, opts: { color?: number; icon?: TextureKey; iconScale?: number } = {}) {
     this.arrow = scene.add.graphics();
     this.arrow.fillStyle(opts.color ?? 0xe53935).lineStyle(3, COLORS.outline);
     this.arrow.beginPath();
@@ -24,7 +24,7 @@ export class TargetArrow {
     this.arrow.closePath();
     this.arrow.fillPath().strokePath();
     const bg = scene.add.circle(0, 0, 18, 0xffffff, 0.92).setStrokeStyle(3, COLORS.outline);
-    this.icon = scene.add.image(0, 0, opts.icon ?? TEX.targetIcon);
+    this.icon = scene.add.image(0, 0, opts.icon ?? TEX.targetIcon).setScale(opts.iconScale ?? 1);
     this.root = scene.add.container(0, 0, [this.arrow, bg, this.icon]).setScrollFactor(0).setDepth(DEPTH.label + 15).setVisible(false);
     scene.tweens.add({ targets: this.root, scale: 1.12, duration: 500, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
   }

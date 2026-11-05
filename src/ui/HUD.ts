@@ -6,7 +6,7 @@ import type { Life } from '../systems/Life';
 import type { Score } from '../systems/Score';
 import type { WorkClock } from '../systems/WorkClock';
 
-/** 특별 미션 칸 (상단 줄 바로 아래 왼쪽) */
+/** 특별 미션·단계 안내 칸 (상단 줄 바로 아래 왼쪽) */
 const MISSION_Y = 58;
 
 const BAR_W = 210;
@@ -77,25 +77,27 @@ export class HUD {
     score.on('change', () => this.refresh());
     this.refresh();
 
-    const m = clock.stage.mission;
     this.missionBg = fixed(scene.add.graphics());
     this.missionText = fixed(
       scene.add.text(26, MISSION_Y, '', { fontFamily: FONT, fontSize: '15px', color: COLORS.text }).setOrigin(0, 0.5),
     );
-    this.setMission(false, m.name, m.goal);
   }
 
-  /** 미션 칸: 진행 중이면 할 일, 성공하면 체크 */
-  setMission(done: boolean, name: string, goal: string): void {
-    this.missionText.setText(done ? `✔ ${name} 성공!` : `★ ${name} · ${goal}`);
+  /** 미션 칸: 지금 할 일 한 줄. done이면 초록. 글이 바뀌면 통 튄다 */
+  setMission(text: string, done = false): void {
+    if (this.missionText.text === text) return;
+    this.missionText.setText(text);
     this.missionText.setColor(done ? '#2e7d5b' : COLORS.text);
     const w = this.missionText.width + 28;
     this.missionBg.clear();
     this.missionBg.fillStyle(done ? 0xdff5e9 : 0xfff8d6, 0.95).fillRoundedRect(12, MISSION_Y - 13, w, 26, 13);
     this.missionBg.lineStyle(2, COLORS.outline).strokeRoundedRect(12, MISSION_Y - 13, w, 26, 13);
-    if (done) {
-      this.scene.tweens.add({ targets: [this.missionText], scale: { from: 1.25, to: 1 }, duration: 300, ease: 'Back.Out' });
-    }
+    this.scene.tweens.add({ targets: [this.missionText], scale: { from: 1.25, to: 1 }, duration: 300, ease: 'Back.Out' });
+  }
+
+  /** 미션 칸에 지금 보이는 글 (테스트용) */
+  get missionLine(): string {
+    return this.missionText.text;
   }
 
   update(dt: number): void {

@@ -22,6 +22,8 @@ export class Hide {
   private typingT = 0;
   private sparkleT = 0;
   private readonly sparkle: Phaser.GameObjects.Text;
+  /** 임시 점수가 확정됐을 때 (확정된 점수) */
+  onConfirm?: (gained: number) => void;
 
   constructor(
     private readonly scene: Phaser.Scene,
@@ -60,6 +62,7 @@ export class Hide {
         const gained = this.score.confirm();
         if (gained > 0) {
           popWord(this.scene, player.x, player.y - 100, `확정! +${Math.floor(gained)}`, { color: '#e0457b', size: 30 });
+          this.onConfirm?.(gained);
         }
       }
       if (this.spot.kind === 'seat') {

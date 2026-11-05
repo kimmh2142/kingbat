@@ -37,13 +37,16 @@ export interface ItemSpawnSpot {
   y: number;
   /** 입구 택배 상자처럼 따로 그려 줄 소품 */
   prop?: TextureKey;
+  /** 이곳엔 안 나오는 아이템 */
+  not?: ItemId[];
 }
 
 export const ITEM_SPAWNS: ItemSpawnSpot[] = [
   { id: 'parcel', name: '입구 택배 상자', x: 300, y: 1210, prop: TEX.parcel },
   { id: 'drawer-a', name: '빈 책상 서랍(왼쪽)', x: 812, y: 728 },
   { id: 'drawer-b', name: '빈 책상 서랍(오른쪽)', x: 1404, y: 1068 },
-  { id: 'shelf', name: '탕비실 선반', x: 170, y: 216 },
+  // 포스트잇은 탕비실에 안 나온다: 동기가 탕비실에 있을 때 주워 붙이면 미션(탕비실 도착)이 다음 방문까지 밀린다
+  { id: 'shelf', name: '탕비실 선반', x: 170, y: 216, not: ['postit'] },
 ];
 
 export const ITEM_RULES = {
@@ -53,6 +56,8 @@ export const ITEM_RULES = {
   respawn: [15, 25] as Range,
   /** 판 시작 직후 처음 생기기까지 (두 개가 따로따로) */
   firstSpawn: [[1, 2], [4, 6]] as Range[],
+  /** 판 시작 첫 아이템은 꼭 이것, 이 자리에 (내 자리 → 동기 자리 가는 길) */
+  firstItem: { id: 'postit' as ItemId, spot: 'drawer-a' },
   /** 이 거리(px) 안으로 걸어 들어가면 줍는다 */
   pickupRadius: 38,
   /** 슬롯 칸 수 */

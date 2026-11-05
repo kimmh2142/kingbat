@@ -20,6 +20,8 @@ export const CAMERA = {
   zoomTouch: 0.9,
   /** 넓게 보면 작아지는 머리 위 글자(이름표·말풍선·안내·의성어)를 이만큼 키운다 */
   textScale: 1.15,
+  /** 화면 위쪽 HUD(상단 줄 + 미션 칸) 높이(화면 px). 맵 맨 위에 서도 이름표·안내가 HUD에 가리지 않게 카메라가 이만큼 더 올라간다 */
+  hudTop: 74,
 };
 
 export const POKE = {
@@ -76,8 +78,8 @@ export const INTRO = {
 };
 
 export const TARGET_ARROW = {
-  /** 화살표가 붙는 화면 안쪽 여백 (위는 HUD, 아래는 아이템 칸을 피한다) */
+  /** 화살표가 붙는 화면 안쪽 여백 (위는 HUD·미션 칸, 아래는 아이템 칸을 피한다) */
   marginX: 40,
-  marginTop: 72,
+  marginTop: 94,
   marginBottom: 84,
 };
