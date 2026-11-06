@@ -1,5 +1,6 @@
 // 특별 미션 + 결과 화면 확인: 포스트잇 붙인 채로 동기가 탕비실 도착 → 미션 성공(+15 확정),
 // 킹받음 100까지 채우면 클리어 화면, 시간 초과 → 야근 확정, 하트 0개 → 딱 걸렸다. Space로 다시 하기, Esc로 타이틀.
+// 클리어 화면: Space = 다음 스테이지(STAGE 2 예고 → Space로 타이틀), R = 다시 하기. 효과음(확정·클리어·실패) 기록.
 // 사용법: npm run dev 를 켠 상태에서  node scripts/check-result.mjs
 import { chromium } from 'playwright';
 import { mkdirSync } from 'node:fs';
@@ -52,7 +53,7 @@ const done = await waitFor(() => window.__kingbat.mission, 30000);
 await page.waitForTimeout(500);
 await page.screenshot({ path: 'screenshots/mission-done.png' });
 const m = await k();
-log.push(['미션', { 붙음: stuck, 포스트잇후: afterPostit, 걸어감: walking, 성공: done, 점수: m.score, 클리어: m.cleared }]);
+log.push(['미션', { 붙음: stuck, 포스트잇후: afterPostit, 걸어감: walking, 성공: done, 점수: m.score, 클리어: m.cleared, 효과음: m.sfx }]);
 
 // 2) 킹받음 100 → 클리어 화면
 await page.evaluate(() => window.__kingbatTest.addScore(100));
@@ -60,10 +61,31 @@ await waitFor(() => window.__kingbat.resultReady, 15000);
 await page.waitForTimeout(600);
 await page.screenshot({ path: 'screenshots/result-clear.png' });
 const c = await k();
-await page.keyboard.press('Space');
+await page.keyboard.press('KeyR');
 await page.waitForTimeout(600);
 const afterRetry = await k();
-log.push(['클리어', { cleared: c.cleared, 'Space후 새판': !afterRetry.cleared && afterRetry.score.confirmed === 0 }]);
+log.push(['클리어', { cleared: c.cleared, 효과음: c.sfx.slice(-2), 'R후 새판': !afterRetry.cleared && afterRetry.score.confirmed === 0 }]);
+// 클리어 → Space: STAGE 2 예고 → Space: 타이틀
+await fresh();
+await page.evaluate(() => window.__kingbatTest.giveItem('postit'));
+await waitFor(() => window.__kingbat.target.state === 'work', 30000);
+await tp(1152, 240);
+await page.waitForTimeout(150);
+await page.keyboard.press('KeyZ');
+await waitFor(() => window.__kingbat.items.postit, 2000);
+await tp(664, 940);
+await waitFor(() => window.__kingbat.mission, 80000);
+await page.evaluate(() => window.__kingbatTest.addScore(100));
+await waitFor(() => window.__kingbat.resultReady, 15000);
+await page.waitForTimeout(400);
+await page.keyboard.press('Space');
+const soon = await waitFor(() => window.__kingbatComingSoon, 5000);
+await page.waitForTimeout(700);
+await page.screenshot({ path: 'screenshots/result-coming-soon.png' });
+await page.waitForTimeout(300);
+await page.keyboard.press('Space');
+const toTitle = await waitFor(() => !window.__kingbatComingSoon && !!window.__kingbatTitle, 5000);
+log.push(['다음 스테이지', { 예고: soon, 'Space후 타이틀': toTitle }]);
 
 // 3) 미션 없이 100: 클리어 아님
 await fresh();

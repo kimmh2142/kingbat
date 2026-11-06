@@ -22,6 +22,7 @@ import { DEPTH, OfficeMap } from '../systems/OfficeMap';
 import { Poke } from '../systems/Poke';
 import { Pranks } from '../systems/Pranks';
 import { Score } from '../systems/Score';
+import { Sfx } from '../systems/Sfx';
 import { Tutorial } from '../systems/Tutorial';
 import { WorkClock } from '../systems/WorkClock';
 import { CaughtCutin } from '../ui/CaughtCutin';
@@ -82,6 +83,7 @@ export class OfficeScene extends Phaser.Scene {
   private extras!: Extras;
   /** STAGE 1 단계 안내 (상단 미션 칸) */
   private tutorial!: Tutorial;
+  private sfx!: Sfx;
   private miniMap!: MiniMap;
   /** 처음 임시 점수가 생기면 내 자리를 가리키는 화살표(화면 밖)와 자리 위 표시(화면 안) */
   private seatArrow!: TargetArrow;
@@ -150,6 +152,7 @@ export class OfficeScene extends Phaser.Scene {
       this.guide.show(ITEMS[id].howTo.replace('{key}', this.controls.isTouch ? '[아이템] 버튼' : 'Z'), 4);
     });
     this.life = new Life();
+    this.setupSfx();
     this.clock = new WorkClock(STAGES[1]);
     this.clock.once('timeout', () => this.showFail('overtime'));
     this.hud = new HUD(this, this.score, this.life, this.clock);
@@ -253,7 +256,7 @@ export class OfficeScene extends Phaser.Scene {
       if (this.intro?.active && (this.controls.justPressed('Space') || this.tapped)) this.intro.skip();
       if (this.result) {
         this.result.update(dt);
-        for (const code of ['Space', 'Enter', 'Escape']) if (this.controls.justPressed(code) && this.result.onKey(code)) break;
+        for (const code of ['Space', 'Enter', 'Escape', 'KeyR']) if (this.controls.justPressed(code) && this.result.onKey(code)) break;
       }
     } else {
       // 대리: 빈손으로 시야에 들어오면 "뭐 해요?" 하고 세우고, 옆을 지나가면 가끔 커피 심부름으로 붙잡는다
@@ -343,6 +346,7 @@ export class OfficeScene extends Phaser.Scene {
       tutorial: { step: this.tutorial.current, line: this.hud.missionLine },
       thought: !!this.thought,
       minimap: { big: this.miniMap.isBig, ...this.miniMap.rect },
+      sfx: [...this.sfx.log],
       remaining: Math.round(this.clock.remaining * 10) / 10,
       daeri: { kind: this.daeri.grabKind, state: this.daeri.state, x: Math.round(this.daeri.x), y: Math.round(this.daeri.y), route: this.daeri.routeIndex },
       caughtBy: this.life.caughtBy,
@@ -423,6 +427,22 @@ export class OfficeScene extends Phaser.Scene {
     popWord(this, this.target.x, this.target.y - 120, `미션 성공! +${m.points}`, { size: 30, color: '#2e7d5b' });
     this.banner(['특별 미션 성공!', `"${m.name}"`], '#2e9e6b');
     this.checkClear();
+  }
+
+  /** 효과음: 콕(임시 점수 오름)·확정(확정 점수 오름)·아이템 줍기·붙이기. 들킴·클리어·실패는 그 자리에서 */
+  private setupSfx(): void {
+    this.sfx = new Sfx(this);
+    let temp = 0;
+    let confirmed = 0;
+    this.score.on('change', () => {
+      if (this.score.temp > temp) this.sfx.play('poke');
+      // 클리어 순간엔 클리어 소리만
+      if (this.score.confirmed > confirmed && !this.cleared) this.sfx.play('confirm');
+      temp = this.score.temp;
+      confirmed = this.score.confirmed;
+    });
+    this.items.on('picked', () => this.sfx.play('pick'));
+    this.pranks.on('used', (id: ItemId) => this.sfx.play(id === 'gum' ? 'gum' : 'stick'));
   }
 
   /** 단계 안내: 해낸 순간 체크하고 다음 할 일로 */
@@ -555,7 +575,10 @@ export class OfficeScene extends Phaser.Scene {
       reason,
       cause: { x: who.x, y: who.y - 70 },
       follow: this.player.cameraTarget,
-      onHit: () => this.life.lose(reason),
+      onHit: () => {
+        this.sfx.play('caught');
+        this.life.lose(reason);
+      },
       onDone: () => {
         if (!this.life.alive) this.showFail('caught');
       },
@@ -566,6 +589,7 @@ export class OfficeScene extends Phaser.Scene {
   private showFail(kind: 'caught' | 'overtime'): void {
     if (this.failed || this.cleared) return;
     this.failed = true;
+    this.sfx.play('fail');
     this.showResult(kind);
   }
 
@@ -573,6 +597,7 @@ export class OfficeScene extends Phaser.Scene {
   private showClear(): void {
     if (this.failed || this.cleared) return;
     this.cleared = true;
+    this.sfx.play('clear');
     this.target.view.setPose({ face: TEX.faceShock });
     this.target.view.say(STAGES[1].lines.clear, 3);
     this.showResult('clear');
@@ -598,6 +623,8 @@ export class OfficeScene extends Phaser.Scene {
       },
       () => this.retry(),
       () => this.scene.start('Title'),
+      // STAGE 2는 아직 없어서 예고 화면으로
+      () => this.scene.start('ComingSoon'),
     );
   }
 

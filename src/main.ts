@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import '@fontsource/jua/index.css';
 import { FONT, GAME_HEIGHT, GAME_WIDTH } from './config';
 import { BootScene } from './scenes/BootScene';
+import { ComingSoonScene } from './scenes/ComingSoonScene';
 import { OfficeScene } from './scenes/OfficeScene';
 import { StoryScene } from './scenes/StoryScene';
 import { TitleScene } from './scenes/TitleScene';
@@ -36,6 +37,6 @@ loadFonts().then(() => {
       arcade: { debug: false },
     },
     input: { activePointers: 3 },
-    scene: [BootScene, TitleScene, StoryScene, OfficeScene],
+    scene: [BootScene, TitleScene, StoryScene, OfficeScene, ComingSoonScene],
   });
 });

@@ -31,7 +31,8 @@ const D = DEPTH.label + 50;
  * - clear: 대상의 분노 + "공략 성공!" + 별점(남은 하트) · 남은 시간 · 들킨 횟수
  * - overtime: 불 꺼진 사무실, 모니터 불빛만. 무엇이 모자랐는지
  * - caught: 대상이 "야! 너였구나!" + 가장 많이 들킨 원인
- * Space·Enter = 다시 하기, Esc = 타이틀로 (또는 버튼).
+ * 실패: Space·Enter = 다시 도전, Esc = 타이틀로 (또는 버튼).
+ * 클리어: Space·Enter = 다음 스테이지, R = 다시 하기, Esc = 타이틀로.
  */
 export class ResultPanel {
   private t = 0;
@@ -42,6 +43,7 @@ export class ResultPanel {
     private readonly info: ResultInfo,
     private readonly onRetry: () => void,
     private readonly onTitle: () => void,
+    private readonly onNext: () => void = onTitle,
   ) {
     if (info.kind === 'clear') this.clear();
     else if (info.kind === 'overtime') this.overtime();
@@ -56,7 +58,9 @@ export class ResultPanel {
   /** 키 입력 (event.code). 처리했으면 true */
   onKey(code: string): boolean {
     if (this.t < INPUT_DELAY) return false;
-    if (code === 'Space' || code === 'Enter') this.onRetry();
+    const clear = this.info.kind === 'clear';
+    if (code === 'Space' || code === 'Enter') (clear ? this.onNext : this.onRetry)();
+    else if (code === 'KeyR' && clear) this.onRetry();
     else if (code === 'Escape') this.onTitle();
     else return false;
     return true;
@@ -89,7 +93,9 @@ export class ResultPanel {
     this.stars(cx, 232, info.hearts, info.maxHearts);
     this.text(cx, 284, `남은 시간 ${fmt(info.remaining)}   ·   들킨 횟수 ${info.caughtCount}번`, 20, COLORS.text);
     this.text(cx, 330, `나: "${stage.lines.clearMe}"`, 20, '#8d6fb0');
-    this.buttons(cx, 410, '다시 하기');
+    this.button(cx - 110, 410, '다음 스테이지', 0xffd54f, this.onNext);
+    this.button(cx + 110, 410, '다시 하기', 0xffffff, this.onRetry);
+    if (!info.touch) this.text(cx, 456, 'Space: 다음 스테이지   ·   R: 다시 하기   ·   Esc: 타이틀로', 15, COLORS.text);
   }
 
   private overtime(): void {

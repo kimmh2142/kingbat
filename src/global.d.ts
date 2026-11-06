@@ -19,6 +19,7 @@ interface Window {
     tutorial?: { step: string | null; line: string };
     thought?: boolean;
     minimap?: { big: boolean; x: number; y: number; w: number; h: number };
+    sfx?: string[];
     remaining?: number;
     daeri?: { kind?: string; state: string; x: number; y: number; route?: number };
     caughtBy?: Record<string, number>;
@@ -38,4 +39,6 @@ interface Window {
   __kingbatTexture?: (key: string) => string;
   __kingbatStory?: { step(): number; total: number; typing(): boolean };
   __kingbatTitle?: { howToOpen(): boolean; howToPage(): number; selected(): number };
+  /** STAGE 2 예고 화면이 떠 있음 */
+  __kingbatComingSoon?: boolean;
 }
