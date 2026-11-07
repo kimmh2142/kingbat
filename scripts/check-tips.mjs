@@ -138,8 +138,8 @@ await mob.waitForTimeout(700);
 await mob.screenshot({ path: 'screenshots/tips-mobile.png' });
 const box = await mob.locator('canvas').boundingBox();
 const sc = box.width / 960;
-// 안내창 가운데 (480, 310), [알겠어!]는 (480+90, 310+118-34)
-await mob.touchscreen.tap(box.x + 570 * sc, box.y + 394 * sc);
+// 안내창 가운데 (480, 310), [알겠어!]는 (480-36, 310+118-34)
+await mob.touchscreen.tap(box.x + 444 * sc, box.y + 394 * sc);
 await mob.waitForTimeout(400);
 log.push(['모바일', { 터치로닫힘: (await mob.evaluate(() => window.__kingbat.tip)) === null }]);
 

@@ -8,6 +8,8 @@ import { DEPTH } from '../systems/OfficeMap';
 const INPUT_DELAY = 0.45;
 const W = 620;
 const H = 236;
+/** 버튼 너비 (두 개가 창 안에 들어가게) */
+const BTN_W = 196;
 
 /**
  * 튜토리얼 안내창: 주인공 얼굴 + 제목 + 설명 + [알겠어!] [다시 안 보기].
@@ -21,7 +23,8 @@ export class TipDialog {
   private readonly panel: Phaser.GameObjects.Container;
   private readonly title: Phaser.GameObjects.Text;
   private readonly body: Phaser.GameObjects.Text;
-  private readonly hint: Phaser.GameObjects.Text;
+  private readonly okBtn: { root: Phaser.GameObjects.Container; label: Phaser.GameObjects.Text };
+  private readonly offBtn: { root: Phaser.GameObjects.Container; label: Phaser.GameObjects.Text };
   private readonly ring: Phaser.GameObjects.Graphics;
   private onClose: ((off: boolean) => void) | null = null;
   /** 지금 떠 있는 안내 (확인용) */
@@ -54,11 +57,12 @@ export class TipDialog {
       lineSpacing: 7,
       wordWrap: { width: W - 160, useAdvancedWrap: true },
     });
-    const ok = this.button(scene, 90, H / 2 - 34, '알겠어!', 0xffd54f, 170, () => this.close(false));
-    const off = this.button(scene, 260, H / 2 - 34, '다시 안 보기', 0xffffff, 150, () => this.close(true));
-    this.hint = scene.add.text(-W / 2 + 26, H / 2 - 34, '', { fontFamily: FONT, fontSize: '13px', color: '#8d7f99' }).setOrigin(0, 0.5);
+    // 버튼은 글 영역(얼굴 오른쪽) 가운데에 두 개 나란히. 키는 버튼 글자에 같이 적는다 (모바일은 키 없이)
+    const bx = (tx + W / 2) / 2;
+    this.okBtn = this.button(scene, bx - BTN_W / 2 - 8, H / 2 - 34, BTN_W, 0xffd54f, () => this.close(false));
+    this.offBtn = this.button(scene, bx + BTN_W / 2 + 8, H / 2 - 34, BTN_W, 0xffffff, () => this.close(true));
     this.panel = scene.add
-      .container(GAME_WIDTH / 2, GAME_HEIGHT / 2 + 40, [bg, faceBg, face, me, this.title, this.body, ok, off, this.hint])
+      .container(GAME_WIDTH / 2, GAME_HEIGHT / 2 + 40, [bg, faceBg, face, me, this.title, this.body, this.okBtn.root, this.offBtn.root])
       .setScrollFactor(0)
       .setDepth(DEPTH.label + 40)
       .setVisible(false);
@@ -71,7 +75,8 @@ export class TipDialog {
     this.onClose = onClose;
     this.title.setText(tip.title);
     this.body.setText(touch ? tip.touch : tip.pc);
-    this.hint.setText(touch ? '' : 'Space: 알겠어\nN: 다시 안 보기');
+    this.okBtn.label.setText(touch ? '알겠어!' : '알겠어! (Space)');
+    this.offBtn.label.setText(touch ? '다시 안 보기' : '다시 안 보기 (N)');
     this.dim.setVisible(true);
     this.panel.setVisible(true).setScale(0.6).setAlpha(0);
     this.panel.scene.tweens.add({ targets: this.panel, scale: 1, alpha: 1, duration: 220, ease: 'Back.Out' });
@@ -107,16 +112,16 @@ export class TipDialog {
     cb?.(off);
   }
 
-  private button(scene: Phaser.Scene, x: number, y: number, label: string, color: number, w: number, onTap: () => void): Phaser.GameObjects.Container {
+  private button(scene: Phaser.Scene, x: number, y: number, w: number, color: number, onTap: () => void): { root: Phaser.GameObjects.Container; label: Phaser.GameObjects.Text } {
     const h = 44;
     const bg = scene.add.graphics();
     bg.fillStyle(COLORS.outline).fillRoundedRect(-w / 2, -h / 2 + 4, w, h, 22);
     bg.fillStyle(color).fillRoundedRect(-w / 2, -h / 2, w, h, 22);
     bg.lineStyle(3, COLORS.outline).strokeRoundedRect(-w / 2, -h / 2, w, h, 22);
-    const t = scene.add.text(0, 0, label, { fontFamily: FONT, fontSize: '20px', color: COLORS.text }).setOrigin(0.5);
+    const t = scene.add.text(0, 0, '', { fontFamily: FONT, fontSize: '18px', color: COLORS.text }).setOrigin(0.5);
     const c = scene.add.container(x, y, [bg, t]).setSize(w, h);
     c.setInteractive({ useHandCursor: true });
     c.on(Phaser.Input.Events.GAMEOBJECT_POINTER_UP, onTap);
-    return c;
+    return { root: c, label: t };
   }
 }
