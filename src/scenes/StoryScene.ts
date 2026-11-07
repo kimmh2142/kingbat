@@ -82,7 +82,7 @@ export class StoryScene extends Phaser.Scene {
     this.input.on(Phaser.Input.Events.POINTER_DOWN, (_p: Phaser.Input.Pointer, over: Phaser.GameObjects.GameObject[]) => {
       if (!over.length) this.advance();
     });
-    window.__kingbatStory = { step: () => this.step, total: this.story.steps.length, typing: () => this.shown < this.full.length };
+    window.__kingbatStory = { step: () => this.step, shot: () => this.story.steps[this.step]?.shot ?? null, total: this.story.steps.length, typing: () => this.shown < this.full.length };
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
       window.removeEventListener('keydown', onKey);
       window.__kingbatStory = undefined;

@@ -1,4 +1,4 @@
-// 오프닝 독백 + 도입 컷신 확인 (?title=1 → [게임 시작]): 독백이 저절로 동기 컷신으로 넘어가는지, 장면마다 캡처, Space로 글자 다 보이기·다음 장면, 끝나면 게임,
+// 도입 컷신 확인 (?title=1 → [게임 시작]): 오프닝 독백 없이 바로 동기 컷신, 장면마다 캡처, Space로 글자 다 보이기·다음 장면, 끝나면 게임,
 // Esc로 건너뛰기, 모바일 터치로 넘기기.
 // 사용법: npm run dev 를 켠 상태에서  node scripts/check-story.mjs
 import { chromium } from 'playwright';
@@ -27,18 +27,8 @@ async function toStory(p, url) {
 await toStory(page, BASE + '?title=1');
 const total = await page.evaluate(() => window.__kingbatStory.total);
 const steps = [];
-// 첫 장면(오프닝 독백)은 아무것도 안 눌러도 끝까지 나온 뒤 저절로 다음 장면으로 넘어간다 (서서히 밝아짐)
-await page.waitForTimeout(4000);
-await page.screenshot({ path: 'screenshots/story-1-typing.png' });
-await page.waitForFunction(() => !window.__kingbatStory.typing(), null, { timeout: 30000 });
-await page.waitForTimeout(300);
-await page.screenshot({ path: 'screenshots/story-1.png' });
-steps.push((await st()).story);
-await page.waitForFunction(() => window.__kingbatStory.step() === 1, null, { timeout: 5000 });
-const autoNext = (await st()).story;
-await page.waitForTimeout(250);
-await page.screenshot({ path: 'screenshots/story-1-fade.png' });
-for (let i = 1; i < total; i++) {
+const first = await page.evaluate(() => window.__kingbatStory.shot());
+for (let i = 0; i < total; i++) {
   await page.waitForTimeout(1900);
   await page.screenshot({ path: `screenshots/story-${i + 1}.png` });
   steps.push((await st()).story);
@@ -46,7 +36,7 @@ for (let i = 1; i < total; i++) {
   await page.waitForTimeout(80);
 }
 await page.waitForTimeout(900);
-log.push(['끝까지', { 장면수: total, 지나간장면: steps, 독백뒤저절로: autoNext, 끝난뒤: await st() }]);
+log.push(['끝까지', { 장면수: total, 지나간장면: steps, 첫장면: first, 끝난뒤: await st() }]);
 
 // 2) 글자 나오는 중 Space = 글자 다 보이기 (장면은 그대로)
 await toStory(page, BASE + '?title=1');

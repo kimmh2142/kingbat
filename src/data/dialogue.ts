@@ -27,7 +27,7 @@ export interface StageStory {
 }
 
 /**
- * 오프닝 독백 (reference/ 오프닝 독백 원문). 검은 화면에 한 줄씩 진지하게 나온 뒤,
+ * 오프닝 독백 (reference/ 오프닝 독백 원문). 2026-11-07 빼기로 해서 지금은 안 나온다 (다시 넣으려면 STORIES 1의 맨 앞에 monologue 장면 추가). 검은 화면에 한 줄씩 진지하게 나온 뒤,
  * 서서히 밝아지며 동기 컷신으로 이어진다.
  * 원문/순화본은 팀 확인 중이라 글만 바꾸면 되게 따로 둔다. 순화본 예:
  *   나, / 조금도 혼나고 싶지 않다. / 나, / 오로지 킹받게만 하고 싶다. //
@@ -54,9 +54,8 @@ export const STORIES: Record<number, StageStory> = {
     title: 'STAGE 1',
     subtitle: '동기 이동기',
     quote: '"야, 우리 동기잖아!"',
-    // 오프닝 독백은 게임을 처음 시작할 때 STAGE 1 앞에만 나온다
+    // 오프닝 독백("때리고만 싶다")은 2026-11-07 뺐다. 바로 동기 컷신부터
     steps: [
-      { shot: 'monologue', who: 'none', text: MONOLOGUE },
       { shot: 'ask', who: 'dongi', text: '저기… 나 오늘 진짜 너무 바빠서 그러는데 ㅠㅠ' },
       { shot: 'dump', who: 'dongi', text: '이것 좀 대신 처리해 줄 수 있을까? 우리 동기잖아~ ㅠㅠㅠ' },
       { shot: 'reply', who: 'me', text: '어… 어어, 그래… 줘 봐…' },
