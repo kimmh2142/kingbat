@@ -34,3 +34,26 @@ export class Tutorial extends Phaser.Events.EventEmitter {
     return pending[0][key];
   }
 }
+
+const TIPS_OFF_KEY = 'kingbat.tipsOff';
+
+/** 튜토리얼 안내창 끄기 설정 (이 기기 브라우저에 저장). 저장이 막힌 환경이면 그 판에서만 유지 */
+export const tipsSetting = {
+  memory: false,
+  get off(): boolean {
+    try {
+      return localStorage.getItem(TIPS_OFF_KEY) === '1' || this.memory;
+    } catch {
+      return this.memory;
+    }
+  },
+  set off(v: boolean) {
+    this.memory = v;
+    try {
+      if (v) localStorage.setItem(TIPS_OFF_KEY, '1');
+      else localStorage.removeItem(TIPS_OFF_KEY);
+    } catch {
+      // 저장 못 해도 게임은 그대로
+    }
+  },
+};

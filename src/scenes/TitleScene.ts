@@ -4,6 +4,7 @@ import { COLORS, FONT, GAME_HEIGHT, GAME_WIDTH } from '../config';
 import { NpcView } from '../npc/NpcView';
 import { DONGI } from '../npc/patterns/dongi';
 import { popWord } from '../ui/Popups';
+import { tipsSetting } from '../systems/Tutorial';
 import { HowToPanel } from '../ui/HowToPanel';
 
 interface MenuButton {
@@ -43,6 +44,7 @@ export class TitleScene extends Phaser.Scene {
     this.addButton(0, '게임 시작', 0xffd54f, () => this.startGame());
     this.addButton(1, '게임 방법', 0xf8bbd0, () => this.howTo.open());
     this.refresh();
+    this.makeTipsToggle(touch);
 
     this.add
       .text(GAME_WIDTH / 2, GAME_HEIGHT - 14, '서강대학교 가상융합전문대학원 캡스톤', { fontFamily: FONT, fontSize: '14px', color: '#8d7f99' })
@@ -54,16 +56,43 @@ export class TitleScene extends Phaser.Scene {
       if (e.code === 'ArrowUp' || e.code === 'KeyW') this.move(-1);
       else if (e.code === 'ArrowDown' || e.code === 'KeyS') this.move(1);
       else if (e.code === 'Space' || e.code === 'Enter') this.buttons[this.selected].onPick();
+      else if (e.code === 'KeyT') this.toggleTips();
       else return;
       e.preventDefault();
     };
     window.addEventListener('keydown', onKey);
     // 확인 스크립트용 상태
-    window.__kingbatTitle = { howToOpen: () => this.howTo.isOpen, howToPage: () => this.howTo.currentPage, selected: () => this.selected };
+    window.__kingbatTitle = { howToOpen: () => this.howTo.isOpen, howToPage: () => this.howTo.currentPage, selected: () => this.selected, tipsOn: () => !tipsSetting.off };
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
       window.removeEventListener('keydown', onKey);
       window.__kingbatTitle = undefined;
     });
+  }
+
+  private tipsText!: Phaser.GameObjects.Text;
+  private tipsTouch = false;
+
+  /** 튜토리얼 안내창 켜기·끄기 (게임 중 "다시 안 보기"로 끈 걸 다시 켤 때). T 또는 글자 터치 */
+  private makeTipsToggle(touch: boolean): void {
+    this.tipsTouch = touch;
+    this.tipsText = this.add
+      .text(GAME_WIDTH - 250, 446, '', { fontFamily: FONT, fontSize: '17px', color: COLORS.text, backgroundColor: '#ffffffcc', padding: { x: 12, y: 6 } })
+      .setOrigin(0.5)
+      .setInteractive({ useHandCursor: true });
+    this.tipsText.on(Phaser.Input.Events.GAMEOBJECT_POINTER_UP, () => !this.howTo.isOpen && this.toggleTips());
+    this.refreshTips();
+  }
+
+  private toggleTips(): void {
+    tipsSetting.off = !tipsSetting.off;
+    this.refreshTips();
+  }
+
+  private refreshTips(): void {
+    const on = !tipsSetting.off;
+    const how = this.tipsTouch ? '눌러서' : 'T로';
+    this.tipsText.setText(on ? `튜토리얼 안내: 켜짐 ✔  (${how} 끄기)` : `튜토리얼 안내: 꺼짐  (${how} 다시 켜기)`);
+    this.tipsText.setColor(on ? COLORS.text : '#e0457b');
   }
 
   private startGame(): void {

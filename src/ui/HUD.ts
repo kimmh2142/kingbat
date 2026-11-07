@@ -95,6 +95,11 @@ export class HUD {
     this.scene.tweens.add({ targets: [this.missionText], scale: { from: 1.25, to: 1 }, duration: 300, ease: 'Back.Out' });
   }
 
+  /** 킹받음 게이지 가운데 (화면 좌표, 안내창이 가리킬 때) */
+  get gaugeCenter(): { x: number; y: number } {
+    return { x: this.barX + BAR_W / 2, y: this.barY + BAR_H / 2 };
+  }
+
   /** 미션 칸에 지금 보이는 글 (테스트용) */
   get missionLine(): string {
     return this.missionText.text;

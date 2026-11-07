@@ -18,6 +18,8 @@ interface Window {
     /** 단계 안내: 지금 단계 id(다 끝나면 null)와 미션 칸 글 */
     tutorial?: { step: string | null; line: string };
     thought?: boolean;
+    tip?: string | null;
+    backSpot?: { x: number; y: number } | null;
     minimap?: { big: boolean; x: number; y: number; w: number; h: number };
     sfx?: string[];
     remaining?: number;
@@ -38,7 +40,7 @@ interface Window {
   __kingbatTest?: { teleport(x: number, y: number): void; setRemaining(seconds: number): void; forceGrab(): void; calmDaeri(): void; addScore(points: number): void; loseAll(): void; giveItem(id: string): boolean };
   __kingbatTexture?: (key: string) => string;
   __kingbatStory?: { step(): number; total: number; typing(): boolean };
-  __kingbatTitle?: { howToOpen(): boolean; howToPage(): number; selected(): number };
+  __kingbatTitle?: { howToOpen(): boolean; howToPage(): number; selected(): number; tipsOn(): boolean };
   /** STAGE 2 예고 화면이 떠 있음 */
   __kingbatComingSoon?: boolean;
 }

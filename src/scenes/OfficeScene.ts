@@ -5,7 +5,7 @@ import type { CaughtReasonId } from '../data/caughtReasons';
 import { ITEM_RULES, ITEM_SPAWNS, ITEMS, type ItemId } from '../data/items';
 import { PLAYER_START } from '../data/office7f';
 import { STAGES } from '../data/stages';
-import { TUTORIAL_TEXT } from '../data/tutorial';
+import { TIP_BACK_SPOT, TIPS, TUTORIAL_TEXT, type TipId } from '../data/tutorial';
 import { CAMERA, POKE } from '../data/tuning';
 import { DAERI } from '../npc/patterns/daeri';
 import { Extras } from '../npc/Extras';
@@ -23,7 +23,7 @@ import { Poke } from '../systems/Poke';
 import { Pranks } from '../systems/Pranks';
 import { Score } from '../systems/Score';
 import { Sfx } from '../systems/Sfx';
-import { Tutorial } from '../systems/Tutorial';
+import { tipsSetting, Tutorial } from '../systems/Tutorial';
 import { WorkClock } from '../systems/WorkClock';
 import { CaughtCutin } from '../ui/CaughtCutin';
 import { popWord } from '../ui/Popups';
@@ -35,6 +35,7 @@ import { Prompt } from '../ui/Prompt';
 import { ResultPanel, type ResultKind } from '../ui/ResultPanel';
 import { TargetArrow } from '../ui/TargetArrow';
 import { TargetIntro } from '../ui/TargetIntro';
+import { TipDialog } from '../ui/TipDialog';
 import { VisionCone } from '../ui/VisionCone';
 import { TouchControls } from '../ui/TouchControls';
 
@@ -92,6 +93,13 @@ export class OfficeScene extends Phaser.Scene {
   private thought: Phaser.GameObjects.Text | null = null;
   private thoughtT = 0;
   private thoughtShown = false;
+  /** 튜토리얼 안내창 (멈추고 설명). 꺼져 있으면 예전처럼 단계 칸·짧은 안내만 */
+  private tipDialog!: TipDialog;
+  private tipsOn = true;
+  private readonly tipQueue: TipId[] = [];
+  private readonly tipsShown = new Set<TipId>();
+  /** 포스트잇을 들고 있을 때 동기 등 뒤 바닥 "여기서 Z!" */
+  private backSpot!: Phaser.GameObjects.Container;
 
   constructor() {
     super('Office');
@@ -109,8 +117,14 @@ export class OfficeScene extends Phaser.Scene {
     this.cleared = false;
     this.thought = null;
     this.thoughtT = 0;
-    // 다시 도전이면 혼잣말은 이미 봤으니 생략
-    this.thoughtShown = !!data?.retry;
+    const params = new URLSearchParams(location.search);
+    // 튜토리얼 안내창: "다시 안 보기"를 안 눌렀으면 다시 도전해도 나온다.
+    // Playwright 확인 스크립트는 바로 플레이해야 하므로 끈다 (?tips=1이면 보여줌)
+    this.tipsOn = !tipsSetting.off && !(navigator.webdriver && !params.has('tips'));
+    this.tipQueue.length = 0;
+    this.tipsShown.clear();
+    // 안내창이 꺼져 있을 때: 다시 도전이면 혼잣말은 이미 봤으니 생략
+    this.thoughtShown = !!data?.retry && !this.tipsOn;
 
     this.map = new OfficeMap(this, 1);
     this.touch = new TouchControls(this);
@@ -157,6 +171,7 @@ export class OfficeScene extends Phaser.Scene {
     this.clock.once('timeout', () => this.showFail('overtime'));
     this.hud = new HUD(this, this.score, this.life, this.clock);
     this.setupTutorial();
+    this.setupTips();
     this.cutin = new CaughtCutin(this);
     this.input.on(Phaser.Input.Events.POINTER_DOWN, () => (this.tapped = true));
     this.prompt = new Prompt(this);
@@ -192,7 +207,6 @@ export class OfficeScene extends Phaser.Scene {
     this.setupDebug();
     // 시작 타깃 소개. 다시 도전(하트 0개·야근)이면 생략.
     // Playwright 확인 스크립트는 바로 플레이해야 하므로 생략한다 (?intro=1이면 보여줌)
-    const params = new URLSearchParams(location.search);
     const skipIntro = data?.retry || params.has('overview') || (navigator.webdriver && !params.has('intro'));
     if (!skipIntro) {
       this.intro = new TargetIntro(
@@ -254,6 +268,8 @@ export class OfficeScene extends Phaser.Scene {
       this.extras.updateView(dt);
       this.cutin.update(dt, this.controls.justPressed('Space') || this.tapped);
       if (this.intro?.active && (this.controls.justPressed('Space') || this.tapped)) this.intro.skip();
+      this.tipDialog.update(dt);
+      for (const code of ['Space', 'Enter', 'KeyN']) if (this.controls.justPressed(code) && this.tipDialog.onKey(code)) break;
       if (this.result) {
         this.result.update(dt);
         for (const code of ['Space', 'Enter', 'Escape', 'KeyR']) if (this.controls.justPressed(code) && this.result.onKey(code)) break;
@@ -308,7 +324,9 @@ export class OfficeScene extends Phaser.Scene {
     this.target.view.setMarkerReady(canUse || canPoke);
     this.prompt.show(this.player.x, this.player.y - 122, this.promptText(canPoke), canUse);
     this.updateSeatGuide();
+    this.updateBackSpot();
     this.updateThought(dt);
+    this.flushTips();
     // [숨기] 버튼은 숨을 수 있는 곳 근처에서만 진하게
     this.touch.setDisabled('hide', !this.hide.nearby);
     this.touch.setDisabled('item', !this.items.selectedItem);
@@ -345,6 +363,8 @@ export class OfficeScene extends Phaser.Scene {
       mission: this.missionDone,
       tutorial: { step: this.tutorial.current, line: this.hud.missionLine },
       thought: !!this.thought,
+      tip: this.tipDialog.current,
+      backSpot: this.backSpot.visible ? { x: Math.round(this.backSpot.x), y: Math.round(this.backSpot.y) } : null,
       minimap: { big: this.miniMap.isBig, ...this.miniMap.rect },
       sfx: [...this.sfx.log],
       remaining: Math.round(this.clock.remaining * 10) / 10,
@@ -378,7 +398,7 @@ export class OfficeScene extends Phaser.Scene {
 
   /** 시작 소개·컷인·실패 화면 때문에 게임이 멈춰 있음 */
   private get paused(): boolean {
-    return !!this.intro?.active || this.cutin.active || this.failed || this.cleared;
+    return !!this.intro?.active || this.cutin.active || this.failed || this.cleared || this.tipDialog.active;
   }
 
   /** 머리 위 진행 원: 대리에게 붙잡혀 있는 동안 남은 시간(주황), 아이템 붙이는 중(분홍) */
@@ -415,6 +435,78 @@ export class OfficeScene extends Phaser.Scene {
       return touch ? `숨기 버튼 꾹: ${what}` : `E 꾹: ${what}`;
     }
     return null;
+  }
+
+  /** 튜토리얼 안내창: 할 일이 바뀌는 순간 멈추고 설명 (시작 목표 → 줍기 → 붙이기·미션 → 돌아봄 → 임시 점수 → 확정) */
+  private setupTips(): void {
+    this.tipDialog = new TipDialog(this);
+    this.items.on('picked', (id: ItemId) => id === 'postit' && this.tip('picked'));
+    this.pranks.on('used', (id: ItemId) => id === 'postit' && this.tip('stuck'));
+    this.tip('goal');
+    const g = this.add.graphics();
+    g.fillStyle(0xffeb3b, 0.45).fillEllipse(0, 0, 70, 30);
+    g.lineStyle(3, 0xf57f17).strokeEllipse(0, 0, 70, 30);
+    const label = this.add
+      .text(0, -18, this.controls.isTouch ? '여기서 [아이템]!' : '여기서 Z!', { fontFamily: FONT, fontSize: '18px', color: '#ffffff', stroke: '#f57f17', strokeThickness: 5 })
+      .setOrigin(0.5, 1)
+      .setScale(CAMERA.textScale);
+    this.backSpot = this.add.container(0, 0, [g, label]).setDepth(DEPTH.label + 2).setVisible(false);
+    this.tweens.add({ targets: label, y: -28, duration: 380, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
+  }
+
+  /** 안내창 예약 (판마다 한 번씩). 다른 연출이 끝나 게임이 움직일 때 띄운다 */
+  private tip(id: TipId): void {
+    if (!this.tipsOn || this.tipsShown.has(id)) return;
+    this.tipsShown.add(id);
+    this.tipQueue.push(id);
+  }
+
+  private flushTips(): void {
+    if (!this.tipsOn || this.paused || !this.tipQueue.length) return;
+    const id = this.tipQueue.shift()!;
+    this.poke.cancel(this.target);
+    this.tipDialog.current = id;
+    this.tipDialog.show(TIPS[id], this.controls.isTouch, this.tipFocus(id), (off) => {
+      if (!off) return;
+      tipsSetting.off = true;
+      this.tipsOn = false;
+      this.tipQueue.length = 0;
+    });
+  }
+
+  /** 안내창이 가리킬 화면 좌표 */
+  private tipFocus(id: TipId): { x: number; y: number } | null {
+    if (id === 'temp') return this.hud.gaugeCenter;
+    const cam = this.cameras.main;
+    const at = (x: number, y: number) => {
+      const v = cam.worldView;
+      if (!v.contains(x, y)) return null;
+      return { x: (x - v.x) * cam.zoom, y: (y - v.y) * cam.zoom };
+    };
+    if (id === 'goal') {
+      const m = this.items.onMap.find((i) => i.id === 'postit');
+      return m ? at(m.spot.x, m.spot.y) : null;
+    }
+    if (id === 'picked' || id === 'stuck' || id === 'tell') return at(this.target.x, this.target.y - 40);
+    return null;
+  }
+
+  /** 포스트잇을 고르고 있고 동기가 자리에서 일하는 중이면 등 뒤 바닥에 "여기서 Z!" */
+  private updateBackSpot(): void {
+    const t = this.target;
+    const x = t.x;
+    const y = t.y - TIP_BACK_SPOT;
+    const on =
+      !this.paused &&
+      this.items.selectedItem === 'postit' &&
+      !this.pranks.postitOn &&
+      !this.pranks.active &&
+      t.state === 'work' &&
+      t.pokeCheck(x, y, 9999) === 'ok' &&
+      // 이미 그 자리에 서 있으면 그림이 겹치니 숨긴다
+      Phaser.Math.Distance.Between(this.player.x, this.player.y, x, y) > 40;
+    this.backSpot.setVisible(on);
+    if (on) this.backSpot.setPosition(x, y);
   }
 
   /** 특별 미션 성공: 점수 바로 확정 + 크게 알림. 킹받음도 100이면 클리어 */
@@ -456,13 +548,17 @@ export class OfficeScene extends Phaser.Scene {
       t.complete('stick');
     });
     this.score.on('change', () => this.score.temp > 0 && t.complete('poke'));
-    this.hide.onConfirm = () => t.complete('confirm');
+    this.hide.onConfirm = () => {
+      t.complete('confirm');
+      this.tip('confirmed');
+    };
     t.on('change', (id: string) => {
       this.refreshMission();
       if (t.finished) return;
       popWord(this, this.player.x, this.player.y - 150, '✔ 좋아!', { color: '#2e9e6b', size: 24 });
       // 처음 콕으로 임시 점수가 생겼을 때: 확정하러 가는 법
       if (id === 'poke' && !t.done.has('confirm')) {
+        if (this.tipsOn) return this.tip('temp');
         this.guide.show(TUTORIAL_TEXT.firstTemp[this.controls.isTouch ? 'touch' : 'pc'], 5);
       }
     });
@@ -492,6 +588,7 @@ export class OfficeScene extends Phaser.Scene {
       const d = Phaser.Math.Distance.Between(p.x, p.y, this.target.x, this.target.y);
       if (d <= TUTORIAL_TEXT.firstTellRange) {
         this.thoughtShown = true;
+        if (this.tipsOn) return this.tip('tell');
         this.thoughtT = TUTORIAL_TEXT.firstTellSeconds;
         this.thought = this.add
           .text(p.x, p.y, TUTORIAL_TEXT.firstTell, {
