@@ -4,12 +4,11 @@ import { FONT, GAME_HEIGHT, GAME_WIDTH } from '../config';
 import type { CaughtReasonId } from '../data/caughtReasons';
 import { ITEM_RULES, ITEM_SPAWNS, ITEMS, type ItemId } from '../data/items';
 import { PLAYER_START } from '../data/office7f';
-import { STAGES } from '../data/stages';
+import { nextStage, STAGES, type StageConfig } from '../data/stages';
 import { TIP_BACK_SPOT, TIPS, TUTORIAL_TEXT, type TipId } from '../data/tutorial';
 import { CAMERA, POKE } from '../data/tuning';
 import { DAERI } from '../npc/patterns/daeri';
 import { Extras } from '../npc/Extras';
-import { DONGI } from '../npc/patterns/dongi';
 import { PatrolController } from '../npc/PatrolController';
 import { TargetController } from '../npc/TargetController';
 import { Player } from '../player/Player';
@@ -40,6 +39,8 @@ import { VisionCone } from '../ui/VisionCone';
 import { TouchControls } from '../ui/TouchControls';
 
 export class OfficeScene extends Phaser.Scene {
+  /** 지금 스테이지 수치·대상 (data/stages.ts) */
+  private stage!: StageConfig;
   private map!: OfficeMap;
   private player!: Player;
   private controls!: Controls;
@@ -105,7 +106,8 @@ export class OfficeScene extends Phaser.Scene {
     super('Office');
   }
 
-  create(data?: { retry?: boolean }): void {
+  create(data?: { retry?: boolean; stage?: number }): void {
+    this.stage = STAGES[data?.stage ?? 1] ?? STAGES[1];
     // scene.restart()는 생성자를 다시 부르지 않으므로 판마다 상태를 여기서 초기화한다
     this.intro = null;
     this.failed = false;
@@ -126,14 +128,14 @@ export class OfficeScene extends Phaser.Scene {
     // 안내창이 꺼져 있을 때: 다시 도전이면 혼잣말은 이미 봤으니 생략
     this.thoughtShown = !!data?.retry && !this.tipsOn;
 
-    this.map = new OfficeMap(this, 1);
+    this.map = new OfficeMap(this, this.stage.id);
     this.touch = new TouchControls(this);
     this.controls = new Controls(this, this.touch);
     this.player = new Player(this, PLAYER_START.x, PLAYER_START.y);
     this.physics.add.collider(this.player.feet, this.map.colliders);
 
-    const desk = this.map.desks.find((d) => d.owner === 'dongi')!;
-    this.target = new TargetController(this, DONGI, desk);
+    const desk = this.map.desks.find((d) => d.owner === this.stage.target.id)!;
+    this.target = new TargetController(this, this.stage.target, desk);
     // 플레이어가 NPC 몸을 통과하지 않게 발밑에 막는 상자를 붙인다
     this.targetBlocker = this.physics.add.image(this.target.x, this.target.y, '__WHITE').setVisible(false).setImmovable(true);
     // 의자 등받이까지 막아서, 등 뒤에 선 플레이어와 그림이 너무 겹치지 않게 한다
@@ -167,7 +169,7 @@ export class OfficeScene extends Phaser.Scene {
     });
     this.life = new Life();
     this.setupSfx();
-    this.clock = new WorkClock(STAGES[1]);
+    this.clock = new WorkClock(this.stage);
     this.clock.once('timeout', () => this.showFail('overtime'));
     this.hud = new HUD(this, this.score, this.life, this.clock);
     this.setupTutorial();
@@ -347,6 +349,7 @@ export class OfficeScene extends Phaser.Scene {
     );
     this.debug.update();
     window.__kingbat = {
+      stage: this.stage.id,
       player: { x: Math.round(this.player.x), y: Math.round(this.player.y) },
       debug: this.debug.enabled,
       target: { state: this.target.state, x: Math.round(this.target.x), y: Math.round(this.target.y), side: this.target.lookSide, left: this.target.remaining },
@@ -513,7 +516,7 @@ export class OfficeScene extends Phaser.Scene {
   private completeMission(): void {
     if (this.missionDone || this.failed || this.cleared) return;
     this.missionDone = true;
-    const m = STAGES[1].mission;
+    const m = this.stage.mission;
     this.tutorial.complete('parade');
     this.score.addConfirmed(m.points);
     popWord(this, this.target.x, this.target.y - 120, `미션 성공! +${m.points}`, { size: 30, color: '#2e7d5b' });
@@ -569,7 +572,7 @@ export class OfficeScene extends Phaser.Scene {
     const t = this.tutorial;
     const line = t.text(this.controls.isTouch);
     const all = t.finished && this.missionDone;
-    this.hud.setMission(all ? `✔ ${STAGES[1].mission.name} 성공! · ${line}` : `★ ${line}`, all);
+    this.hud.setMission(all ? `✔ ${this.stage.mission.name} 성공! · ${line}` : `★ ${line}`, all);
   }
 
   /** 처음 임시 점수를 들고 있는 동안: 내 자리 위 "▼ E 꾹" + 화면 밖이면 가장자리 화살표 */
@@ -624,7 +627,7 @@ export class OfficeScene extends Phaser.Scene {
     if (this.goalAnnounced || this.score.confirmed < this.score.goal) return;
     this.goalAnnounced = true;
     if (this.missionDone) return this.checkClear();
-    this.banner(['킹받음 100 달성!', `이제 특별 미션 "${STAGES[1].mission.name}"만!`], '#e0457b');
+    this.banner(['킹받음 100 달성!', `이제 특별 미션 "${this.stage.mission.name}"만!`], '#e0457b');
   }
 
   /** 화면 위쪽 큰 알림 (잠깐 떴다 사라짐) */
@@ -696,7 +699,7 @@ export class OfficeScene extends Phaser.Scene {
     this.cleared = true;
     this.sfx.play('clear');
     this.target.view.setPose({ face: TEX.faceShock });
-    this.target.view.say(STAGES[1].lines.clear, 3);
+    this.target.view.say(this.stage.lines.clear, 3);
     this.showResult('clear');
   }
 
@@ -707,7 +710,7 @@ export class OfficeScene extends Phaser.Scene {
       this,
       {
         kind,
-        stage: STAGES[1],
+        stage: this.stage,
         hearts: this.life.hearts,
         maxHearts: this.life.max,
         remaining: this.clock.remaining,
@@ -720,14 +723,18 @@ export class OfficeScene extends Phaser.Scene {
       },
       () => this.retry(),
       () => this.scene.start('Title'),
-      // STAGE 2는 아직 없어서 예고 화면으로
-      () => this.scene.start('ComingSoon'),
+      // 다음 스테이지가 아직 없으면 예고 화면으로
+      () => {
+        const next = nextStage(this.stage.id);
+        if (next === null) this.scene.start('ComingSoon');
+        else this.scene.start('Story', { stage: next });
+      },
     );
   }
 
   /** 이 스테이지만 처음부터 다시 (도입 컷신은 없음) */
   private retry(): void {
-    this.scene.restart({ retry: true });
+    this.scene.restart({ retry: true, stage: this.stage.id });
   }
 
   private setupDebug(): void {

@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import { FINAL_ASSETS } from '../assets/manifest';
 import { generatePlaceholders } from '../assets/placeholderTextures';
+import { STAGES, stageFromUrl } from '../data/stages';
 
 export class BootScene extends Phaser.Scene {
   constructor() {
@@ -20,6 +21,12 @@ export class BootScene extends Phaser.Scene {
     if (import.meta.env.DEV) window.__kingbatTexture = (key: string) => this.textures.getBase64(key);
     // 처음 접속하면 타이틀 화면. Playwright 확인 스크립트는 바로 게임으로 (?title=1이면 타이틀), ?overview도 바로 게임
     const params = new URLSearchParams(location.search);
+    // ?stage=N: 타이틀·도입 컷신 없이 그 스테이지부터 (연습·개발용). 아직 없는 스테이지면 예고 화면
+    const stage = stageFromUrl();
+    if (stage !== null) {
+      this.scene.start(STAGES[stage] ? 'Office' : 'ComingSoon', { stage });
+      return;
+    }
     const skipTitle = params.has('overview') || (navigator.webdriver && !params.has('title'));
     this.scene.start(skipTitle ? 'Office' : 'Title');
   }

@@ -49,15 +49,17 @@ export class StoryScene extends Phaser.Scene {
   private world: Phaser.GameObjects.GameObject[] = [];
   private npcs: NpcView[] = [];
   private done = false;
+  private stage = 1;
 
   constructor() {
     super('Story');
   }
 
   create(data?: { stage?: number }): void {
-    const story = STORIES[data?.stage ?? 1];
+    this.stage = data?.stage ?? 1;
+    const story = STORIES[this.stage];
     if (!story) {
-      this.scene.start('Office');
+      this.scene.start('Office', { stage: this.stage });
       return;
     }
     this.story = story;
@@ -144,7 +146,7 @@ export class StoryScene extends Phaser.Scene {
     this.done = true;
     this.cameras.main.fadeOut(300, 59, 42, 51);
     this.uiCam.fadeOut(300, 59, 42, 51);
-    this.uiCam.once(Phaser.Cameras.Scene2D.Events.FADE_OUT_COMPLETE, () => this.scene.start('Office'));
+    this.uiCam.once(Phaser.Cameras.Scene2D.Events.FADE_OUT_COMPLETE, () => this.scene.start('Office', { stage: this.stage }));
   }
 
   private showStep(): void {
