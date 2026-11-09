@@ -5,6 +5,8 @@ import { SPEAKERS, STORIES, type StageStory, type StoryShot } from '../data/dial
 import { NpcView } from '../npc/NpcView';
 import { DONGI } from '../npc/patterns/dongi';
 import { GWAJANG } from '../npc/patterns/gwajang';
+import { BISEO } from '../npc/patterns/biseo';
+import { DAEPYO } from '../npc/patterns/daepyo';
 import { popWord } from '../ui/Popups';
 
 /** 컷신 무대 가운데 (월드 좌표). 카메라를 2배로 키워 캐릭터를 크게 보여준다 */
@@ -248,6 +250,12 @@ export class StoryScene extends Phaser.Scene {
         return this.pacingSet(false);
       case 'pacingAngry':
         return this.pacingSet(true);
+      case 'ceo':
+        return this.ceoSet('read');
+      case 'ceoReport':
+        return this.ceoSet('report');
+      case 'ceoLaugh':
+        return this.ceoSet('laugh');
       case 'vow':
         return this.vowSet();
     }
@@ -383,6 +391,51 @@ export class StoryScene extends Phaser.Scene {
     this.cameras.main.zoomTo(3, 450, 'Sine.easeOut');
   }
 
+  /**
+   * 8층 대표실: 대표는 큰 책상에서 신문, 비서가 옆에 서서 보고한다.
+   * read = 신문 읽기, report = 신문을 내리고 듣기, laugh = 신문을 접고 허허, vow = 문 뒤에서 내가 엿본다
+   */
+  private ceoSet(mode: 'read' | 'report' | 'laugh' | 'vow'): void {
+    const deskX = 470;
+    const deskY = 345;
+    this.keep(this.add.image(deskX, deskY - 62, TEX.chair).setOrigin(0.5, 1).setDepth(deskY - 62));
+    this.keep(this.add.image(deskX, deskY, TEX.bossDesk).setOrigin(0.5, 1).setDepth(deskY));
+    const boss = new NpcView(this, { ...DAEPYO.appearance, rank: '' }, false);
+    this.npcs.push(boss);
+    boss.sitAt(deskX, deskY - 62, deskY);
+    if (mode === 'read') boss.setPose({ face: TEX.faceNormal, hands: 'newspaper' });
+    else if (mode === 'report') boss.setPose({ face: TEX.faceSuspicious, hands: 'newspaperLow', tilt: 6 });
+    else boss.setPose({ face: TEX.faceHappy, hands: 'folded', tilt: mode === 'laugh' ? -8 : 0 });
+
+    const sec = new NpcView(this, { ...BISEO.appearance, rank: '' }, false);
+    this.npcs.push(sec);
+    sec.standAt(345, 338, 'right');
+    sec.setPose({ face: mode === 'report' ? TEX.faceSuspicious : TEX.faceNormal, hands: 'side' });
+
+    if (mode === 'laugh') {
+      // 허허… 가 둥실둥실
+      for (let i = 0; i < 3; i++) {
+        const t = this.keep(
+          this.add
+            .text(deskX + 40 + i * 18, deskY - 140, '허', { fontFamily: FONT, fontSize: '16px', color: '#8e24aa', stroke: '#ffffff', strokeThickness: 4 })
+            .setOrigin(0.5)
+            .setDepth(9000)
+            .setAlpha(0),
+        );
+        this.tweens.add({ targets: t, alpha: 1, y: t.y - 20, delay: i * 300, duration: 500, yoyo: true, hold: 300, repeat: -1, repeatDelay: 400 });
+      }
+      this.cameras.main.pan(deskX, deskY - 80, 450, 'Sine.easeOut');
+      this.cameras.main.zoomTo(2.6, 450, 'Sine.easeOut');
+    }
+    if (mode === 'vow') {
+      // 문틈으로 엿보는 나 (오른쪽 화분 뒤)
+      const meX = 640;
+      const meY = 338;
+      this.me(meX, meY);
+      this.keep(this.add.image(meX - 30, meY + 14, TEX.plantBig).setOrigin(0.5, 1).setDepth(meY + 2));
+    }
+  }
+
   /** 장면 위 자막: 잠깐 보였다 사라진다 */
   private caption(text: string): void {
     const cap = this.add
@@ -395,6 +448,7 @@ export class StoryScene extends Phaser.Scene {
   /** 다짐 + 스테이지 이름 */
   private vowSet(): void {
     if (this.story.villain === 'gwajang') this.pacingSet(false);
+    else if (this.story.villain === 'daepyo') this.ceoSet('vow');
     else this.shoppingSet(false);
     this.shotUi.removeAll(true);
     const s = this.story;

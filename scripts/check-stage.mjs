@@ -1,4 +1,4 @@
-// ?stage=N 바로 시작 확인: ?stage=1 → 타이틀·컷신 없이 게임(스테이지 1), ?stage=2 → 과장 스테이지, 아직 없는 스테이지(?stage=3) → 예고 화면,
+// ?stage=N 바로 시작 확인: ?stage=1 → 타이틀·컷신 없이 게임(스테이지 1), ?stage=2 → 과장 스테이지, ?stage=3 → 대표 스테이지(8층), 아직 없는 스테이지(?stage=4) → 엔딩 예고 화면,
 // ?stage=1&title=1 이어도 타이틀을 건너뛰는지, 다시 도전해도 같은 스테이지인지.
 // 사용법: npm run dev 를 켠 상태에서  node scripts/check-stage.mjs
 import { chromium } from 'playwright';
@@ -30,8 +30,12 @@ const s2 = await page.waitForFunction(() => window.__kingbat?.stage === 2, null,
 log.push(['?stage=2', { 과장스테이지: s2, 대상: (await page.evaluate(() => window.__kingbat?.target?.state)) !== undefined }]);
 
 await page.goto(BASE + '?stage=3');
+const s3 = await page.waitForFunction(() => window.__kingbat?.stage === 3, null, { timeout: 15000 }).then(() => true, () => false);
+log.push(['?stage=3', { 대표스테이지: s3, 대상: (await page.evaluate(() => window.__kingbat?.target?.state)) !== undefined }]);
+
+await page.goto(BASE + '?stage=4');
 const soon = await page.waitForFunction(() => !!window.__kingbatComingSoon, null, { timeout: 15000 }).then(() => true, () => false);
-log.push(['?stage=3', { 예고화면: soon }]);
+log.push(['?stage=4', { 예고화면: soon }]);
 
 for (const [l, v] of log) console.log(l.padEnd(10), JSON.stringify(v));
 console.log(errors.length ? `콘솔 에러 ${errors.length}개:\n` + errors.join('\n') : '콘솔 에러 없음');

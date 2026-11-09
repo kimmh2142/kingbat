@@ -65,25 +65,28 @@ await mob.touchscreen.tap(box.x + 480 * sc, box.y + 300 * sc);
 await mob.waitForTimeout(300);
 log.push(['모바일 터치', await st(mob)]);
 
-// 4) STAGE 2 과장 컷신 끝까지
-const p2 = await browser.newPage({ viewport: { width: 960, height: 540 } });
-p2.on('pageerror', (e) => errors.push(String(e)));
-p2.on('console', (m) => m.type() === 'error' && errors.push(m.text()));
-await p2.goto(BASE + '?stage=2&story=1');
-await p2.waitForFunction(() => !!window.__kingbatStory);
-const total2 = await p2.evaluate(() => window.__kingbatStory.total);
-const shots2 = [];
-for (let i = 0; i < total2; i++) {
-  await p2.waitForTimeout(1900);
-  await p2.screenshot({ path: `screenshots/story2-${i + 1}.png` });
-  shots2.push(await p2.evaluate(() => window.__kingbatStory.shot()));
-  // 글자가 아직 나오는 중이면 첫 Space는 글자 다 보이기라서 한 번 더
-  if (await p2.evaluate(() => window.__kingbatStory.typing())) await p2.keyboard.press('Space');
-  await p2.keyboard.press('Space');
-  await p2.waitForTimeout(80);
+// 4) STAGE 2 과장·STAGE 3 대표 컷신 끝까지
+for (const n of [2, 3]) {
+  const p2 = await browser.newPage({ viewport: { width: 960, height: 540 } });
+  p2.on('pageerror', (e) => errors.push(String(e)));
+  p2.on('console', (m) => m.type() === 'error' && errors.push(m.text()));
+  await p2.goto(BASE + `?stage=${n}&story=1`);
+  await p2.waitForFunction(() => !!window.__kingbatStory);
+  const total2 = await p2.evaluate(() => window.__kingbatStory.total);
+  const shots2 = [];
+  for (let i = 0; i < total2; i++) {
+    await p2.waitForTimeout(1900);
+    await p2.screenshot({ path: `screenshots/story${n}-${i + 1}.png` });
+    shots2.push(await p2.evaluate(() => window.__kingbatStory.shot()));
+    // 글자가 아직 나오는 중이면 첫 Space는 글자 다 보이기라서 한 번 더
+    if (await p2.evaluate(() => window.__kingbatStory.typing())) await p2.keyboard.press('Space');
+    await p2.keyboard.press('Space');
+    await p2.waitForTimeout(80);
+  }
+  const game2 = await p2.waitForFunction((s) => window.__kingbat?.stage === s, n, { timeout: 5000 }).then(() => true, () => false);
+  log.push([`STAGE ${n}`, { 장면수: total2, 장면: shots2, 끝난뒤게임: game2 }]);
+  await p2.close();
 }
-const game2 = await p2.waitForFunction(() => window.__kingbat?.stage === 2, null, { timeout: 5000 }).then(() => true, () => false);
-log.push(['STAGE 2', { 장면수: total2, 장면: shots2, 끝난뒤게임: game2 }]);
 
 for (const [l, v] of log) console.log(l.padEnd(10), JSON.stringify(v));
 console.log(errors.length ? `콘솔 에러 ${errors.length}개:\n` + errors.join('\n') : '콘솔 에러 없음');

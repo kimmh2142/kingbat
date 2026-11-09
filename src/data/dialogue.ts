@@ -1,10 +1,10 @@
 // 오프닝 독백과 스테이지 도입 컷신 대사. 장면(shot) 연출은 StoryScene이 하고, 글은 여기서 바꾼다.
 // 하트 0개로 다시 시작할 때는 나오지 않는다 (확정 규칙: 재시작 시 도입 컷신 생략).
 
-export type Speaker = 'dongi' | 'gwajang' | 'me' | 'none';
+export type Speaker = 'dongi' | 'gwajang' | 'daepyo' | 'biseo' | 'me' | 'none';
 
 /** 장면 연출 종류 (StoryScene에 같은 이름의 연출이 있다) */
-export type StoryShot = 'monologue' | 'ask' | 'dump' | 'reply' | 'shopping' | 'angry' | 'pacing' | 'pacingAngry' | 'vow';
+export type StoryShot = 'monologue' | 'ask' | 'dump' | 'reply' | 'shopping' | 'angry' | 'pacing' | 'pacingAngry' | 'ceo' | 'ceoReport' | 'ceoLaugh' | 'vow';
 
 export interface StoryStep {
   shot: StoryShot;
@@ -17,13 +17,15 @@ export interface StoryStep {
 export const SPEAKERS: Record<Speaker, { name: string; color: number }> = {
   dongi: { name: '동기 이동기', color: 0xf06292 },
   gwajang: { name: '과장 박통화', color: 0xff9800 },
+  daepyo: { name: '대표 나대표', color: 0x8e24aa },
+  biseo: { name: '비서 김비서', color: 0x5c6bc0 },
   me: { name: '나', color: 0x9575cd },
   none: { name: '', color: 0 },
 };
 
 export interface StageStory {
   /** 내 자리에 찾아와 일을 떠넘기는 사람 (ask·dump·reply 장면) */
-  villain: 'dongi' | 'gwajang';
+  villain: 'dongi' | 'gwajang' | 'daepyo';
   /** 마지막 장면에 크게 뜨는 스테이지 이름과 한마디 */
   title: string;
   subtitle: string;
@@ -83,6 +85,19 @@ export const STORIES: Record<number, StageStory> = {
       { shot: 'pacing', who: 'gwajang', text: '네~ 사장님~ 하하하! 그 자료요? 제가 다 해 놨죠~' },
       { shot: 'pacingAngry', who: 'me', text: '……"제가 다 해 놨죠"?' },
       { shot: 'vow', who: 'me', text: '좋아. 오늘은 과장님도 칼퇴 못 하게 해 주지!' },
+    ],
+  },
+  // STAGE 3 도입 (기준 문서 STAGE 3): 대표실. 소문을 들은 대표가 흥미로워한다.
+  3: {
+    villain: 'daepyo',
+    title: 'STAGE 3',
+    subtitle: '대표 나대표',
+    quote: '"최후의 킹받음"',
+    steps: [
+      { shot: 'ceo', who: 'daepyo', caption: '8층 · 대표실', text: '요즘 회사에 이상한 소문이 돌더군.' },
+      { shot: 'ceoReport', who: 'biseo', text: '누군가 직원들에게 계속 장난을 친다고 합니다.' },
+      { shot: 'ceoLaugh', who: 'daepyo', text: '허허… 재미있는 친구군.' },
+      { shot: 'vow', who: 'me', text: '여기까지 왔는데… 마지막까지 가야지!' },
     ],
   },
 };
