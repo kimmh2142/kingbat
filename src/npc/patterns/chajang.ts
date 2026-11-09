@@ -19,11 +19,12 @@ export const CHAJANG: PatrolPattern = {
     rank: '차장',
     rankColor: 0x78909c, // 방해 NPC는 회색 계열
   },
-  work: { duration: [4, 8], pose: { face: TEX.faceSuspicious, hands: 'keyboard', typing: 0.5 } },
+  // 난이도 조정 (11/9 플레이 "어려워졌다"): 자리 4~8초 → 8~14초, 시야 230px·38° → 180px·30°, 과장 자리 뒤 비중 2 → 1
+  work: { duration: [8, 14], pose: { face: TEX.faceSuspicious, hands: 'keyboard', typing: 0.5 } },
   routes: [
     {
       name: '과장 자리 뒤',
-      weight: 2,
+      weight: 1,
       path: [
         { x: 1850, y: 690 },
         { x: 2330, y: 690 },
@@ -53,7 +54,7 @@ export const CHAJANG: PatrolPattern = {
   coneColor: 0x9575cd,
   walkPose: { face: TEX.faceSuspicious, hands: 'side' },
   stay: { duration: [3, 5], facing: 'down', pose: { face: TEX.faceSuspicious, hands: 'side', bubble: '흐음…' } },
-  vision: { range: 230, halfAngleDeg: 38, nearRadius: 40 },
+  vision: { range: 180, halfAngleDeg: 30, nearRadius: 40 },
   react: { duration: [1.2, 1.5], pose: { face: TEX.faceShock, hands: 'side', bubble: '거기 너! 다 봤어!' } },
   stop: {
     seconds: 1.2,
