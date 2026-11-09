@@ -4,6 +4,7 @@ export const TEX = {
   floorOffice: 'floor_office',
   floorPantry: 'floor_pantry',
   floorHall: 'floor_hall',
+  floorCarpet: 'floor_carpet',
 
   desk: 'desk',
   monitor: 'monitor',
@@ -21,6 +22,7 @@ export const TEX = {
   toiletDoor: 'toilet_door',
   meetingTable: 'meeting_table',
   bossDesk: 'boss_desk',
+  powerPanel: 'power_panel',
   lock: 'lock',
 
   shadow: 'shadow',
@@ -40,6 +42,18 @@ export const TEX = {
   gwajangBodyBack: 'gwajang_body_back',
   gwajangHeadFront: 'gwajang_head_front',
   gwajangHeadBack: 'gwajang_head_back',
+
+  // 대표 나대표 (STAGE 3 공략 대상)
+  daepyoBody: 'daepyo_body',
+  daepyoBodyBack: 'daepyo_body_back',
+  daepyoHeadFront: 'daepyo_head_front',
+  daepyoHeadBack: 'daepyo_head_back',
+
+  // 비서 김비서 (STAGE 3 방해 NPC)
+  biseoBody: 'biseo_body',
+  biseoBodyBack: 'biseo_body_back',
+  biseoHeadFront: 'biseo_head_front',
+  biseoHeadBack: 'biseo_head_back',
 
   // 차장 오의심 (STAGE 2 방해 NPC)
   chajangBody: 'chajang_body',
@@ -74,6 +88,9 @@ export const TEX = {
   faceShock: 'face_shock',
   hand: 'npc_hand',
   phone: 'phone',
+  newspaper: 'newspaper',
+  newspaperFolded: 'newspaper_folded',
+  putter: 'putter',
   snack: 'snack',
 
   // 아이템과 장난 흔적

@@ -1,11 +1,14 @@
 // 스테이지별 기본 수치 (기준 문서 2-4, PART 3). 플레이 테스트로 조정한다.
 // 새 스테이지는 여기에 한 칸 추가하면 OfficeScene이 그 번호로 돌아간다 (?stage=N 으로 바로 시작).
 import { DONGI } from '../npc/patterns/dongi';
+import { BISEO } from '../npc/patterns/biseo';
 import { CHAJANG } from '../npc/patterns/chajang';
+import { DAEPYO } from '../npc/patterns/daepyo';
 import { DAERI } from '../npc/patterns/daeri';
 import { GWAJANG } from '../npc/patterns/gwajang';
 import type { PatrolPattern, TargetPattern } from '../npc/types';
 import { FLOOR_7F, type FloorMap } from './office7f';
+import { FLOOR_8F } from './office8f';
 
 export interface StageConfig {
   id: number;
@@ -25,7 +28,7 @@ export interface StageConfig {
   /** 남은 시간이 이만큼(초) 되면 시계가 째깍거린다 */
   urgentAt: number;
   /** 특별 미션 (클리어 조건: 킹받음 100 확정 + 미션 성공). id로 어떤 미션 판정을 쓸지 고른다 */
-  mission: { id: 'parade' | 'approval'; name: string; goal: string; points: number };
+  mission: { id: 'parade' | 'approval' | 'blackout'; name: string; goal: string; points: number };
   /** 튜토리얼 스테이지 (단계 안내 칸·속마음 안내창). STAGE 1만 */
   tutorial: boolean;
   /** 결과 화면 대사 */
@@ -73,6 +76,26 @@ export const STAGES: Record<number, StageConfig> = {
       next: '과장 공략 성공! 최종 타깃: 대표',
       clearMe: '다음은… 8층이다.',
       caught: '이거 인사고과에 반영할 거야!',
+    },
+  },
+  // STAGE 3: 기준 문서 제한시간 5분. 8층 임원층. 대표 순시·비서 감시
+  3: {
+    id: 3,
+    label: 'STAGE 3 · 대표 나대표',
+    floor: FLOOR_8F,
+    target: DAEPYO,
+    patrols: [BISEO],
+    timeLimit: 300,
+    clockStart: 17 * 60 + 55,
+    clockEnd: 18 * 60,
+    urgentAt: 30,
+    tutorial: false,
+    mission: { id: 'blackout', name: '대정전과 최후의 방석', goal: '배전반을 내리고 대표 의자에 방귀 방석을', points: 30 },
+    lines: {
+      clear: '누가…… 이런 짓을……!',
+      next: '축하합니다! 당신이 새로운 대표가 되었습니다!',
+      clearMe: '아… 아닙니다!',
+      caught: '자네, 오늘이 마지막 출근인가?',
     },
   },
 };

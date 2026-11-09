@@ -2,7 +2,7 @@ import Phaser from 'phaser';
 import { TEX } from '../assets/keys';
 import { COLORS, FONT } from '../config';
 import { DEPTH } from '../systems/OfficeMap';
-import type { Facing, NpcLook, Pose } from './types';
+import type { Facing, HandsPose, NpcLook, Pose } from './types';
 import { CAMERA } from '../data/tuning';
 
 // 파츠 기준 좌표 (컨테이너 원점 = 발이 닿는 바닥, 앉았을 땐 의자 위치)
@@ -15,6 +15,9 @@ const LABEL_Y = -124;
  * NPC 그림. 머리·몸통·손·표정을 따로 두고 Pose로 바꾼다.
  * 앉아 있을 때 손은 책상보다 앞에 그려야 하므로 hands를 별도 컨테이너로 둔다.
  */
+/** 손에 소품을 드는 자세 */
+const PROP_HANDS: HandsPose[] = ['phone', 'snack', 'cup', 'newspaper', 'newspaperLow', 'folded', 'putter'];
+
 export class NpcView {
   readonly root: Phaser.GameObjects.Container;
   private readonly parts: Phaser.GameObjects.Container;
@@ -239,7 +242,7 @@ export class NpcView {
   private updateHands(p: Pose, back: boolean): void {
     const hands = back ? 'hidden' : (p.hands ?? (this.seated ? 'keyboard' : 'side'));
     this.hands.setVisible(hands !== 'hidden' && hands !== 'knees');
-    this.prop.setVisible(hands === 'phone' || hands === 'snack' || hands === 'cup');
+    this.prop.setVisible(PROP_HANDS.includes(hands)).setAngle(0);
     const type = p.typing ?? 0;
     switch (hands) {
       case 'keyboard': {
@@ -266,6 +269,29 @@ export class NpcView {
         this.handL.setPosition(-16, -20);
         this.handR.setPosition(6, -34 + Math.abs(Math.sin(this.t * 5)) * 8);
         break;
+      // 대표: 신문을 펼쳐 얼굴 아래를 가림 / 반쯤 내림 / 접어서 책상에 / 퍼터 흔들기
+      case 'newspaper':
+        this.prop.setTexture(TEX.newspaper).setPosition(0, -34);
+        this.handL.setPosition(-26, -34);
+        this.handR.setPosition(26, -34);
+        break;
+      case 'newspaperLow':
+        this.prop.setTexture(TEX.newspaper).setPosition(0, -12);
+        this.handL.setPosition(-26, -12);
+        this.handR.setPosition(26, -12);
+        break;
+      case 'folded':
+        this.prop.setTexture(TEX.newspaperFolded).setPosition(18, 2);
+        this.handL.setPosition(-13, -2);
+        this.handR.setPosition(13, -2);
+        break;
+      case 'putter': {
+        const swing = Math.sin(this.t * 3) * 10;
+        this.prop.setTexture(TEX.putter).setPosition(6 + swing * 0.4, -2).setAngle(swing);
+        this.handL.setPosition(4 + swing * 0.3, -18);
+        this.handR.setPosition(10 + swing * 0.3, -16);
+        break;
+      }
       case 'side': {
         const swing = Math.sin(this.t * 10) * 3;
         this.handL.setPosition(-20, -14 + swing);

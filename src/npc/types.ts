@@ -10,7 +10,7 @@ export interface Point {
 
 export type Facing = 'down' | 'up' | 'left' | 'right';
 
-export type HandsPose = 'keyboard' | 'knees' | 'phone' | 'snack' | 'cup' | 'side' | 'hidden';
+export type HandsPose = 'keyboard' | 'knees' | 'phone' | 'snack' | 'cup' | 'side' | 'hidden' | 'newspaper' | 'newspaperLow' | 'folded' | 'putter';
 
 /** 캐릭터 한 순간의 모습. 전조는 전부 이 값의 변화로만 보여준다. */
 export interface Pose {
@@ -101,7 +101,7 @@ export interface TargetPattern {
     /** 자리에서 목적지까지 경로. 돌아올 땐 거꾸로 */
     path: Point[];
     /** 목적지가 여러 곳이면: 갈 때마다 비중대로 하나 (path·stayFacing 대신). 돌아올 땐 같은 길을 거꾸로 */
-    routes?: { name: string; weight: number; path: Point[]; stayFacing: Facing }[];
+    routes?: { name: string; weight: number; path: Point[]; stayFacing: Facing; /** 이 목적지에서만 쓰는 자세 (없으면 stayPose) */ stayPose?: Pose }[];
     /** 목적지에 서 있는 동안에도 업무처럼 의심 → 확인을 한다 (과장: 서서 통화) */
     checksWhileAway?: boolean;
     /** 목적지를 떠나기 전 통화 종료 인사 → 곧바로 돌아봄. 인사말이 1단계 전조, 그 뒤 진짜 전조로 반응 시간을 준다 */

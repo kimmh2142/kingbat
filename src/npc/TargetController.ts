@@ -72,6 +72,8 @@ export class TargetController {
   /** 이번 자리 비우기 경로 (routes가 있으면 갈 때마다 고른다) */
   private tripPath: Point[];
   private tripFacing: Facing;
+  /** 이번 목적지에서 서 있는 자세 */
+  private tripStayPose: Pose;
   /** 목적지에 더 머물 시간 (checksWhileAway일 때 확인 사이클을 거쳐도 이어진다) */
   private stayLeft = 0;
   /** 통화 종료 인사 중 (1단계 전조 모습이 다르다, 디버그용으로 공개) */
@@ -100,6 +102,7 @@ export class TargetController {
     this.tripTimer = rand(pattern.trip.interval);
     this.tripPath = pattern.trip.path;
     this.tripFacing = pattern.trip.stayFacing;
+    this.tripStayPose = pattern.trip.stayPose;
     this.workPose = pattern.work.activities[0].pose;
     this.enter('work');
   }
@@ -370,7 +373,7 @@ export class TargetController {
         }
         this.facing = this.tripFacing;
         v.standAt(this.pos.x, this.pos.y, this.facing);
-        v.setPose(P.trip.stayPose);
+        v.setPose(this.tripStayPose);
         break;
     }
   }
@@ -446,12 +449,14 @@ export class TargetController {
     if (forced) {
       this.tripPath = forced.path;
       this.tripFacing = forced.stayFacing;
+      this.tripStayPose = forced.stayPose ?? this.pattern.trip.stayPose;
       return;
     }
     let r = Math.random() * routes.reduce((s, a) => s + a.weight, 0);
     const route = routes.find((a) => (r -= a.weight) < 0) ?? routes[0];
     this.tripPath = route.path;
     this.tripFacing = route.stayFacing;
+    this.tripStayPose = route.stayPose ?? this.pattern.trip.stayPose;
   }
 
   private pickSide(): -1 | 0 | 1 {

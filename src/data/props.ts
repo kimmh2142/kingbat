@@ -16,7 +16,8 @@ export type PropType =
   | 'fridge'
   | 'snackTable'
   | 'meetingTable'
-  | 'bossDesk';
+  | 'bossDesk'
+  | 'powerPanel';
 
 export interface PropDef {
   texture: TextureKey;
@@ -39,6 +40,7 @@ export const PROP_DEFS: Record<PropType, PropDef> = {
   snackTable: { texture: TEX.snackTable, collider: { w: 120, h: 34 } },
   meetingTable: { texture: TEX.meetingTable, collider: { w: 216, h: 70 } },
   bossDesk: { texture: TEX.bossDesk, collider: { w: 176, h: 60 } },
+  powerPanel: { texture: TEX.powerPanel, collider: { w: 64, h: 24 } },
 };
 
 /** 숨기 판정 반경 (소품 기준점에서) */

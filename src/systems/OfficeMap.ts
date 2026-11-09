@@ -153,11 +153,11 @@ export class OfficeMap {
   }
 
   private addDesk(d: Desk): void {
-    const def = PROP_DEFS.desk;
+    const def = PROP_DEFS[d.boss ? 'bossDesk' : 'desk'];
     // 의자 → 책상 → 모니터 순으로 겹친다. 앉는 사람은 의자(북쪽)에서 아래를 본다.
     const chair = this.scene.add.image(d.x, d.y - 62, TEX.chair).setOrigin(0.5, 1).setDepth(d.y - 62);
     this.scene.add.image(d.x, d.y, def.texture).setOrigin(0.5, 1).setDepth(d.y);
-    this.scene.add.image(d.x - 18, d.y - 30, TEX.monitor).setOrigin(0.5, 1).setDepth(d.y + 0.1);
+    if (!d.boss) this.scene.add.image(d.x - 18, d.y - 30, TEX.monitor).setOrigin(0.5, 1).setDepth(d.y + 0.1);
     this.addCollider({ x: d.x - def.collider!.w / 2, y: d.y - def.collider!.h, ...def.collider! });
     if (d.owner === 'me') {
       this.addSign(d.x, d.y - 12, this.floor.mySeatLabel, COLORS.pink, d.y + 0.2);

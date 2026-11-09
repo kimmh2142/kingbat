@@ -56,6 +56,17 @@ const DEFS: Record<TextureKey, { w: number; h: number; draw: Draw }> = {
     },
   },
 
+  // 8층 대표실 카펫 (자주빛 + 금색 테두리 무늬)
+  [TEX.floorCarpet]: {
+    w: 64,
+    h: 64,
+    draw: (g, w, h) => {
+      g.fillStyle(0xe9d3e6).fillRect(0, 0, w, h);
+      g.lineStyle(2, 0xf3e3a6).strokeRect(6, 6, w - 12, h - 12);
+      g.fillStyle(0xf3e3a6).fillCircle(w / 2, h / 2, 3);
+    },
+  },
+
   [TEX.desk]: {
     w: 128,
     h: 80,
@@ -258,6 +269,19 @@ const DEFS: Record<TextureKey, { w: number; h: number; draw: Draw }> = {
       g.lineStyle(LINE, O).strokeRect(6, 58, w - 12, h - 62);
     },
   },
+  // 8층 배전반: 회색 철제 함, 레버 + 경고 번개
+  [TEX.powerPanel]: {
+    w: 70,
+    h: 104,
+    draw: (g, w, h) => {
+      g.fillStyle(0xb0b6c3).fillRoundedRect(4, 4, w - 8, h - 8, 6);
+      g.lineStyle(LINE, O).strokeRoundedRect(4, 4, w - 8, h - 8, 6);
+      g.fillStyle(0xffd54f).fillTriangle(w / 2 - 4, 16, w / 2 - 12, 38, w / 2 + 6, 30).fillTriangle(w / 2 + 4, 30, w / 2 - 6, 30, w / 2 + 2, 50);
+      g.fillStyle(0x5d5470).fillRect(16, 58, w - 32, 30);
+      g.fillStyle(0xe53935).fillRoundedRect(w / 2 - 6, 52, 12, 26, 4);
+      g.lineStyle(2, O).strokeRoundedRect(w / 2 - 6, 52, 12, 26, 4);
+    },
+  },
   [TEX.lock]: {
     w: 40,
     h: 46,
@@ -432,6 +456,107 @@ const DEFS: Record<TextureKey, { w: number; h: number; draw: Draw }> = {
       g.lineStyle(LINE, O).strokeCircle(29, 33, 21);
       g.fillStyle(0xfbe0cb).fillEllipse(29, 20, 18, 12); // 정수리
       g.fillStyle(0xffffff, 0.7).fillEllipse(26, 18, 6, 3);
+    },
+  },
+  // ------------------------------------------------------------ 대표 나대표
+  [TEX.daepyoBody]: {
+    // 자줏빛 정장 + 금색 넥타이 + 행커치프
+    w: 44,
+    h: 40,
+    draw: (g, w) => {
+      g.fillStyle(0x4a2c3a).fillRect(12, 26, w - 24, 8);
+      g.fillStyle(0x2e1a24).fillRect(12, 34, 8, 5).fillRect(w - 20, 34, 8, 5);
+      g.fillStyle(0x7b2d4f).fillRoundedRect(5, 1, w - 10, 28, 9);
+      g.lineStyle(LINE, O).strokeRoundedRect(5, 1, w - 10, 28, 9);
+      g.fillStyle(0xffffff).fillTriangle(w / 2 - 7, 2, w / 2 + 7, 2, w / 2, 13);
+      g.fillStyle(0xffc107).fillTriangle(w / 2 - 3, 7, w / 2 + 3, 7, w / 2, 24);
+      g.fillStyle(0xffd54f).fillTriangle(w - 16, 8, w - 10, 8, w - 13, 4);
+    },
+  },
+  [TEX.daepyoBodyBack]: {
+    w: 44,
+    h: 40,
+    draw: (g, w) => {
+      g.fillStyle(0x4a2c3a).fillRect(12, 26, w - 24, 8);
+      g.fillStyle(0x2e1a24).fillRect(12, 34, 8, 5).fillRect(w - 20, 34, 8, 5);
+      g.fillStyle(0x6a2544).fillRoundedRect(5, 1, w - 10, 28, 9);
+      g.lineStyle(LINE, O).strokeRoundedRect(5, 1, w - 10, 28, 9);
+      g.lineStyle(2, O).lineBetween(w / 2, 14, w / 2, 28);
+    },
+  },
+  [TEX.daepyoHeadFront]: {
+    // 올백 은발 + 하얀 팔자 콧수염 + 굵은 눈썹. 얼굴 표정은 face_* 를 겹친다
+    w: 58,
+    h: 56,
+    draw: (g) => {
+      g.fillStyle(0xfbe0cb).fillCircle(29, 33, 21);
+      g.lineStyle(LINE, O).strokeCircle(29, 33, 21);
+      g.fillStyle(0xfbe0cb).fillCircle(8, 36, 5).fillCircle(50, 36, 5);
+      g.lineStyle(2, O).strokeCircle(8, 36, 5).strokeCircle(50, 36, 5);
+      g.fillStyle(0xe0e0e0).slice(29, 33, 23, Math.PI * 1.0, Math.PI * 2.0, false).fillPath();
+      g.lineStyle(2, O).beginPath().arc(29, 33, 23, Math.PI, 0).strokePath();
+      g.lineStyle(2, 0xbdbdbd).lineBetween(18, 16, 22, 26).lineBetween(29, 12, 29, 24).lineBetween(40, 16, 36, 26);
+      g.fillStyle(0xffffff).fillEllipse(21, 46, 14, 5).fillEllipse(37, 46, 14, 5);
+      g.lineStyle(2, O).strokeEllipse(21, 46, 14, 5).strokeEllipse(37, 46, 14, 5);
+      g.fillStyle(0x9e9e9e).fillRect(14, 26, 10, 3).fillRect(34, 26, 10, 3);
+    },
+  },
+  [TEX.daepyoHeadBack]: {
+    w: 58,
+    h: 56,
+    draw: (g) => {
+      g.fillStyle(0xfbe0cb).fillCircle(8, 36, 5).fillCircle(50, 36, 5);
+      g.lineStyle(2, O).strokeCircle(8, 36, 5).strokeCircle(50, 36, 5);
+      g.fillStyle(0xe0e0e0).fillCircle(29, 33, 22);
+      g.lineStyle(LINE, O).strokeCircle(29, 33, 22);
+      g.lineStyle(2, 0xbdbdbd).lineBetween(20, 16, 20, 46).lineBetween(29, 12, 29, 50).lineBetween(38, 16, 38, 46);
+    },
+  },
+  // ------------------------------------------------------------ 비서 김비서
+  [TEX.biseoBody]: {
+    // 남색 투피스 + 흰 블라우스
+    w: 44,
+    h: 40,
+    draw: (g, w) => {
+      g.fillStyle(0x283593).fillRect(12, 26, w - 24, 9);
+      g.fillStyle(0x1a1a2e).fillRect(13, 35, 6, 4).fillRect(w - 19, 35, 6, 4);
+      g.fillStyle(0x303f9f).fillRoundedRect(7, 1, w - 14, 27, 8);
+      g.lineStyle(LINE, O).strokeRoundedRect(7, 1, w - 14, 27, 8);
+      g.fillStyle(0xffffff).fillTriangle(w / 2 - 6, 2, w / 2 + 6, 2, w / 2, 16);
+      g.fillStyle(0xffd54f).fillCircle(w / 2, 6, 2);
+    },
+  },
+  [TEX.biseoBodyBack]: {
+    w: 44,
+    h: 40,
+    draw: (g, w) => {
+      g.fillStyle(0x283593).fillRect(12, 26, w - 24, 9);
+      g.fillStyle(0x1a1a2e).fillRect(13, 35, 6, 4).fillRect(w - 19, 35, 6, 4);
+      g.fillStyle(0x283593).fillRoundedRect(7, 1, w - 14, 27, 8);
+      g.lineStyle(LINE, O).strokeRoundedRect(7, 1, w - 14, 27, 8);
+    },
+  },
+  [TEX.biseoHeadFront]: {
+    // 칼단발 검은 머리 + 분홍 안경테
+    w: 58,
+    h: 56,
+    draw: (g) => {
+      g.fillStyle(0x1f1f2b).fillRoundedRect(7, 14, 44, 36, 10);
+      g.fillStyle(0xfbe0cb).fillCircle(29, 33, 20);
+      g.lineStyle(LINE, O).strokeCircle(29, 33, 20);
+      g.fillStyle(0x1f1f2b).slice(29, 33, 22, Math.PI * 1.0, Math.PI * 2.0, false).fillPath();
+      g.fillStyle(0x1f1f2b).fillRect(7, 30, 8, 20).fillRect(43, 30, 8, 20);
+      g.lineStyle(2, O).strokeRect(7, 30, 8, 20).strokeRect(43, 30, 8, 20);
+      g.lineStyle(2, 0xec407a).strokeCircle(21, 34, 6).strokeCircle(37, 34, 6).lineBetween(27, 34, 31, 34);
+    },
+  },
+  [TEX.biseoHeadBack]: {
+    w: 58,
+    h: 56,
+    draw: (g) => {
+      g.fillStyle(0x1f1f2b).fillRoundedRect(7, 12, 44, 40, 12);
+      g.lineStyle(LINE, O).strokeRoundedRect(7, 12, 44, 40, 12);
+      g.lineStyle(2, 0x3d3d52).lineBetween(14, 44, 44, 44);
     },
   },
   // ------------------------------------------------------------ 차장 오의심
@@ -722,6 +847,39 @@ const DEFS: Record<TextureKey, { w: number; h: number; draw: Draw }> = {
       g.fillStyle(0x37474f).fillRoundedRect(1, 1, 12, 18, 3);
       g.lineStyle(2, O).strokeRoundedRect(1, 1, 12, 18, 3);
       g.fillStyle(0x80deea).fillRect(3, 3, 8, 12);
+    },
+  },
+  // 대표가 펼쳐 든 신문 (얼굴 아래쪽을 가린다)
+  [TEX.newspaper]: {
+    w: 56,
+    h: 34,
+    draw: (g, w, h) => {
+      g.fillStyle(0xf5f1e6).fillRect(2, 2, w - 4, h - 4);
+      g.lineStyle(2, O).strokeRect(2, 2, w - 4, h - 4).lineBetween(w / 2, 2, w / 2, h - 2);
+      g.fillStyle(0x5a3a4a).fillRect(6, 6, 18, 5).fillRect(32, 6, 18, 5);
+      g.fillStyle(0xb0a99a);
+      for (let y = 14; y < h - 6; y += 5) g.fillRect(6, y, 18, 2).fillRect(32, y, 18, 2);
+    },
+  },
+  // 다 읽고 접어 책상에 내려놓은 신문 (진짜 전조)
+  [TEX.newspaperFolded]: {
+    w: 30,
+    h: 14,
+    draw: (g, w, h) => {
+      g.fillStyle(0xf5f1e6).fillRect(1, 1, w - 2, h - 2);
+      g.lineStyle(2, O).strokeRect(1, 1, w - 2, h - 2);
+      g.fillStyle(0x5a3a4a).fillRect(5, 4, 14, 3);
+    },
+  },
+  // 골프 퍼터
+  [TEX.putter]: {
+    w: 20,
+    h: 46,
+    draw: (g, _w, h) => {
+      g.lineStyle(3, 0x9e9e9e).lineBetween(14, 2, 8, h - 8);
+      g.fillStyle(0x424242).fillRoundedRect(1, h - 10, 16, 8, 2);
+      g.lineStyle(2, O).strokeRoundedRect(1, h - 10, 16, 8, 2);
+      g.fillStyle(0x5a3a4a).fillRect(12, 1, 5, 8);
     },
   },
   [TEX.snack]: {

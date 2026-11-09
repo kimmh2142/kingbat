@@ -29,6 +29,8 @@ export interface Desk {
   x: number;
   y: number;
   owner?: DeskOwner;
+  /** 대표 책상처럼 큰 원목 책상으로 그린다 */
+  boss?: boolean;
 }
 
 export interface PropPlacement {
