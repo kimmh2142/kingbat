@@ -41,6 +41,12 @@ export const TEX = {
   gwajangHeadFront: 'gwajang_head_front',
   gwajangHeadBack: 'gwajang_head_back',
 
+  // 차장 오의심 (STAGE 2 방해 NPC)
+  chajangBody: 'chajang_body',
+  chajangBodyBack: 'chajang_body_back',
+  chajangHeadFront: 'chajang_head_front',
+  chajangHeadBack: 'chajang_head_back',
+
   // 대리 김카페 (방해 NPC)
   daeriBody: 'daeri_body',
   daeriBodyBack: 'daeri_body_back',

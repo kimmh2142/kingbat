@@ -1,8 +1,10 @@
 // 스테이지별 기본 수치 (기준 문서 2-4, PART 3). 플레이 테스트로 조정한다.
 // 새 스테이지는 여기에 한 칸 추가하면 OfficeScene이 그 번호로 돌아간다 (?stage=N 으로 바로 시작).
 import { DONGI } from '../npc/patterns/dongi';
+import { CHAJANG } from '../npc/patterns/chajang';
+import { DAERI } from '../npc/patterns/daeri';
 import { GWAJANG } from '../npc/patterns/gwajang';
-import type { TargetPattern } from '../npc/types';
+import type { PatrolPattern, TargetPattern } from '../npc/types';
 
 export interface StageConfig {
   id: number;
@@ -10,6 +12,8 @@ export interface StageConfig {
   label: string;
   /** 공략 대상 (자리는 맵에서 owner가 pattern.id인 책상) */
   target: TargetPattern;
+  /** 순찰하는 방해 NPC (자리는 owner가 pattern.id인 책상) */
+  patrols: PatrolPattern[];
   /** 제한시간 (실제 초) */
   timeLimit: number;
   /** 퇴근 시계가 보여주는 시작·끝 시각 (24시간제 분) */
@@ -33,6 +37,7 @@ export const STAGES: Record<number, StageConfig> = {
     id: 1,
     label: 'STAGE 1 · 동기 이동기',
     target: DONGI,
+    patrols: [DAERI],
     timeLimit: 150,
     clockStart: 16 * 60 + 57,
     clockEnd: 18 * 60,
@@ -51,6 +56,7 @@ export const STAGES: Record<number, StageConfig> = {
     id: 2,
     label: 'STAGE 2 · 과장 박통화',
     target: GWAJANG,
+    patrols: [DAERI, CHAJANG],
     timeLimit: 240,
     clockStart: 17 * 60 + 55,
     clockEnd: 18 * 60,

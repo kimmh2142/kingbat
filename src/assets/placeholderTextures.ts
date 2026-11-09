@@ -434,6 +434,55 @@ const DEFS: Record<TextureKey, { w: number; h: number; draw: Draw }> = {
       g.fillStyle(0xffffff, 0.7).fillEllipse(26, 18, 6, 3);
     },
   },
+  // ------------------------------------------------------------ 차장 오의심
+  [TEX.chajangBody]: {
+    // 회색 정장 + 보라 넥타이, 팔짱 낀 듯 각진 어깨
+    w: 44,
+    h: 40,
+    draw: (g, w) => {
+      g.fillStyle(0x546e7a).fillRect(12, 26, w - 24, 8);
+      g.fillStyle(0x37474f).fillRect(12, 34, 8, 5).fillRect(w - 20, 34, 8, 5);
+      g.fillStyle(0x78909c).fillRoundedRect(6, 1, w - 12, 27, 6);
+      g.lineStyle(LINE, O).strokeRoundedRect(6, 1, w - 12, 27, 6);
+      g.fillStyle(0xffffff).fillTriangle(w / 2 - 6, 2, w / 2 + 6, 2, w / 2, 12);
+      g.fillStyle(0x7e57c2).fillTriangle(w / 2 - 3, 7, w / 2 + 3, 7, w / 2, 22);
+    },
+  },
+  [TEX.chajangBodyBack]: {
+    w: 44,
+    h: 40,
+    draw: (g, w) => {
+      g.fillStyle(0x546e7a).fillRect(12, 26, w - 24, 8);
+      g.fillStyle(0x37474f).fillRect(12, 34, 8, 5).fillRect(w - 20, 34, 8, 5);
+      g.fillStyle(0x6f838d).fillRoundedRect(6, 1, w - 12, 27, 6);
+      g.lineStyle(LINE, O).strokeRoundedRect(6, 1, w - 12, 27, 6);
+      g.lineStyle(2, O).lineBetween(w / 2, 16, w / 2, 27);
+    },
+  },
+  [TEX.chajangHeadFront]: {
+    // 각진 안경 + 회색 짧은 머리. 얼굴 표정은 face_* 를 겹친다
+    w: 58,
+    h: 56,
+    draw: (g) => {
+      g.fillStyle(0xfbe0cb).fillCircle(29, 33, 21);
+      g.lineStyle(LINE, O).strokeCircle(29, 33, 21);
+      g.fillStyle(0xfbe0cb).fillCircle(8, 36, 5).fillCircle(50, 36, 5);
+      g.lineStyle(2, O).strokeCircle(8, 36, 5).strokeCircle(50, 36, 5);
+      g.fillStyle(0x90a4ae).slice(29, 33, 22, Math.PI * 1.05, Math.PI * 1.95, false).fillPath();
+      g.lineStyle(3, O).strokeRect(14, 29, 12, 9).strokeRect(32, 29, 12, 9).lineBetween(26, 32, 32, 32);
+    },
+  },
+  [TEX.chajangHeadBack]: {
+    w: 58,
+    h: 56,
+    draw: (g) => {
+      g.fillStyle(0xfbe0cb).fillCircle(8, 36, 5).fillCircle(50, 36, 5);
+      g.lineStyle(2, O).strokeCircle(8, 36, 5).strokeCircle(50, 36, 5);
+      g.fillStyle(0x90a4ae).fillCircle(29, 33, 21);
+      g.lineStyle(LINE, O).strokeCircle(29, 33, 21);
+      g.lineStyle(2, O).lineBetween(8, 32, 14, 32).lineBetween(44, 32, 50, 32); // 안경다리
+    },
+  },
   // ------------------------------------------------------------ 대리 김카페
   [TEX.daeriBody]: {
     // 베이지 카디건 + 남색 치마

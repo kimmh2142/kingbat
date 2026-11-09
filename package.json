@@ -25,7 +25,8 @@
     "art:list": "node scripts/export-art-list.mjs",
     "check:tips": "node scripts/check-tips.mjs",
     "check:stage": "node scripts/check-stage.mjs",
-    "check:gwajang": "node scripts/check-gwajang.mjs"
+    "check:gwajang": "node scripts/check-gwajang.mjs",
+    "check:chajang": "node scripts/check-chajang.mjs"
   },
   "dependencies": {
     "@fontsource/jua": "^5.3.0",

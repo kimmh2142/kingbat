@@ -48,6 +48,7 @@ export const DAERI: PatrolPattern = {
     },
   ],
   speed: 95,
+  coneColor: 0xffa000,
   walkPose: { face: TEX.faceHappy, hands: 'cup' },
   stay: { duration: [3, 5], facing: 'up', pose: { hands: 'side' } },
   vision: { range: 220, halfAngleDeg: 40, nearRadius: 40 },

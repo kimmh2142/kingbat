@@ -132,6 +132,8 @@ export interface PatrolPattern {
   walkPose: Pose;
   /** 목적지에서 머무는 시간·방향·자세 */
   stay: { duration: Range; facing: Facing; pose: Pose };
+  /** 바닥 시야 부채꼴 색 */
+  coneColor: number;
   /** 시야 (걷거나 서 있을 때만) */
   vision: { range: number; halfAngleDeg: number; nearRadius: number };
   /** 플레이어를 발견했을 때 */

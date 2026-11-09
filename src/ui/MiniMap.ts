@@ -9,7 +9,8 @@ import type { TouchControls } from './TouchControls';
 export interface MiniMapMarks {
   player: { x: number; y: number };
   target: { x: number; y: number };
-  daeri: { x: number; y: number };
+  /** 방해 NPC (순찰) */
+  patrols: { x: number; y: number }[];
   items: { x: number; y: number }[];
   view: Phaser.Geom.Rectangle;
 }
@@ -152,7 +153,7 @@ export class MiniMap {
       g.fillStyle(color).fillCircle(X(p.x), Y(p.y), r);
       g.lineStyle(big ? 3 : 1.5, 0xffffff).strokeCircle(X(p.x), Y(p.y), r);
     };
-    dot(k.daeri, 0xffa000, big ? 8 : 3.5);
+    for (const p of k.patrols) dot(p, 0xffa000, big ? 8 : 3.5);
     dot(k.target, 0xe53935, big ? 9 : 4);
     dot(k.player, 0xff4f8b, big ? 10 : 5);
     // 테두리

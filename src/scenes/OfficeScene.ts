@@ -7,7 +7,6 @@ import { PLAYER_START } from '../data/office7f';
 import { nextStage, STAGES, type StageConfig } from '../data/stages';
 import { TIP_BACK_SPOT, TIPS, TUTORIAL_TEXT, type TipId } from '../data/tutorial';
 import { CAMERA, POKE } from '../data/tuning';
-import { DAERI } from '../npc/patterns/daeri';
 import { Extras } from '../npc/Extras';
 import { PatrolController } from '../npc/PatrolController';
 import { TargetController } from '../npc/TargetController';
@@ -52,8 +51,9 @@ export class OfficeScene extends Phaser.Scene {
   private hud!: HUD;
   private prompt!: Prompt;
   private targetCone!: VisionCone;
-  private daeri!: PatrolController;
-  private daeriCone!: VisionCone;
+  /** 순찰하는 방해 NPC (스테이지마다 data/stages.ts의 patrols). 걸을 때 바닥에 시야 부채꼴 */
+  private patrols: PatrolController[] = [];
+  private patrolCones: VisionCone[] = [];
   /** 대리에게 붙잡혀 있는 동안 남은 시간 원 */
   private grabRing!: Phaser.GameObjects.Graphics;
   private keyHint!: Phaser.GameObjects.Text;
@@ -150,8 +150,8 @@ export class OfficeScene extends Phaser.Scene {
     this.extras = new Extras(this, this.map.desks);
     this.physics.add.collider(this.player.feet, this.extras.blockers);
 
-    // 방해 NPC: 대리 김카페 (탕비실 ↔ 자리 왕복, 걸을 때 바닥에 시야 부채꼴)
-    this.daeri = new PatrolController(this, DAERI, this.map.desks.find((d) => d.owner === 'daeri')!);
+    // 방해 NPC (STAGE 1 대리 김카페, STAGE 2 + 차장 오의심): 자리 ↔ 목적지 왕복, 걸을 때 바닥에 시야 부채꼴
+    this.patrols = this.stage.patrols.map((p) => new PatrolController(this, p, this.map.desks.find((d) => d.owner === p.id)!));
 
     this.score = new Score();
     this.poke = new Poke(this, this.score);
@@ -182,7 +182,7 @@ export class OfficeScene extends Phaser.Scene {
     this.input.on(Phaser.Input.Events.POINTER_DOWN, () => (this.tapped = true));
     this.prompt = new Prompt(this);
     this.targetCone = new VisionCone(this);
-    this.daeriCone = new VisionCone(this, 0xffa000);
+    this.patrolCones = this.patrols.map((p) => new VisionCone(this, p.pattern.coneColor));
     this.grabRing = this.add.graphics().setDepth(DEPTH.label + 6);
     const seat = this.map.mySeat;
     this.seatMark = this.add
@@ -232,13 +232,17 @@ export class OfficeScene extends Phaser.Scene {
         setRemaining: (seconds: number) => this.clock.setRemaining(seconds),
         giveItem: (id: string) => this.items.give(id as ItemId),
         forceGrab: () => {
-          this.daeri.grabChanceOverride = 1;
-          this.daeri.grabCooldown = 0;
+          const d = this.patrolById('daeri');
+          if (!d) return;
+          d.grabChanceOverride = 1;
+          d.grabCooldown = 0;
         },
-        // 대리가 붙잡지 않게 한다 (대리와 상관없는 확인이 우연히 막히지 않도록)
+        // 방해 NPC가 붙잡거나 세우지 않게 한다 (상관없는 확인이 우연히 막히지 않도록)
         calmDaeri: () => {
-          this.daeri.grabCooldown = 1e9;
-          this.daeri.stopCooldown = 1e9;
+          for (const p of this.patrols) {
+            p.grabCooldown = 1e9;
+            p.stopCooldown = 1e9;
+          }
         },
         addScore: (points: number) => this.score.addConfirmed(points),
         // 결과 화면 확인용: 하트를 다 잃은 것처럼
@@ -270,7 +274,7 @@ export class OfficeScene extends Phaser.Scene {
       // 컷인·실패 화면: 게임은 멈추고 캐릭터 연출만 움직인다
       this.player.update(new Phaser.Math.Vector2(), dt);
       this.target.view.update(dt);
-      this.daeri.view.update(dt);
+      for (const p of this.patrols) p.view.update(dt);
       this.extras.updateView(dt);
       this.cutin.update(dt, this.controls.justPressed('Space') || this.tapped);
       if (this.intro?.active && (this.controls.justPressed('Space') || this.tapped)) this.intro.skip();
@@ -284,9 +288,14 @@ export class OfficeScene extends Phaser.Scene {
       // 대리: 빈손으로 시야에 들어오면 "뭐 해요?" 하고 세우고, 옆을 지나가면 가끔 커피 심부름으로 붙잡는다
       // (숨어 있거나 장난 중이면 안 붙잡음. 장난 중·임시 점수를 들고 보이면 들킴)
       const free = !this.hide.hidden && !this.poke.active && !this.pranks.active;
-      this.daeri.tryStop(this.player.x, this.player.y, free && this.score.temp === 0);
-      this.daeri.tryGrab(this.player.x, this.player.y, free);
-      const grabbed = this.daeri.state === 'grab';
+      // 한 번에 한 명만 붙잡는다
+      let grabbed = this.patrols.some((p) => p.state === 'grab');
+      for (const p of this.patrols) {
+        if (grabbed) break;
+        p.tryStop(this.player.x, this.player.y, free && this.score.temp === 0);
+        p.tryGrab(this.player.x, this.player.y, free);
+        grabbed = p.state === 'grab';
+      }
       const sticking = this.pranks.active;
       const move = this.controls.getMove().clone();
       if (this.poke.active || grabbed || sticking) move.scale(grabbed || sticking ? 0 : POKE.moveMultiplier);
@@ -305,7 +314,7 @@ export class OfficeScene extends Phaser.Scene {
       this.poke.update(dt, held, this.player, this.target);
       this.hide.update(dt, this.controls.hideHeld && !grabbed, this.player, this.map, this.poke.active || this.pranks.active);
       this.target.update(dt);
-      this.daeri.update(dt);
+      for (const p of this.patrols) p.update(dt);
       this.extras.update(dt, this.player);
       this.checkCaught();
       // 컷인·실패 화면 동안은 퇴근 시계도 멈춘다
@@ -317,7 +326,7 @@ export class OfficeScene extends Phaser.Scene {
     const t = this.target;
     const looking = t.state === 'look' || t.state === 'react';
     this.targetCone.update(dt, looking ? { x: t.x, y: t.y, dir: t.lookDir, ...t.pattern.look } : null);
-    this.daeriCone.update(dt, this.daeri.cone);
+    this.patrols.forEach((p, i) => this.patrolCones[i].update(dt, p.cone));
     this.drawGrabRing();
     this.targetArrow.update(this.cameras.main, this.paused ? null : this.target);
     this.itemArrow.update(this.cameras.main, this.paused ? null : this.firstItemToFind());
@@ -344,7 +353,7 @@ export class OfficeScene extends Phaser.Scene {
       {
         player: this.player,
         target: this.target,
-        daeri: this.daeri,
+        patrols: this.patrols,
         items: this.items.onMap.map((m) => m.spot),
         view: this.cameras.main.worldView,
       },
@@ -375,7 +384,8 @@ export class OfficeScene extends Phaser.Scene {
       minimap: { big: this.miniMap.isBig, ...this.miniMap.rect },
       sfx: [...this.sfx.log],
       remaining: Math.round(this.clock.remaining * 10) / 10,
-      daeri: { kind: this.daeri.grabKind, state: this.daeri.state, x: Math.round(this.daeri.x), y: Math.round(this.daeri.y), route: this.daeri.routeIndex },
+      daeri: this.patrolInfo(this.patrolById('daeri')),
+      patrols: this.patrols.map((p) => ({ id: p.pattern.id, ...this.patrolInfo(p)! })),
       caughtBy: this.life.caughtBy,
       lastCaught: this.lastCaught,
       extras: this.extras.list.map((e) => ({ state: e.state, x: Math.round(e.pos.x), y: Math.round(e.pos.y), blocked: e.blockedT > 0 })),
@@ -420,7 +430,7 @@ export class OfficeScene extends Phaser.Scene {
       this.grabRing.lineStyle(3, 0x5a3a4a).strokeCircle(x, y, 15);
       return;
     }
-    const r = this.daeri.grabRatio;
+    const r = Math.max(0, ...this.patrols.map((p) => p.grabRatio));
     if (r <= 0) return;
     const x = this.player.x;
     const y = this.player.y - 118;
@@ -669,16 +679,17 @@ export class OfficeScene extends Phaser.Scene {
     const { x, y } = this.player;
     const t = this.target;
     if (t.isLooking && t.canSee(x, y)) return this.onCaught(sticking ? 'sticking' : 'turned', 'target');
-    // 순찰 중인 대리 시야 (바닥 부채꼴)
-    if (this.daeri.canSee(x, y)) return this.onCaught(sticking ? 'sticking' : 'escaping', 'daeri');
+    // 순찰 중인 방해 NPC 시야 (바닥 부채꼴)
+    const seen = this.patrols.find((p) => p.canSee(x, y));
+    if (seen) return this.onCaught(sticking ? 'sticking' : 'escaping', seen);
   }
 
   /** 들킴: 임시 점수 소멸 → 컷인(하트 -1) → 하트가 없으면 실패 화면 */
-  private onCaught(reason: CaughtReasonId, by: 'target' | 'daeri'): void {
+  private onCaught(reason: CaughtReasonId, by: 'target' | PatrolController): void {
     this.caughtCount += 1;
-    const w = by === 'target' ? this.target : this.daeri;
+    const w = by === 'target' ? this.target : by;
     this.lastCaught = {
-      by,
+      by: by === 'target' ? 'target' : by.pattern.id,
       reason,
       player: { x: Math.round(this.player.x), y: Math.round(this.player.y) },
       who: { x: Math.round(w.x), y: Math.round(w.y) },
@@ -688,9 +699,9 @@ export class OfficeScene extends Phaser.Scene {
     this.poke.cancel(this.target);
     this.pranks.cancel();
     this.score.loseTemp();
-    const who = by === 'target' ? this.target : this.daeri;
+    const who = w;
     if (by === 'target') this.target.onCaught();
-    else this.daeri.onCaught(this.player.x, this.player.y);
+    else by.onCaught(this.player.x, this.player.y);
     this.cutin.play({
       reason,
       cause: { x: who.x, y: who.y - 70 },
@@ -757,6 +768,16 @@ export class OfficeScene extends Phaser.Scene {
     this.scene.restart({ retry: true, stage: this.stage.id });
   }
 
+  private patrolById(id: string): PatrolController | undefined {
+    return this.patrols.find((p) => p.pattern.id === id);
+  }
+
+  /** 확인용 방해 NPC 상태 */
+  private patrolInfo(p: PatrolController | undefined) {
+    if (!p) return undefined;
+    return { kind: p.grabKind, state: p.state, x: Math.round(p.x), y: Math.round(p.y), route: p.routeIndex };
+  }
+
   private setupDebug(): void {
     this.debug = new DebugOverlay(this);
     this.debug.addInfo(() => {
@@ -781,13 +802,12 @@ export class OfficeScene extends Phaser.Scene {
         `콕 ${this.poke.active ? `중 ${this.poke.rate.toFixed(1)}회/초` : '-'}   배율 x${t.scoreMultiplier}   들킴 ${this.caughtCount}`,
       ];
     });
-    this.debug.addInfo(() => {
-      const d = this.daeri;
-      return [
+    this.debug.addInfo(() =>
+      this.patrols.flatMap((d) => [
         `── ${d.pattern.name}`,
-        `상태 ${d.stateName}(${d.routeName})  남은 ${d.remaining.toFixed(1)}초  시야 ${d.watching ? 'O' : '-'}  붙잡기 대기 ${d.grabCooldown.toFixed(0)}초  뭐해요 대기 ${d.stopCooldown.toFixed(0)}초${d.state === 'grab' ? `  (${d.grabKind === 'stop' ? '뭐 해요?' : '커피'})` : ''}`,
-      ];
-    });
+        `상태 ${d.stateName}(${d.routeName})  남은 ${d.remaining.toFixed(1)}초  시야 ${d.watching ? 'O' : '-'}  붙잡기 대기 ${d.grabCooldown.toFixed(0)}초  뭐해요 대기 ${d.stopCooldown.toFixed(0)}초${d.state === 'grab' ? `  (${d.grabKind === 'stop' ? '세움' : '붙잡음'})` : ''}`,
+      ]),
+    );
     this.debug.addInfo(() => {
       const it = this.items;
       const pr = this.pranks;

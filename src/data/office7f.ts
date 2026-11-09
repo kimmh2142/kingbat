@@ -21,7 +21,7 @@ export interface Room extends Rect {
   unlockStage?: number;
 }
 
-export type DeskOwner = 'me' | 'dongi' | 'daeri' | 'gwajang' | 'coworker';
+export type DeskOwner = 'me' | 'dongi' | 'daeri' | 'gwajang' | 'chajang' | 'coworker';
 
 export interface Desk {
   id: string;
@@ -115,6 +115,8 @@ export const DESKS: Desk[] = [
   ),
   // 관리자 구역 가운데: 과장 자리 (STAGE 2). 의자 (2200, 758)
   { id: 'desk-gwajang', x: 2200, y: 820, owner: 'gwajang' },
+  // 그 왼쪽: 차장 자리 (STAGE 2 방해 NPC). 의자 (1850, 758)
+  { id: 'desk-chajang', x: 1850, y: 820, owner: 'chajang' },
 ];
 
 export const PROPS: PropPlacement[] = [
