@@ -6,6 +6,7 @@ import type { TargetController } from '../npc/TargetController';
 import type { Player } from '../player/Player';
 import { popWord } from '../ui/Popups';
 import type { TouchControls } from '../ui/TouchControls';
+import type { MissionTask } from './MissionTask';
 import { DEPTH } from './OfficeMap';
 
 const ARROWS: Arrow[] = ['up', 'down', 'left', 'right'];
@@ -28,7 +29,10 @@ type Phase = 'onTable' | 'carrying' | 'sorting' | 'done';
  * 끼우는 동안(sorting)은 움직일 수 없고, 보이면 들킨다(OfficeScene.checkCaught). 들키면 서류는 복사실로.
  * 성공하면 'done'. 과장이 자리로 돌아와 서류를 발견하고 부장실 옆으로 들고 가면 부장이 폭발한다.
  */
-export class Approval extends Phaser.Events.EventEmitter {
+export class Approval extends Phaser.Events.EventEmitter implements MissionTask {
+  readonly caughtReason = 'filing';
+  readonly walkSeeRange = APPROVAL.walkSeeRange;
+  readonly anchor = APPROVAL.pile;
   phase: Phase = 'onTable';
   /** 지금 끼우는 서류 순서와 몇 장째인지 */
   seq: Arrow[] = [];
@@ -72,6 +76,10 @@ export class Approval extends Phaser.Events.EventEmitter {
   /** 끼우는 중 (움직일 수 없고, 보이면 들킨다) */
   get sorting(): boolean {
     return this.phase === 'sorting';
+  }
+
+  get busy(): boolean {
+    return this.sorting;
   }
 
   get carrying(): boolean {
@@ -178,7 +186,7 @@ export class Approval extends Phaser.Events.EventEmitter {
     this.scene.tweens.add({ targets: t, alpha: 0, y: y - 30, delay: 2200, duration: 400, onComplete: () => t.destroy() });
   }
 
-    private nearPaper(x: number, y: number): boolean {
+  private nearPaper(x: number, y: number): boolean {
     return this.phase === 'onTable' && Phaser.Math.Distance.Between(x, y, APPROVAL.paper.x, APPROVAL.paper.y) <= APPROVAL.pickRange;
   }
 

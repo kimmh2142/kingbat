@@ -9,6 +9,7 @@ export const CAUGHT_REASONS = {
   footsteps: { text: '발소리를 들켰다!', tip: '가까이선 천천히 걷자' },
   sticking: { text: '붙이다 들켰다!', tip: '붙이는 데 시간이 걸려. 전조부터 보자' },
   filing: { text: '서류 끼우다 들켰다!', tip: '과장이 돌아오는 길부터 확인하자' },
+  cushion: { text: '방석 깔다 들켰다!', tip: '대표가 돌아오기 전에 깔고 빠지자' },
   escaping: { text: '도망치다 들켰다!', tip: '복귀 경로를 먼저 확인하자' },
 } as const;
 

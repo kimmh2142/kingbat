@@ -119,6 +119,19 @@ export const DAEPYO: TargetPattern = {
           { x: 1150, y: 760 },
         ],
       },
+      // 정전 때만 (STAGE 3 미션이 forceTrip으로 보낸다): 비서 데스크 앞까지 나와 상황을 묻는다
+      {
+        name: '정전 확인',
+        weight: 0,
+        stayFacing: 'left',
+        stayPose: { hands: 'side', face: TEX.faceShock, bubble: '김비서! 이게 무슨 일인가!' },
+        path: [
+          { x: 1800, y: 398 },
+          { x: 1800, y: 480 },
+          { x: 1440, y: 480 },
+          { x: 1440, y: 720 },
+        ],
+      },
     ],
     checksWhileAway: true,
     walkPose: { hands: 'side', face: TEX.faceNormal, bubble: '흠~' },

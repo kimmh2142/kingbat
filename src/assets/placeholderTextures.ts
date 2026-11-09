@@ -871,6 +871,18 @@ const DEFS: Record<TextureKey, { w: number; h: number; draw: Draw }> = {
       g.fillStyle(0x5a3a4a).fillRect(5, 4, 14, 3);
     },
   },
+  // 방귀 방석 (분홍 고무 + 주둥이)
+  [TEX.cushion]: {
+    w: 46,
+    h: 30,
+    draw: (g, w, h) => {
+      g.fillStyle(0xf06292).fillEllipse(w / 2 - 4, h / 2 + 2, w - 12, h - 8);
+      g.lineStyle(LINE, O).strokeEllipse(w / 2 - 4, h / 2 + 2, w - 12, h - 8);
+      g.fillStyle(0xf8bbd0).fillEllipse(w / 2 - 8, h / 2 - 2, 14, 6);
+      g.fillStyle(0xec407a).fillRoundedRect(w - 12, h / 2 - 3, 10, 8, 3);
+      g.lineStyle(2, O).strokeRoundedRect(w - 12, h / 2 - 3, 10, 8, 3);
+    },
+  },
   // 골프 퍼터
   [TEX.putter]: {
     w: 20,

@@ -27,7 +27,8 @@
     "check:stage": "node scripts/check-stage.mjs",
     "check:gwajang": "node scripts/check-gwajang.mjs",
     "check:chajang": "node scripts/check-chajang.mjs",
-    "check:approval": "node scripts/check-approval.mjs"
+    "check:approval": "node scripts/check-approval.mjs",
+    "check:blackout": "node scripts/check-blackout.mjs"
   },
   "dependencies": {
     "@fontsource/jua": "^5.3.0",

@@ -91,6 +91,7 @@ export const TEX = {
   newspaper: 'newspaper',
   newspaperFolded: 'newspaper_folded',
   putter: 'putter',
+  cushion: 'whoopee_cushion',
   snack: 'snack',
 
   // 아이템과 장난 흔적

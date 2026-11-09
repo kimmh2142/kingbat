@@ -4,6 +4,9 @@ import { FONT, GAME_HEIGHT, GAME_WIDTH } from '../config';
 import type { CaughtReasonId } from '../data/caughtReasons';
 import { APPROVAL } from '../data/approval';
 import { Approval } from '../systems/Approval';
+import { BLACKOUT } from '../data/blackout';
+import { Blackout } from '../systems/Blackout';
+import type { MissionTask } from '../systems/MissionTask';
 import { ITEM_RULES, ITEMS, type ItemId } from '../data/items';
 import { nextStage, STAGES, type StageConfig } from '../data/stages';
 import { TIP_BACK_SPOT, TIPS, TUTORIAL_TEXT, type TipId } from '../data/tutorial';
@@ -81,6 +84,9 @@ export class OfficeScene extends Phaser.Scene {
   private pranks!: Pranks;
   /** STAGE 2 특별 미션 "전 직원 칼퇴 승인서" (그 스테이지에만) */
   private approval: Approval | null = null;
+  private blackout: Blackout | null = null;
+  /** E로 하는 특별 미션 (승인서·대정전). 없으면 null */
+  private task: MissionTask | null = null;
   /** 시작 타깃 소개 (끝나면 null) */
   private intro: TargetIntro | null = null;
   private targetArrow!: TargetArrow;
@@ -116,6 +122,8 @@ export class OfficeScene extends Phaser.Scene {
     // scene.restart()는 생성자를 다시 부르지 않으므로 판마다 상태를 여기서 초기화한다
     this.intro = null;
     this.approval = null;
+    this.blackout = null;
+    this.task = null;
     this.failed = false;
     this.result = null;
     this.tapped = false;
@@ -166,6 +174,7 @@ export class OfficeScene extends Phaser.Scene {
     this.pranks.laughFrom = (x, y) => this.extras.nearestTo(x, y, 320);
     if (this.stage.mission.id === 'parade') this.pranks.on('parade', () => this.completeMission());
     if (this.stage.mission.id === 'approval') this.setupApproval();
+    if (this.stage.mission.id === 'blackout') this.setupBlackout();
     new ItemBar(this, this.items, this.touch);
     // 아이템 안내: 첫 아이템이 생기면 한 번, 종류마다 처음 주우면 사용법 한 번
     this.guide = new GuideToast(this);
@@ -302,7 +311,7 @@ export class OfficeScene extends Phaser.Scene {
         grabbed = p.state === 'grab';
       }
       // 아이템을 붙이거나 서류를 끼우는 중: 움직일 수 없고 보이면 들킨다
-      const sticking = this.pranks.active || !!this.approval?.sorting;
+      const sticking = this.pranks.active || !!this.task?.busy;
       const move = this.controls.getMove().clone();
       if (this.poke.active || grabbed || sticking) move.scale(grabbed || sticking ? 0 : POKE.moveMultiplier);
       this.player.update(move, dt);
@@ -312,15 +321,15 @@ export class OfficeScene extends Phaser.Scene {
       if (slot >= 0) this.items.select(slot);
       else if (this.controls.cyclePressed) this.items.cycle();
       const held = this.controls.actionHeld && !this.hide.hidden && !grabbed && !sticking;
-      if (this.controls.itemPressed && !this.hide.hidden && !grabbed && !this.poke.active && !this.approval?.sorting) this.pranks.tryUse(this.player);
+      if (this.controls.itemPressed && !this.hide.hidden && !grabbed && !this.poke.active && !this.task?.busy) this.pranks.tryUse(this.player);
       this.items.update(dt, this.player);
       this.pranks.update(dt, this.player);
 
       // 숨어 있거나 붙잡혀 있는 동안은 찌를 수 없다
       this.poke.update(dt, held, this.player, this.target);
-      // E는 승인서 미션(서류 줍기·끼우기)이 먼저 쓴다
-      const eForMission = !!this.approval && (this.approval.sorting || this.approval.wantsE(this.player.x, this.player.y));
-      this.approval?.update(dt, this.controls.hideHeld && !grabbed, this.hide.hidden || grabbed || this.poke.active || this.pranks.active, this.player, (c) =>
+      // E는 특별 미션(서류·방석 줍기, 끼우기·깔기, 배전반)이 먼저 쓴다
+      const eForMission = !!this.task && (this.task.busy || this.task.wantsE(this.player.x, this.player.y));
+      this.task?.update(dt, this.controls.hideHeld && !grabbed, this.hide.hidden || grabbed || this.poke.active || this.pranks.active, this.player, (c) =>
         this.controls.justPressed(c),
       );
       this.hide.update(dt, this.controls.hideHeld && !grabbed, this.player, this.map, this.poke.active || this.pranks.active || eForMission);
@@ -354,7 +363,7 @@ export class OfficeScene extends Phaser.Scene {
     this.updateThought(dt);
     this.flushTips();
     // [숨기] 버튼은 숨을 수 있는 곳 근처에서만 진하게
-    this.touch.setDisabled('hide', !this.hide.nearby && !this.approval?.wantsE(this.player.x, this.player.y) && !this.approval?.sorting);
+    this.touch.setDisabled('hide', !this.hide.nearby && !this.task?.wantsE(this.player.x, this.player.y) && !this.task?.busy);
     this.touch.setDisabled('item', !this.items.selectedItem);
     this.keyHint.setVisible(!this.controls.isTouch);
     this.hud.update(dt);
@@ -391,6 +400,7 @@ export class OfficeScene extends Phaser.Scene {
       resultReady: !!this.result?.ready,
       mission: this.missionDone,
       approval: this.approval ? { phase: this.approval.phase, seq: [...this.approval.seq], index: this.approval.index } : null,
+      blackout: this.blackout ? { phase: this.blackout.phase, dark: this.blackout.dark } : null,
       tutorial: { step: this.tutorial.current, line: this.hud.missionLine },
       thought: !!this.thought,
       tip: this.tipDialog.current,
@@ -454,9 +464,9 @@ export class OfficeScene extends Phaser.Scene {
   }
 
   private promptText(canPoke: boolean): string | null {
-    if (this.paused || this.hide.hidden || this.pranks.active || this.approval?.sorting) return null;
+    if (this.paused || this.hide.hidden || this.pranks.active || this.task?.busy) return null;
     const touch = this.controls.isTouch;
-    const mission = this.approval?.prompt(this.player.x, this.player.y, touch);
+    const mission = this.task?.prompt(this.player.x, this.player.y, touch);
     if (mission) return mission;
     const item = this.items.selectedItem;
     if (item && this.pranks.check(this.player.x, this.player.y).ok) {
@@ -550,7 +560,7 @@ export class OfficeScene extends Phaser.Scene {
     const m = this.stage.mission;
     this.tutorial.complete('parade');
     this.score.addConfirmed(m.points);
-    const at = this.approval ? APPROVAL.pile : this.target;
+    const at = this.task ? this.task.anchor : this.target;
     popWord(this, at.x, at.y - 120, `미션 성공! +${m.points}`, { size: 30, color: '#2e7d5b' });
     this.banner(['특별 미션 성공!', `"${m.name}"`], '#2e9e6b');
     this.checkClear();
@@ -558,24 +568,35 @@ export class OfficeScene extends Phaser.Scene {
 
   /** STAGE 2 승인서 미션: 성공하면 바로 확정. 과장이 돌아와 서류를 들고 부장실 옆으로 가는 연출을 이어 붙인다 */
   private setupApproval(): void {
-    const a = new Approval(this, this.target, this.touch);
-    this.approval = a;
-    a.on('done', () => this.completeMission());
-    a.on('picked', () => {
+    this.approval = new Approval(this, this.target, this.touch);
+    this.setupTask(this.approval, APPROVAL.lines.picked);
+  }
+
+  /** STAGE 3 대정전과 최후의 방석: 대표가 돌아와 앉으면 뿌우우욱 → 성공 */
+  private setupBlackout(): void {
+    this.blackout = new Blackout(this, this.target);
+    this.setupTask(this.blackout, BLACKOUT.lines.picked);
+  }
+
+  /** E 미션 공통 연결: 성공·줍기·진행 소리, 대상 도착·착석 알림 */
+  private setupTask(task: MissionTask, pickedLine: string): void {
+    this.task = task;
+    task.on('done', () => this.completeMission());
+    task.on('picked', () => {
       this.sfx.play('pick');
-      this.guide.show(APPROVAL.lines.picked, 4);
+      this.guide.show(pickedLine, 4);
     });
-    a.on('sheet', () => this.sfx.play('stick'));
-    // 과장 도착·착석 알림은 포스트잇·껌(Pranks)도 쓰므로 이어 붙인다
+    task.on('sheet', () => this.sfx.play('stick'));
+    // 대상 도착·착석 알림은 포스트잇·껌(Pranks)도 쓰므로 이어 붙인다
     const arrive = this.target.onArrive;
     this.target.onArrive = () => {
       arrive?.();
-      a.onTargetArrived();
+      task.onTargetArrived();
     };
     const seated = this.target.onSeatedBack;
     this.target.onSeatedBack = () => {
       seated?.();
-      a.onTargetSeated();
+      task.onTargetSeated();
     };
   }
 
@@ -713,21 +734,22 @@ export class OfficeScene extends Phaser.Scene {
   /** 장난 중이거나 임시 점수를 들고 있을 때 돌아본 대상에게 보이면 들킨다 */
   private checkCaught(): void {
     if (this.hide.hidden) return; // 숨어 있으면 안 보인다
-    const filing = !!this.approval?.sorting;
+    const filing = !!this.task?.busy;
     const sticking = this.pranks.active || filing;
     const guilty = this.poke.active || sticking || this.score.temp > 0;
     if (!guilty) return;
     const { x, y } = this.player;
     const t = this.target;
-    const stickReason: CaughtReasonId = filing ? 'filing' : 'sticking';
+    const stickReason: CaughtReasonId = filing ? this.task!.caughtReason : 'sticking';
     if (t.isLooking && t.canSee(x, y)) return this.onCaught(sticking ? stickReason : 'turned', 'target');
-    // 서류 끼우는 중 과장이 자리로 돌아오면 (가까이 오거나 앉으면) 들킨다
-    if (filing && (!t.awayFromSeat || (t.state === 'returning' && Phaser.Math.Distance.Between(x, y, t.x, t.y) <= APPROVAL.walkSeeRange))) {
-      return this.onCaught('filing', 'target');
+    // 서류 끼우기·방석 깔기 중 대상이 자리로 돌아오면 (가까이 오거나 앉으면) 들킨다
+    if (filing && (!t.awayFromSeat || (t.state === 'returning' && Phaser.Math.Distance.Between(x, y, t.x, t.y) <= this.task!.walkSeeRange))) {
+      return this.onCaught(stickReason, 'target');
     }
     // 순찰 중인 방해 NPC 시야 (바닥 부채꼴)
     const seen = this.patrols.find((p) => p.canSee(x, y));
-    if (seen) return this.onCaught(sticking ? stickReason : 'escaping', seen);
+    // 비서에게 보이면 원인 문구도 비서 전용
+    if (seen) return this.onCaught(sticking ? stickReason : seen.pattern.id === 'biseo' ? 'secretary' : 'escaping', seen);
   }
 
   /** 들킴: 임시 점수 소멸 → 컷인(하트 -1) → 하트가 없으면 실패 화면 */
@@ -744,7 +766,7 @@ export class OfficeScene extends Phaser.Scene {
     };
     this.poke.cancel(this.target);
     this.pranks.cancel();
-    this.approval?.onCaught();
+    this.task?.onCaught();
     this.score.loseTemp();
     const who = w;
     if (by === 'target') this.target.onCaught();
@@ -784,7 +806,7 @@ export class OfficeScene extends Phaser.Scene {
   private showResult(kind: ResultKind): void {
     this.poke.cancel(this.target);
     this.pranks.cancel();
-    this.approval?.cancel();
+    this.task?.cancel();
     this.result = new ResultPanel(
       this,
       {
