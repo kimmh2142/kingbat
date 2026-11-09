@@ -4,6 +4,7 @@ import { COLORS, FONT, GAME_HEIGHT, GAME_WIDTH } from '../config';
 import { SPEAKERS, STORIES, type StageStory, type StoryShot } from '../data/dialogue';
 import { NpcView } from '../npc/NpcView';
 import { DONGI } from '../npc/patterns/dongi';
+import { GWAJANG } from '../npc/patterns/gwajang';
 import { popWord } from '../ui/Popups';
 
 /** 컷신 무대 가운데 (월드 좌표). 카메라를 2배로 키워 캐릭터를 크게 보여준다 */
@@ -172,6 +173,7 @@ export class StoryScene extends Phaser.Scene {
     if (mono) this.nameTag.setVisible(false);
     this.typeText = this.lineText;
     this.shot(s.shot);
+    if (s.caption) this.caption(s.caption);
   }
 
   // ------------------------------------------------------------ 대사창
@@ -242,6 +244,10 @@ export class StoryScene extends Phaser.Scene {
         return this.shoppingSet(false);
       case 'angry':
         return this.shoppingSet(true);
+      case 'pacing':
+        return this.pacingSet(false);
+      case 'pacingAngry':
+        return this.pacingSet(true);
       case 'vow':
         return this.vowSet();
     }
@@ -259,18 +265,25 @@ export class StoryScene extends Phaser.Scene {
     this.typeText = text;
   }
 
-  /** 내 자리: 나는 앉아 있고 동기가 옆에 서서 부탁한다 */
+  /** 내 자리: 나는 앉아 있고 일을 떠넘기는 사람(동기·과장)이 옆에 서서 부탁한다 */
   private officeSet(papers: number, drop: boolean, sweat = false): void {
     const deskX = 545;
     const deskY = 345;
     this.desk(deskX, deskY, true);
     const me = this.me(deskX, deskY - 62);
-    const dongi = new NpcView(this, { ...DONGI.appearance, rank: '' }, false);
-    this.npcs.push(dongi);
-    dongi.standAt(438, 336, 'right');
-    dongi.setPose({ face: drop ? TEX.faceHappy : TEX.faceSuspicious, hands: 'side', tilt: -10 });
-    // 손 모아 비는 듯 살랑살랑
-    this.tweens.add({ targets: dongi.root, x: 442, duration: 260, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
+    const gwajang = this.story.villain === 'gwajang';
+    const v = new NpcView(this, { ...(gwajang ? GWAJANG : DONGI).appearance, rank: '' }, false);
+    this.npcs.push(v);
+    v.standAt(438, 336, 'right');
+    if (gwajang) {
+      // 과장: 한 손엔 전화, 싱글벙글. 통화 리듬에 맞춰 까딱까딱
+      v.setPose({ face: TEX.faceHappy, hands: 'phone', tilt: drop ? 10 : -6 });
+      this.tweens.add({ targets: v.root, y: 332, duration: 200, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
+    } else {
+      v.setPose({ face: drop ? TEX.faceHappy : TEX.faceSuspicious, hands: 'side', tilt: -10 });
+      // 손 모아 비는 듯 살랑살랑
+      this.tweens.add({ targets: v.root, x: 442, duration: 260, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
+    }
 
     for (let i = 0; i < papers; i++) {
       // 책상 오른쪽 끝에 쌓는다 (내 얼굴을 가리지 않게)
@@ -317,11 +330,7 @@ export class StoryScene extends Phaser.Scene {
     this.keep(this.add.image(meX, meY + 8, TEX.paperPile).setOrigin(0.5, 1).setDepth(meY + 1).setScale(0.8));
 
     if (!angry) {
-      const cap = this.add
-        .text(GAME_WIDTH / 2, 70, '30분 뒤…', { fontFamily: FONT, fontSize: '30px', color: '#ffffff', stroke: COLORS.text, strokeThickness: 6 })
-        .setOrigin(0.5);
-      this.shotUi.add(cap);
-      this.tweens.add({ targets: cap, alpha: 0, delay: 1400, duration: 500 });
+      this.caption('30분 뒤…');
       return;
     }
     // 나: 핏대가 커지고 부들부들, 카메라가 나를 당겨 본다
@@ -333,9 +342,60 @@ export class StoryScene extends Phaser.Scene {
     this.cameras.main.zoomTo(3, 450, 'Sine.easeOut');
   }
 
+  /** 과장: 떠넘긴 뒤 전화하며 왔다 갔다. 나는 서류 더미를 안고 본다 */
+  private pacingSet(angry: boolean): void {
+    const walkY = 330;
+    const v = new NpcView(this, { ...GWAJANG.appearance, rank: '' }, false);
+    this.npcs.push(v);
+    v.standAt(330, walkY, 'right');
+    v.setPose({ face: TEX.faceHappy, hands: 'phone', tilt: 6 });
+    // 왼쪽 끝 ↔ 가운데를 오가며 방향을 바꾼다
+    this.tweens.add({
+      targets: v.root,
+      x: 470,
+      duration: 1300,
+      yoyo: true,
+      repeat: -1,
+      ease: 'Sine.easeInOut',
+      onYoyo: () => v.standAt(v.x, walkY, 'left'),
+      onRepeat: () => v.standAt(v.x, walkY, 'right'),
+    });
+    // 걸음마다 통통
+    this.tweens.add({ targets: v.root, y: walkY - 4, duration: 160, yoyo: true, repeat: -1 });
+    const haha = this.keep(
+      this.add.text(400, 236, '하하하!', { fontFamily: FONT, fontSize: '16px', color: '#ff9800', stroke: '#ffffff', strokeThickness: 4 }).setOrigin(0.5).setDepth(9000),
+    );
+    this.tweens.add({ targets: haha, x: { from: 340, to: 460 }, duration: 1300, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
+    this.tweens.add({ targets: haha, scale: 1.2, duration: 220, yoyo: true, repeat: -1 });
+
+    const meX = 600;
+    const meY = 338;
+    const me = this.me(meX, meY);
+    this.keep(this.add.image(meX, meY + 8, TEX.paperPile).setOrigin(0.5, 1).setDepth(meY + 1).setScale(0.8));
+    // 다 못 안아서 발밑에도 한 더미 (얼굴은 가리지 않게)
+    this.keep(this.add.image(meX + 50, meY + 10, TEX.paperPile).setOrigin(0.5, 1).setDepth(meY + 2).setScale(0.7));
+    if (!angry) return;
+    const anger = this.keep(this.add.image(meX + 26, meY - 104, TEX.angerMark).setDepth(9000).setScale(0.5));
+    this.tweens.add({ targets: anger, scale: 1.6, duration: 380, ease: 'Back.Out' });
+    this.tweens.add({ targets: anger, angle: 12, duration: 120, yoyo: true, repeat: -1, delay: 380 });
+    this.tweens.add({ targets: me, x: meX + 2, duration: 40, yoyo: true, repeat: -1 });
+    this.cameras.main.pan(meX - 30, meY - 40, 450, 'Sine.easeOut');
+    this.cameras.main.zoomTo(3, 450, 'Sine.easeOut');
+  }
+
+  /** 장면 위 자막: 잠깐 보였다 사라진다 */
+  private caption(text: string): void {
+    const cap = this.add
+      .text(GAME_WIDTH / 2, 70, text, { fontFamily: FONT, fontSize: '30px', color: '#ffffff', stroke: COLORS.text, strokeThickness: 6 })
+      .setOrigin(0.5);
+    this.shotUi.add(cap);
+    this.tweens.add({ targets: cap, alpha: 0, delay: 1400, duration: 500 });
+  }
+
   /** 다짐 + 스테이지 이름 */
   private vowSet(): void {
-    this.shoppingSet(false);
+    if (this.story.villain === 'gwajang') this.pacingSet(false);
+    else this.shoppingSet(false);
     this.shotUi.removeAll(true);
     const s = this.story;
     const card = this.add.container(GAME_WIDTH / 2, 150);

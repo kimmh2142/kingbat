@@ -1,24 +1,29 @@
 // 오프닝 독백과 스테이지 도입 컷신 대사. 장면(shot) 연출은 StoryScene이 하고, 글은 여기서 바꾼다.
 // 하트 0개로 다시 시작할 때는 나오지 않는다 (확정 규칙: 재시작 시 도입 컷신 생략).
 
-export type Speaker = 'dongi' | 'me' | 'none';
+export type Speaker = 'dongi' | 'gwajang' | 'me' | 'none';
 
 /** 장면 연출 종류 (StoryScene에 같은 이름의 연출이 있다) */
-export type StoryShot = 'monologue' | 'ask' | 'dump' | 'reply' | 'shopping' | 'angry' | 'vow';
+export type StoryShot = 'monologue' | 'ask' | 'dump' | 'reply' | 'shopping' | 'angry' | 'pacing' | 'pacingAngry' | 'vow';
 
 export interface StoryStep {
   shot: StoryShot;
   who: Speaker;
   text: string;
+  /** 장면 위에 잠깐 떴다 사라지는 자막 ("오후 5:55" 등) */
+  caption?: string;
 }
 
 export const SPEAKERS: Record<Speaker, { name: string; color: number }> = {
   dongi: { name: '동기 이동기', color: 0xf06292 },
+  gwajang: { name: '과장 박통화', color: 0xff9800 },
   me: { name: '나', color: 0x9575cd },
   none: { name: '', color: 0 },
 };
 
 export interface StageStory {
+  /** 내 자리에 찾아와 일을 떠넘기는 사람 (ask·dump·reply 장면) */
+  villain: 'dongi' | 'gwajang';
   /** 마지막 장면에 크게 뜨는 스테이지 이름과 한마디 */
   title: string;
   subtitle: string;
@@ -51,6 +56,7 @@ export const MONOLOGUE = [
 // STAGE 1 빌런 포인트 (기준 문서 PART 3): 일을 떠넘겨 놓고 몰래 쇼핑몰을 본다.
 export const STORIES: Record<number, StageStory> = {
   1: {
+    villain: 'dongi',
     title: 'STAGE 1',
     subtitle: '동기 이동기',
     quote: '"야, 우리 동기잖아!"',
@@ -62,6 +68,21 @@ export const STORIES: Record<number, StageStory> = {
       { shot: 'shopping', who: 'dongi', text: '흐흐… 이 니트 예쁘다~ 장바구니 쏙!' },
       { shot: 'angry', who: 'me', text: '……바쁘다며?' },
       { shot: 'vow', who: 'me', text: '좋아. 퇴근 전까지, 제대로 킹받게 해 주지!' },
+    ],
+  },
+  // STAGE 2 빌런 포인트 (기준 문서 STAGE 2): 퇴근 5분 전에 일을 던지고, 통화하며 왔다 갔다 걷는다.
+  2: {
+    villain: 'gwajang',
+    title: 'STAGE 2',
+    subtitle: '과장 박통화',
+    quote: '"퇴근 5분 전에 이것만!"',
+    steps: [
+      { shot: 'ask', who: 'gwajang', caption: '오후 5:55 · 퇴근 5분 전', text: '네~ 사장님~ …아, 자네! 마침 잘 있었네~' },
+      { shot: 'dump', who: 'gwajang', text: '퇴근 5분 전인데~ 이것만 좀! 금방 해, 금방~' },
+      { shot: 'reply', who: 'me', text: '…5분 전인데요?' },
+      { shot: 'pacing', who: 'gwajang', text: '네~ 사장님~ 하하하! 그 자료요? 제가 다 해 놨죠~' },
+      { shot: 'pacingAngry', who: 'me', text: '……"제가 다 해 놨죠"?' },
+      { shot: 'vow', who: 'me', text: '좋아. 오늘은 과장님도 칼퇴 못 하게 해 주지!' },
     ],
   },
 };

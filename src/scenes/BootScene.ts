@@ -22,9 +22,11 @@ export class BootScene extends Phaser.Scene {
     // 처음 접속하면 타이틀 화면. Playwright 확인 스크립트는 바로 게임으로 (?title=1이면 타이틀), ?overview도 바로 게임
     const params = new URLSearchParams(location.search);
     // ?stage=N: 타이틀·도입 컷신 없이 그 스테이지부터 (연습·개발용). 아직 없는 스테이지면 예고 화면
+    // ?stage=N&story=1: 그 스테이지 도입 컷신부터
     const stage = stageFromUrl();
     if (stage !== null) {
-      this.scene.start(STAGES[stage] ? 'Office' : 'ComingSoon', { stage });
+      if (!STAGES[stage]) this.scene.start('ComingSoon', { stage });
+      else this.scene.start(params.has('story') ? 'Story' : 'Office', { stage });
       return;
     }
     const skipTitle = params.has('overview') || (navigator.webdriver && !params.has('title'));

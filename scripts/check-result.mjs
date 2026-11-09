@@ -1,6 +1,6 @@
 // 특별 미션 + 결과 화면 확인: 포스트잇 붙인 채로 동기가 탕비실 도착 → 미션 성공(+15 확정),
 // 킹받음 100까지 채우면 클리어 화면, 시간 초과 → 야근 확정, 하트 0개 → 딱 걸렸다. Space로 다시 하기, Esc로 타이틀.
-// 클리어 화면: Space = 다음 스테이지(STAGE 2 게임), R = 다시 하기. 효과음(확정·클리어·실패) 기록.
+// 클리어 화면: Space = 다음 스테이지(STAGE 2 도입 컷신 → Esc → 게임), R = 다시 하기. 효과음(확정·클리어·실패) 기록.
 // 사용법: npm run dev 를 켠 상태에서  node scripts/check-result.mjs
 import { chromium } from 'playwright';
 import { mkdirSync } from 'node:fs';
@@ -79,10 +79,13 @@ await page.evaluate(() => window.__kingbatTest.addScore(100));
 await waitFor(() => window.__kingbat.resultReady, 15000);
 await page.waitForTimeout(400);
 await page.keyboard.press('Space');
+const story2 = await waitFor(() => !!window.__kingbatStory, 8000);
+await page.waitForTimeout(400);
+await page.keyboard.press('Escape');
 const stage2 = await waitFor(() => window.__kingbat?.stage === 2 && !window.__kingbat.cleared, 8000);
 await page.waitForTimeout(700);
 await page.screenshot({ path: 'screenshots/result-next-stage.png' });
-log.push(['다음 스테이지', { 'STAGE 2 시작': stage2 }]);
+log.push(['다음 스테이지', { 'STAGE 2 컷신': story2, 'STAGE 2 시작': stage2 }]);
 
 // 3) 미션 없이 100: 클리어 아님
 await fresh();
