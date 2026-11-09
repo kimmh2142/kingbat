@@ -86,6 +86,8 @@ export class TargetController {
   onArrive?: () => void;
   /** 탕비실에서 돌아와 자리에 앉았을 때 (가방을 만진다) */
   onSeatedBack?: () => void;
+  /** 다음 자리 비우기에 꼭 갈 길 (승인서 미션 연출). 한 번 쓰면 비운다 */
+  private forcedRoute: number | null = null;
 
   constructor(
     scene: Phaser.Scene,
@@ -429,10 +431,23 @@ export class TargetController {
     this.timer = this.duration;
   }
 
+  /** 다음 업무가 끝나면 바로 이 길로 자리를 비운다 */
+  forceTrip(routeIndex: number): void {
+    this.forcedRoute = routeIndex;
+    this.tripTimer = 0;
+  }
+
   /** 이번에 갈 곳 (routes가 없으면 path 하나) */
   private pickRoute(): void {
     const routes = this.pattern.trip.routes;
     if (!routes?.length) return;
+    const forced = this.forcedRoute !== null ? routes[this.forcedRoute] : undefined;
+    this.forcedRoute = null;
+    if (forced) {
+      this.tripPath = forced.path;
+      this.tripFacing = forced.stayFacing;
+      return;
+    }
     let r = Math.random() * routes.reduce((s, a) => s + a.weight, 0);
     const route = routes.find((a) => (r -= a.weight) < 0) ?? routes[0];
     this.tripPath = route.path;
