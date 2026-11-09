@@ -24,9 +24,9 @@ export interface ItemDef {
 
 export const ITEMS: Record<ItemId, ItemDef> = {
   // 동기 등 뒤에서 붙인다. 동기가 알아챌 때까지 등에 붙어 있고 주변이 킥킥 웃는다.
-  postit: { id: 'postit', name: '포스트잇', icon: TEX.itemPostit, points: 15, useSeconds: 0.5, hint: '포스트잇 붙이기', howTo: '포스트잇: 동기 등 뒤에서 {key}! 붙이면 바로 점수' },
+  postit: { id: 'postit', name: '포스트잇', icon: TEX.itemPostit, points: 15, useSeconds: 0.5, hint: '포스트잇 붙이기', howTo: '포스트잇: {who} 등 뒤에서 {key}! 붙이면 바로 점수' },
   // 동기가 자리를 비웠을 때 가방 손잡이에 붙인다. 점수는 동기가 돌아와 가방을 만질 때 들어온다.
-  gum: { id: 'gum', name: '껌', icon: TEX.itemGum, points: 15, useSeconds: 0.6, hint: '가방에 껌 붙이기', howTo: '껌: 동기가 자리 비웠을 때 가방 근처에서 {key}! 돌아와 앉으면 점수' },
+  gum: { id: 'gum', name: '껌', icon: TEX.itemGum, points: 15, useSeconds: 0.6, hint: '가방에 껌 붙이기', howTo: '껌: {who} 자리 비었을 때 가방 근처에서 {key}! 돌아와 앉으면 점수' },
 };
 
 /** 아이템이 나오는 곳 (택배 상자, 서랍, 탕비실 선반). 좌표는 줍는 위치(바닥) */

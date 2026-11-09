@@ -35,6 +35,12 @@ export const TEX = {
   dongiHeadBack: 'dongi_head_back',
   dongiHairSpike: 'dongi_hair_spike',
 
+  // 과장 박통화 (STAGE 2 공략 대상)
+  gwajangBody: 'gwajang_body',
+  gwajangBodyBack: 'gwajang_body_back',
+  gwajangHeadFront: 'gwajang_head_front',
+  gwajangHeadBack: 'gwajang_head_back',
+
   // 대리 김카페 (방해 NPC)
   daeriBody: 'daeri_body',
   daeriBodyBack: 'daeri_body_back',

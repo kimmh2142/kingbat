@@ -20,7 +20,7 @@ const STATE_NAMES: Record<TargetState, string> = {
   work: '평소 업무',
   distracted: '방심 타임',
   leaving: '자리 비우러 감',
-  away: '탕비실',
+  away: '목적지에서 딴짓',
   returning: '자리로 복귀 중',
   suspect: '의심(1단계)',
   fake: '페이크(2단계)',
@@ -69,6 +69,13 @@ export class TargetController {
   private facing: Facing = 'down';
   private pos: Point;
   private path: Point[] = [];
+  /** 이번 자리 비우기 경로 (routes가 있으면 갈 때마다 고른다) */
+  private tripPath: Point[];
+  private tripFacing: Facing;
+  /** 목적지에 더 머물 시간 (checksWhileAway일 때 확인 사이클을 거쳐도 이어진다) */
+  private stayLeft = 0;
+  /** 통화 종료 인사 중 (1단계 전조 모습이 다르다, 디버그용으로 공개) */
+  hangingUp = false;
   private pathIndex = 0;
   /** 확인 사이클이 끝난 뒤 돌아갈 상태 */
   private resume: TargetState = 'work';
@@ -89,6 +96,8 @@ export class TargetController {
     this.seat = { x: desk.x, y: desk.y - 62 };
     this.pos = { ...this.seat };
     this.tripTimer = rand(pattern.trip.interval);
+    this.tripPath = pattern.trip.path;
+    this.tripFacing = pattern.trip.stayFacing;
     this.workPose = pattern.work.activities[0].pose;
     this.enter('work');
   }
@@ -99,6 +108,11 @@ export class TargetController {
 
   get y(): number {
     return this.pos.y;
+  }
+
+  /** 지금 몸이 향한 방향 (확인용) */
+  get facingName(): Facing {
+    return this.facing;
   }
 
   get stateName(): string {
@@ -147,7 +161,8 @@ export class TargetController {
    * 이 위치에서 콕 찌를 수 있는가. 등 뒤·옆에서 가까이 있어야 한다 (얼굴 쪽은 안 됨).
    * 돌아보는 중에도 원래 등 쪽에서 찌를 수는 있다 (그러면 들킨다).
    */
-  pokeCheck(x: number, y: number, range: number): 'ok' | 'far' | 'front' {
+  pokeCheck(x: number, y: number, range: number): 'ok' | 'far' | 'front' | 'moving' {
+    if (this.pattern.pokeWhileWalking === false && this.walking) return 'moving';
     const f = FACING_VEC[this.facing];
     const dx = x - this.pos.x;
     const dy = y - this.pos.y;
@@ -182,6 +197,11 @@ export class TargetController {
     this.irritated = true;
   }
 
+  /** 자리를 비우러 가거나 돌아오며 걷는 중 */
+  get walking(): boolean {
+    return this.state === 'leaving' || this.state === 'returning';
+  }
+
   /** 플레이어를 발견해 들켰을 때 */
   onCaught(): void {
     this.sawPlayer = true;
@@ -192,6 +212,7 @@ export class TargetController {
     const P = this.pattern;
     // 자리에 앉아 있는 동안 흐르는 시간 (확인 사이클 포함). 탕비실은 업무가 끝날 때 떠난다
     if (this.atSeat) this.tripTimer -= dt;
+    if (this.state === 'away') this.stayLeft -= dt;
 
     // 찔리는 중이면 눈치챈다
     if (this.beingPoked) {
@@ -223,6 +244,9 @@ export class TargetController {
       case 'distracted':
         return this.enter('work');
       case 'away':
+        if (!P.trip.checksWhileAway) return this.enter('returning');
+        if (this.stayLeft > 0) return this.startCheck();
+        if (P.trip.hangup && Math.random() < P.trip.hangup.chance) return this.startHangup();
         return this.enter('returning');
       case 'suspect':
         return this.enter(this.isReal ? 'real' : 'fake');
@@ -255,6 +279,18 @@ export class TargetController {
     this.enter('suspect');
   }
 
+  /** 통화 종료 인사 → 진짜 확인 → 자리로 돌아감. 인사말이 1단계 전조다 (페이크 없음) */
+  private startHangup(): void {
+    this.resume = 'returning';
+    this.isReal = true;
+    this.consecutiveFakes = 0;
+    this.lookSide = this.pickSide();
+    this.alert = 0;
+    this.hangingUp = true;
+    this.pathIndex = 1;
+    this.enter('suspect');
+  }
+
   private enter(state: TargetState): void {
     const P = this.pattern;
     const prev = this.state;
@@ -275,10 +311,13 @@ export class TargetController {
         v.setPose(P.distracted.pose);
         v.say(P.distracted.startBubble, 0.8);
         break;
-      case 'suspect':
-        this.setTimer(P.suspect.duration);
-        v.setPose(this.atSeat ? P.suspect.pose : { ...P.suspect.pose, hands: 'side' });
+      case 'suspect': {
+        const hangup = this.hangingUp ? P.trip.hangup : undefined;
+        this.setTimer(hangup ? hangup.duration : P.suspect.duration);
+        const pose = hangup ? { ...P.suspect.pose, tilt: 0, bubble: hangup.line } : P.suspect.pose;
+        v.setPose(this.atSeat ? pose : { ...pose, hands: hangup ? 'phone' : 'side' });
         break;
+      }
       case 'fake':
         this.setTimer(P.fake.duration);
         v.setPose(this.atSeat ? P.fake.pose : { ...P.fake.pose, hands: 'side' });
@@ -291,6 +330,7 @@ export class TargetController {
         break;
       }
       case 'look':
+        this.hangingUp = false;
         this.sawPlayer = false;
         this.setTimer(P.look.duration);
         v.setPose(this.turnedPose({ ...P.look.pose, glance: this.lookSide }));
@@ -306,19 +346,27 @@ export class TargetController {
         v.setPose(this.atSeat ? pose : { ...pose, hands: 'side', typing: 0 });
         break;
       }
-      case 'leaving':
-        this.path = [this.seat, ...P.trip.path];
-        this.pathIndex = this.resume === 'leaving' && prev !== 'work' ? this.pathIndex : 1;
+      case 'leaving': {
+        const fresh = !(this.resume === 'leaving' && prev !== 'work');
+        if (fresh) this.pickRoute();
+        this.path = [this.seat, ...this.tripPath];
+        if (fresh) this.pathIndex = 1;
         v.setPose(P.trip.walkPose);
         break;
+      }
       case 'returning':
-        this.path = [...P.trip.path].reverse().concat([this.seat]);
+        this.path = [...this.tripPath].reverse().concat([this.seat]);
         this.pathIndex = this.resume === 'returning' && prev !== 'away' ? this.pathIndex : 1;
         v.setPose(P.trip.walkPose);
         break;
       case 'away':
-        this.setTimer(P.trip.stay);
-        this.facing = P.trip.stayFacing;
+        if (!P.trip.checksWhileAway) this.setTimer(P.trip.stay);
+        else {
+          // 도착했을 때만 머물 시간을 정하고, 확인 사이클 뒤엔 남은 만큼 이어서 머문다
+          if (prev === 'leaving') this.stayLeft = rand(P.trip.stay);
+          this.timer = Math.max(0, Math.min(this.stayLeft, rand(P.work.duration)));
+        }
+        this.facing = this.tripFacing;
         v.standAt(this.pos.x, this.pos.y, this.facing);
         v.setPose(P.trip.stayPose);
         break;
@@ -379,6 +427,16 @@ export class TargetController {
   private setTimer(r: Range): void {
     this.duration = rand(r);
     this.timer = this.duration;
+  }
+
+  /** 이번에 갈 곳 (routes가 없으면 path 하나) */
+  private pickRoute(): void {
+    const routes = this.pattern.trip.routes;
+    if (!routes?.length) return;
+    let r = Math.random() * routes.reduce((s, a) => s + a.weight, 0);
+    const route = routes.find((a) => (r -= a.weight) < 0) ?? routes[0];
+    this.tripPath = route.path;
+    this.tripFacing = route.stayFacing;
   }
 
   private pickSide(): -1 | 0 | 1 {

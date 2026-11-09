@@ -4,7 +4,7 @@ interface Window {
     stage?: number;
     player?: { x: number; y: number };
     debug?: boolean;
-    target?: { state: string; x: number; y: number; side?: number; left?: number };
+    target?: { state: string; x: number; y: number; side?: number; left?: number; facing?: string; hangup?: boolean };
     score?: { confirmed: number; temp: number };
     poking?: boolean;
     caught?: number;

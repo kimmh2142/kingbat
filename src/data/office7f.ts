@@ -21,7 +21,7 @@ export interface Room extends Rect {
   unlockStage?: number;
 }
 
-export type DeskOwner = 'me' | 'dongi' | 'daeri' | 'coworker';
+export type DeskOwner = 'me' | 'dongi' | 'daeri' | 'gwajang' | 'coworker';
 
 export interface Desk {
   id: string;
@@ -79,7 +79,8 @@ export const ROOMS: Room[] = [
   { id: 'hall', name: '화장실 앞 복도', floor: TEX.floorHall, x: 24, y: 520, w: 480, h: 380, sign: { x: 340, y: 600 } },
   { id: 'entrance', name: '출입구', floor: TEX.floorHall, x: 24, y: 900, w: 480, h: 516, sign: { x: 340, y: 1120 } },
   { id: 'office', name: '일반 직원석', floor: TEX.floorOffice, x: 504, y: 104, w: 1216, h: 1312 },
-  { id: 'manager', name: '관리자 구역', floor: TEX.floorOffice, x: 1744, y: 104, w: 632, h: 1312, unlockStage: 2 },
+  // 왼쪽 24px는 잠금 벽 자리: 열리면 바닥이 이어져 보이게 벽 밑까지 깐다
+  { id: 'manager', name: '관리자 구역', floor: TEX.floorOffice, x: 1720, y: 104, w: 656, h: 1312, unlockStage: 2 },
 ];
 
 /** 관리자 구역 안의 작은 방 이름표 (스테이지 2에서 실제 방으로 확장) */
@@ -101,16 +102,20 @@ function owner(row: number, col: number, side: number): DeskOwner {
   return 'coworker';
 }
 
-export const DESKS: Desk[] = ROWS.flatMap((y, row) =>
-  COLS.flatMap((left, col) =>
-    [0, 1].map((side) => ({
-      id: `desk-${row}-${col}-${side}`,
-      x: left + DESK_W / 2 + side * DESK_W,
-      y,
-      owner: owner(row, col, side),
-    })),
+export const DESKS: Desk[] = [
+  ...ROWS.flatMap((y, row) =>
+    COLS.flatMap((left, col) =>
+      [0, 1].map((side) => ({
+        id: `desk-${row}-${col}-${side}`,
+        x: left + DESK_W / 2 + side * DESK_W,
+        y,
+        owner: owner(row, col, side),
+      })),
+    ),
   ),
-);
+  // 관리자 구역 가운데: 과장 자리 (STAGE 2). 의자 (2200, 758)
+  { id: 'desk-gwajang', x: 2200, y: 820, owner: 'gwajang' },
+];
 
 export const PROPS: PropPlacement[] = [
   // 탕비실

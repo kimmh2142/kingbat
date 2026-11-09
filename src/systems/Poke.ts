@@ -44,7 +44,8 @@ export class Poke {
     if (where !== 'ok') {
       // 왜 안 되는지 알려준다 (누른 순간 한 번)
       if (justPressed && !this.active) {
-        const msg = where === 'front' ? '얼굴 쪽은 안 돼! 등 뒤로' : `${target.pattern.appearance.rank} 등 뒤에서 꾹!`;
+        const rank = target.pattern.appearance.rank;
+        const msg = where === 'front' ? '얼굴 쪽은 안 돼! 등 뒤로' : where === 'moving' ? `걷는 중엔 못 찔러! ${rank} 멈출 때 노리자` : `${rank} 등 뒤에서 꾹!`;
         popWord(this.scene, player.x, player.y - 110, msg, { color: '#5a3a4a', size: 18 });
       }
       this.stop(target);

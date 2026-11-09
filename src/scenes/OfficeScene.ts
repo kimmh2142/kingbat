@@ -122,11 +122,12 @@ export class OfficeScene extends Phaser.Scene {
     const params = new URLSearchParams(location.search);
     // 튜토리얼 안내창: "다시 안 보기"를 안 눌렀으면 다시 도전해도 나온다.
     // Playwright 확인 스크립트는 바로 플레이해야 하므로 끈다 (?tips=1이면 보여줌)
-    this.tipsOn = !tipsSetting.off && !(navigator.webdriver && !params.has('tips'));
+    // STAGE 2부터는 튜토리얼 안내창·첫 돌아봄 혼잣말 없음
+    this.tipsOn = this.stage.tutorial && !tipsSetting.off && !(navigator.webdriver && !params.has('tips'));
     this.tipQueue.length = 0;
     this.tipsShown.clear();
     // 안내창이 꺼져 있을 때: 다시 도전이면 혼잣말은 이미 봤으니 생략
-    this.thoughtShown = !!data?.retry && !this.tipsOn;
+    this.thoughtShown = (!!data?.retry && !this.tipsOn) || !this.stage.tutorial;
 
     this.map = new OfficeMap(this, this.stage.id);
     this.touch = new TouchControls(this);
@@ -156,7 +157,7 @@ export class OfficeScene extends Phaser.Scene {
     this.items = new Items(this);
     this.pranks = new Pranks(this, this.score, this.items, this.target);
     this.pranks.laughFrom = (x, y) => this.extras.nearestTo(x, y, 320);
-    this.pranks.on('parade', () => this.completeMission());
+    if (this.stage.mission.id === 'parade') this.pranks.on('parade', () => this.completeMission());
     new ItemBar(this, this.items, this.touch);
     // 아이템 안내: 첫 아이템이 생기면 한 번, 종류마다 처음 주우면 사용법 한 번
     this.guide = new GuideToast(this);
@@ -165,7 +166,7 @@ export class OfficeScene extends Phaser.Scene {
     this.items.on('picked', (id: ItemId) => {
       if (taught.has(id)) return;
       taught.add(id);
-      this.guide.show(ITEMS[id].howTo.replace('{key}', this.controls.isTouch ? '[아이템] 버튼' : 'Z'), 4);
+      this.guide.show(ITEMS[id].howTo.replace('{key}', this.controls.isTouch ? '[아이템] 버튼' : 'Z').replace('{who}', this.stage.target.appearance.rank), 4);
     });
     this.life = new Life();
     this.setupSfx();
@@ -352,7 +353,7 @@ export class OfficeScene extends Phaser.Scene {
       stage: this.stage.id,
       player: { x: Math.round(this.player.x), y: Math.round(this.player.y) },
       debug: this.debug.enabled,
-      target: { state: this.target.state, x: Math.round(this.target.x), y: Math.round(this.target.y), side: this.target.lookSide, left: this.target.remaining },
+      target: { state: this.target.state, x: Math.round(this.target.x), y: Math.round(this.target.y), side: this.target.lookSide, left: this.target.remaining, facing: this.target.facingName, hangup: this.target.hangingUp },
       score: { confirmed: this.score.confirmed, temp: this.score.temp },
       poking: this.poke.active,
       caught: this.caughtCount,
@@ -557,7 +558,7 @@ export class OfficeScene extends Phaser.Scene {
     };
     t.on('change', (id: string) => {
       this.refreshMission();
-      if (t.finished) return;
+      if (t.finished || !this.stage.tutorial) return;
       popWord(this, this.player.x, this.player.y - 150, '✔ 좋아!', { color: '#2e9e6b', size: 24 });
       // 처음 콕으로 임시 점수가 생겼을 때: 확정하러 가는 법
       if (id === 'poke' && !t.done.has('confirm')) {
@@ -570,6 +571,12 @@ export class OfficeScene extends Phaser.Scene {
 
   private refreshMission(): void {
     const t = this.tutorial;
+    const m = this.stage.mission;
+    // 튜토리얼이 아닌 스테이지: 미션 칸엔 특별 미션만
+    if (!this.stage.tutorial) {
+      this.hud.setMission(this.missionDone ? `✔ ${m.name} 성공!` : `★ 특별 미션 "${m.name}": ${m.goal}`, this.missionDone);
+      return;
+    }
     const line = t.text(this.controls.isTouch);
     const all = t.finished && this.missionDone;
     this.hud.setMission(all ? `✔ ${this.stage.mission.name} 성공! · ${line}` : `★ ${line}`, all);
@@ -757,7 +764,7 @@ export class OfficeScene extends Phaser.Scene {
         `── ${t.pattern.name}`,
         `상태 ${t.stateName}  남은 ${t.remaining.toFixed(1)}초`,
         `이번 의심 ${isCheck ? (t.isReal ? `진짜(${['왼쪽', '가운데', '오른쪽'][t.lookSide + 1]})` : '페이크') : '-'}   연속 페이크 ${t.consecutiveFakes}`,
-        `탕비실까지 ${t.tripIn.toFixed(0)}초   짜증 ${t.irritated ? 'O' : '-'}   연타 잠금 ${t.pokeLocked ? 'O' : '-'}`,
+        `자리 비우기까지 ${t.tripIn.toFixed(0)}초   짜증 ${t.irritated ? 'O' : '-'}   연타 잠금 ${t.pokeLocked ? 'O' : '-'}`,
         `콕 ${this.poke.active ? `중 ${this.poke.rate.toFixed(1)}회/초` : '-'}   배율 x${t.scoreMultiplier}   들킴 ${this.caughtCount}`,
       ];
     });

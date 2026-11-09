@@ -381,6 +381,59 @@ const DEFS: Record<TextureKey, { w: number; h: number; draw: Draw }> = {
       g.fillStyle(0x86604c).fillEllipse(22, 28, 9, 13);
     },
   },
+  // ------------------------------------------------------------ 과장 박통화
+  [TEX.gwajangBody]: {
+    // 남색 조끼 정장 + 주황 넥타이 + 볼록한 배
+    w: 44,
+    h: 40,
+    draw: (g, w) => {
+      g.fillStyle(0x3b3f5c).fillRect(12, 26, w - 24, 8);
+      g.fillStyle(0x2a2a3a).fillRect(12, 34, 8, 5).fillRect(w - 20, 34, 8, 5);
+      g.fillStyle(0xffffff).fillRoundedRect(6, 1, w - 12, 28, 10);
+      g.fillStyle(0x34407a).fillRoundedRect(6, 1, 12, 28, { tl: 10, tr: 0, bl: 10, br: 0 }).fillRoundedRect(w - 18, 1, 12, 28, { tl: 0, tr: 10, bl: 0, br: 10 });
+      g.lineStyle(LINE, O).strokeRoundedRect(6, 1, w - 12, 28, 10);
+      g.fillStyle(0xff9800).fillTriangle(w / 2 - 3, 4, w / 2 + 3, 4, w / 2, 22);
+      g.fillStyle(0xffe0b2).fillCircle(w / 2 + 8, 20, 2).fillCircle(w / 2 - 8, 20, 2);
+    },
+  },
+  [TEX.gwajangBodyBack]: {
+    w: 44,
+    h: 40,
+    draw: (g, w) => {
+      g.fillStyle(0x3b3f5c).fillRect(12, 26, w - 24, 8);
+      g.fillStyle(0x2a2a3a).fillRect(12, 34, 8, 5).fillRect(w - 20, 34, 8, 5);
+      g.fillStyle(0x34407a).fillRoundedRect(6, 1, w - 12, 28, 10);
+      g.lineStyle(LINE, O).strokeRoundedRect(6, 1, w - 12, 28, 10);
+      g.fillStyle(0x7986cb).fillRect(w / 2 - 6, 18, 12, 3); // 조끼 뒤 버클
+    },
+  },
+  [TEX.gwajangHeadFront]: {
+    // 반짝이는 이마 + 2:8 가르마 + 콧수염. 얼굴 표정은 face_* 를 겹친다
+    w: 58,
+    h: 56,
+    draw: (g) => {
+      g.fillStyle(0xfbe0cb).fillCircle(29, 33, 21);
+      g.lineStyle(LINE, O).strokeCircle(29, 33, 21);
+      g.fillStyle(0xfbe0cb).fillCircle(8, 36, 5).fillCircle(50, 36, 5);
+      g.lineStyle(2, O).strokeCircle(8, 36, 5).strokeCircle(50, 36, 5);
+      g.fillStyle(0x2b2b2b).slice(29, 33, 22, Math.PI * 1.02, Math.PI * 1.45, false).fillPath();
+      g.fillStyle(0x2b2b2b).fillEllipse(44, 22, 14, 10);
+      g.fillStyle(0xffffff, 0.8).fillEllipse(30, 17, 9, 4); // 이마 반짝
+      g.fillStyle(0x2b2b2b).fillEllipse(23, 45, 10, 4).fillEllipse(35, 45, 10, 4); // 콧수염
+    },
+  },
+  [TEX.gwajangHeadBack]: {
+    w: 58,
+    h: 56,
+    draw: (g) => {
+      g.fillStyle(0xfbe0cb).fillCircle(8, 36, 5).fillCircle(50, 36, 5);
+      g.lineStyle(2, O).strokeCircle(8, 36, 5).strokeCircle(50, 36, 5);
+      g.fillStyle(0x2b2b2b).fillCircle(29, 33, 21);
+      g.lineStyle(LINE, O).strokeCircle(29, 33, 21);
+      g.fillStyle(0xfbe0cb).fillEllipse(29, 20, 18, 12); // 정수리
+      g.fillStyle(0xffffff, 0.7).fillEllipse(26, 18, 6, 3);
+    },
+  },
   // ------------------------------------------------------------ 대리 김카페
   [TEX.daeriBody]: {
     // 베이지 카디건 + 남색 치마

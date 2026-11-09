@@ -1,6 +1,7 @@
 // 스테이지별 기본 수치 (기준 문서 2-4, PART 3). 플레이 테스트로 조정한다.
 // 새 스테이지는 여기에 한 칸 추가하면 OfficeScene이 그 번호로 돌아간다 (?stage=N 으로 바로 시작).
 import { DONGI } from '../npc/patterns/dongi';
+import { GWAJANG } from '../npc/patterns/gwajang';
 import type { TargetPattern } from '../npc/types';
 
 export interface StageConfig {
@@ -16,8 +17,10 @@ export interface StageConfig {
   clockEnd: number;
   /** 남은 시간이 이만큼(초) 되면 시계가 째깍거린다 */
   urgentAt: number;
-  /** 특별 미션 (클리어 조건: 킹받음 100 확정 + 미션 성공) */
-  mission: { name: string; goal: string; points: number };
+  /** 특별 미션 (클리어 조건: 킹받음 100 확정 + 미션 성공). id로 어떤 미션 판정을 쓸지 고른다 */
+  mission: { id: 'parade' | 'approval'; name: string; goal: string; points: number };
+  /** 튜토리얼 스테이지 (단계 안내 칸·속마음 안내창). STAGE 1만 */
+  tutorial: boolean;
   /** 결과 화면 대사 */
   lines: { clear: string; next: string; clearMe: string; caught: string };
 }
@@ -34,12 +37,31 @@ export const STAGES: Record<number, StageConfig> = {
     clockStart: 16 * 60 + 57,
     clockEnd: 18 * 60,
     urgentAt: 30,
-    mission: { name: '월급루팡 퍼레이드', goal: '포스트잇 붙인 채로 동기를 탕비실까지', points: 15 },
+    tutorial: true,
+    mission: { id: 'parade', name: '월급루팡 퍼레이드', goal: '포스트잇 붙인 채로 동기를 탕비실까지', points: 15 },
     lines: {
       clear: '아! 진짜 오늘 왜 이러는 거야!!',
       next: '동기 공략 성공! 다음 타깃: 과장',
       clearMe: '이 회사… 생각보다 재밌는데?',
       caught: '야! 너였구나!',
+    },
+  },
+  // STAGE 2: 기준 문서 제한시간 4분, 퇴근 시계 오후 5:55부터 (과장이 업무를 던지는 순간)
+  2: {
+    id: 2,
+    label: 'STAGE 2 · 과장 박통화',
+    target: GWAJANG,
+    timeLimit: 240,
+    clockStart: 17 * 60 + 55,
+    clockEnd: 18 * 60,
+    urgentAt: 30,
+    tutorial: false,
+    mission: { id: 'approval', name: '전 직원 칼퇴 승인서', goal: '복사실 가짜 서류를 과장 결재 더미에', points: 25 },
+    lines: {
+      clear: '회의 자료보다 더 신경 쓰이는 일이 생겼어!',
+      next: '과장 공략 성공! 최종 타깃: 대표',
+      clearMe: '다음은… 8층이다.',
+      caught: '이거 인사고과에 반영할 거야!',
     },
   },
 };

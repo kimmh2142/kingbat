@@ -95,11 +95,19 @@ export interface TargetPattern {
     speed: number;
     /** 자리에서 목적지까지 경로. 돌아올 땐 거꾸로 */
     path: Point[];
+    /** 목적지가 여러 곳이면: 갈 때마다 비중대로 하나 (path·stayFacing 대신). 돌아올 땐 같은 길을 거꾸로 */
+    routes?: { name: string; weight: number; path: Point[]; stayFacing: Facing }[];
+    /** 목적지에 서 있는 동안에도 업무처럼 의심 → 확인을 한다 (과장: 서서 통화) */
+    checksWhileAway?: boolean;
+    /** 목적지를 떠나기 전 통화 종료 인사 → 곧바로 돌아봄. 인사말이 1단계 전조, 그 뒤 진짜 전조로 반응 시간을 준다 */
+    hangup?: { chance: number; line: string; duration: Range };
     stayFacing: Facing;
     walkPose: Pose;
     stayPose: Pose;
   };
 
+  /** false면 걷는 동안엔 콕을 못 한다 (멈춰 섰을 때만). 기본 true */
+  pokeWhileWalking?: boolean;
   /** 업무 중 콕 찔리면 업무 타이머가 이 배율로 빨리 줄어든다 (뭔가 느낌) */
   pokeSpeedup: number;
   /** 자리 밖에서 이만큼(초) 찔리면 바로 의심을 시작한다 */
