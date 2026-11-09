@@ -3,10 +3,10 @@ import { TEX } from '../assets/keys';
 import { FONT, GAME_HEIGHT, GAME_WIDTH } from '../config';
 import type { CaughtReasonId } from '../data/caughtReasons';
 import { ITEM_RULES, ITEM_SPAWNS, ITEMS, type ItemId } from '../data/items';
-import { PLAYER_START } from '../data/office7f';
+import { PLAYER_START, WORLD } from '../data/office7f';
 import { nextStage, STAGES, type StageConfig } from '../data/stages';
 import { TIP_BACK_SPOT, TIPS, TUTORIAL_TEXT, type TipId } from '../data/tutorial';
-import { CAMERA, POKE } from '../data/tuning';
+import { CAMERA, MINIMAP, POKE } from '../data/tuning';
 import { Extras } from '../npc/Extras';
 import { PatrolController } from '../npc/PatrolController';
 import { TargetController } from '../npc/TargetController';
@@ -209,7 +209,7 @@ export class OfficeScene extends Phaser.Scene {
     this.seatArrow = new TargetArrow(this, { color: 0xf06292, icon: TEX.chair, iconScale: 0.55 });
     this.itemArrow = new TargetArrow(this, { color: 0xf9a825, icon: ITEMS.postit.icon });
     this.setupCamera();
-    this.miniMap = new MiniMap(this, this.map, this.touch, this.controls.isTouch);
+    this.miniMap = new MiniMap(this, this.map, this.touch, this.controls.isTouch, this.stage.target.appearance.rank);
     this.setupDebug();
     // 시작 타깃 소개. 다시 도전(하트 0개·야근)이면 생략.
     // Playwright 확인 스크립트는 바로 플레이해야 하므로 생략한다 (?intro=1이면 보여줌)
@@ -354,6 +354,8 @@ export class OfficeScene extends Phaser.Scene {
         player: this.player,
         target: this.target,
         patrols: this.patrols,
+        // 미니맵 밑에 들어가면 흐려지게: 나·대상·방해 NPC
+        people: [this.player, this.target, ...this.patrols],
         items: this.items.onMap.map((m) => m.spot),
         view: this.cameras.main.worldView,
       },
@@ -381,7 +383,7 @@ export class OfficeScene extends Phaser.Scene {
       thought: !!this.thought,
       tip: this.tipDialog.current,
       backSpot: this.backSpot.visible ? { x: Math.round(this.backSpot.x), y: Math.round(this.backSpot.y) } : null,
-      minimap: { big: this.miniMap.isBig, ...this.miniMap.rect },
+      minimap: { big: this.miniMap.isBig, opacity: Math.round(this.miniMap.opacity * 100) / 100, ...this.miniMap.rect },
       sfx: [...this.sfx.log],
       remaining: Math.round(this.clock.remaining * 10) / 10,
       daeri: this.patrolInfo(this.patrolById('daeri')),
@@ -853,9 +855,14 @@ export class OfficeScene extends Phaser.Scene {
     const cam = this.cameras.main;
     // 맵은 넓게(0.8배) 보고, HUD·버튼·컷인 글자(화면 고정 = scrollFactor 0)는 1배 카메라로 따로 그린다
     cam.setZoom(this.controls.isTouch ? CAMERA.zoomTouch : CAMERA.zoom);
-    // 맵 맨 위(탕비실·동기 자리)에서도 머리 위 글자가 HUD 아래로 보이게 위쪽에 HUD 높이만큼 여유를 둔다
-    const top = CAMERA.hudTop / cam.zoom;
-    cam.setBounds(0, -top, this.map.width, this.map.height + top).setRoundPixels(true);
+    // 맵 맨 위(탕비실·동기 자리)에서도 머리 위 글자가 HUD 아래로 보이게 위쪽에 HUD 높이만큼 여유를 둔다.
+    // 미니맵 쪽 끝(PC 아래, 모바일 위)에도 미니맵 높이만큼 여유를 둬서, 맵 끝에 서도 나·대상이 미니맵에 가리지 않게 한다 (11/9)
+    const mapH = (WORLD.height * MINIMAP.width) / WORLD.width + MINIMAP.margin * 2;
+    const topPx = this.controls.isTouch ? Math.max(CAMERA.hudTop, MINIMAP.touchTop + mapH) : CAMERA.hudTop;
+    const bottomPx = this.controls.isTouch ? 0 : mapH;
+    const top = topPx / cam.zoom;
+    const bottom = bottomPx / cam.zoom;
+    cam.setBounds(0, -top, this.map.width, this.map.height + top + bottom).setRoundPixels(true);
     const uiCam = this.cameras.add(0, 0, GAME_WIDTH, GAME_HEIGHT);
     const split = () => {
       const ui: Phaser.GameObjects.GameObject[] = [];

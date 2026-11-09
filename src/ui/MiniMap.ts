@@ -12,6 +12,8 @@ export interface MiniMapMarks {
   /** 방해 NPC (순찰) */
   patrols: { x: number; y: number }[];
   items: { x: number; y: number }[];
+  /** 이 사람들이 작은 미니맵 밑에 들어가면 미니맵을 흐리게 한다 (월드 좌표, 발 위치) */
+  people: { x: number; y: number }[];
   view: Phaser.Geom.Rectangle;
 }
 
@@ -36,6 +38,8 @@ export class MiniMap {
   private readonly small: { x: number; y: number; s: number };
   private readonly big: { x: number; y: number; s: number };
   private t = 0;
+  /** 작은 미니맵 진하기 (밑에 사람이 있으면 흐려진다) */
+  private alpha = 1;
   /** 모바일: 터치로 연 상태 */
   private toggled = false;
   /** 지금 크게 보이는가 */
@@ -46,6 +50,7 @@ export class MiniMap {
     private readonly map: OfficeMap,
     touch: TouchControls,
     isTouch: boolean,
+    targetRank: string,
   ) {
     const sw = MINIMAP.width;
     const ss = sw / WORLD.width;
@@ -84,7 +89,7 @@ export class MiniMap {
     text(b.x + seat.x * b.s, b.y + seat.y * b.s - 18, '내 자리', 14, '#e0457b');
     text(GAME_WIDTH / 2, b.y - 16, isTouch ? '전체 지도 · 화면을 누르면 닫혀요' : '전체 지도 · M에서 손을 떼면 닫혀요', 18);
     // 범례 (점 색과 같은 글자색)
-    const legend: [string, string][] = [['● 나', '#ff4f8b'], ['● 동기', '#e53935'], ['● 대리', '#ffa000'], ['◆ 아이템', '#f9a825'], ['■ 내 자리', '#f06292']];
+    const legend: [string, string][] = [['● 나', '#ff4f8b'], [`● ${targetRank}`, '#e53935'], ['● 방해 NPC', '#ffa000'], ['◆ 아이템', '#f9a825'], ['■ 내 자리', '#f06292']];
     legend.forEach(([s, c], i) => text(GAME_WIDTH / 2 + (i - (legend.length - 1) / 2) * 104, b.y + WORLD.height * b.s + 16, s, 16, c));
 
     // 모바일: 미니맵을 누르면 크게, 크게 보는 중엔 아무 데나 누르면 닫힘
@@ -108,7 +113,29 @@ export class MiniMap {
     for (const t of this.bigTexts) t.setVisible(this.isBig);
     this.g.setDepth(this.isBig ? DEPTH.label + 35 : DEPTH.label + 18).setVisible(!hidden);
     if (hidden) return;
+    const want = !this.isBig && this.covers(marks) ? MINIMAP.coveredAlpha : 1;
+    this.alpha += (want - this.alpha) * Math.min(1, dt * 10);
+    this.g.setAlpha(this.isBig ? 1 : this.alpha);
     this.draw(this.isBig ? this.big : this.small, marks, this.isBig);
+  }
+
+  /** 나·대상·방해 NPC 중 누가 작은 미니맵 밑(화면 좌표)에 들어가 있는가. 몸(발 위로 약 110px)까지 본다 */
+  private covers(k: MiniMapMarks): boolean {
+    const v = k.view;
+    const zoom = GAME_WIDTH / v.width;
+    const r = this.rect;
+    const pad = 8;
+    return k.people.some((p) => {
+      const sx = (p.x - v.x) * zoom;
+      const top = (p.y - 110 - v.y) * zoom;
+      const bottom = (p.y - v.y) * zoom;
+      return sx > r.x - 24 - pad && sx < r.x + r.w + 24 + pad && bottom > r.y - pad && top < r.y + r.h + pad;
+    });
+  }
+
+  /** 미니맵 진하기 (확인용) */
+  get opacity(): number {
+    return this.g.alpha;
   }
 
   private draw(m: { x: number; y: number; s: number }, k: MiniMapMarks, big: boolean): void {

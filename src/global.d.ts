@@ -21,7 +21,7 @@ interface Window {
     thought?: boolean;
     tip?: string | null;
     backSpot?: { x: number; y: number } | null;
-    minimap?: { big: boolean; x: number; y: number; w: number; h: number };
+    minimap?: { big: boolean; opacity?: number; x: number; y: number; w: number; h: number };
     sfx?: string[];
     remaining?: number;
     daeri?: { kind?: string; state: string; x: number; y: number; route?: number };

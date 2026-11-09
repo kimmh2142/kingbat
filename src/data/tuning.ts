@@ -92,6 +92,8 @@ export const MINIMAP = {
   margin: 10,
   /** 모바일: 오른쪽 아래는 버튼 자리라 오른쪽 위, HUD 바로 아래 */
   touchTop: 52,
+  /** 밑에 나·대상·방해 NPC가 들어가면 이만큼 흐려진다 */
+  coveredAlpha: 0.3,
   /** 크게 볼 때 폭 */
   bigWidth: 720,
 };
