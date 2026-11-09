@@ -74,6 +74,8 @@ export class OfficeScene extends Phaser.Scene {
   /** 이번 프레임에 화면을 터치했는가 (컷인 넘기기) */
   private tapped = false;
   private caughtCount = 0;
+  /** 마지막으로 들킨 순간 (확인용): 누가, 왜, 어디서 */
+  private lastCaught: { by: string; reason: string; player: { x: number; y: number }; who: { x: number; y: number }; facing: string; side: number } | null = null;
   private items!: Items;
   private pranks!: Pranks;
   /** 시작 타깃 소개 (끝나면 null) */
@@ -114,6 +116,7 @@ export class OfficeScene extends Phaser.Scene {
     this.result = null;
     this.tapped = false;
     this.caughtCount = 0;
+    this.lastCaught = null;
     this.goalAnnounced = false;
     this.missionDone = false;
     this.cleared = false;
@@ -374,6 +377,7 @@ export class OfficeScene extends Phaser.Scene {
       remaining: Math.round(this.clock.remaining * 10) / 10,
       daeri: { kind: this.daeri.grabKind, state: this.daeri.state, x: Math.round(this.daeri.x), y: Math.round(this.daeri.y), route: this.daeri.routeIndex },
       caughtBy: this.life.caughtBy,
+      lastCaught: this.lastCaught,
       extras: this.extras.list.map((e) => ({ state: e.state, x: Math.round(e.pos.x), y: Math.round(e.pos.y), blocked: e.blockedT > 0 })),
       items: {
         slots: [...this.items.slots],
@@ -672,6 +676,15 @@ export class OfficeScene extends Phaser.Scene {
   /** 들킴: 임시 점수 소멸 → 컷인(하트 -1) → 하트가 없으면 실패 화면 */
   private onCaught(reason: CaughtReasonId, by: 'target' | 'daeri'): void {
     this.caughtCount += 1;
+    const w = by === 'target' ? this.target : this.daeri;
+    this.lastCaught = {
+      by,
+      reason,
+      player: { x: Math.round(this.player.x), y: Math.round(this.player.y) },
+      who: { x: Math.round(w.x), y: Math.round(w.y) },
+      facing: this.target.facingName,
+      side: this.target.lookSide,
+    };
     this.poke.cancel(this.target);
     this.pranks.cancel();
     this.score.loseTemp();
