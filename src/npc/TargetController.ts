@@ -179,10 +179,10 @@ export class TargetController {
     const dx = x - this.pos.x;
     const dy = y - this.pos.y;
     const dist = Math.hypot(dx, dy);
-    if (dist <= L.nearRadius) return true;
     if (dist > L.range) return false;
     const d = this.lookDir;
-    const cos = (dx * d.x + dy * d.y) / dist;
+    const cos = dist < 1 ? 1 : (dx * d.x + dy * d.y) / dist;
+    if (dist <= L.nearRadius && (L.nearArc === 'all' || cos >= 0)) return true;
     return cos >= Math.cos(Phaser.Math.DegToRad(L.halfAngleDeg));
   }
 

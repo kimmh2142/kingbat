@@ -70,6 +70,11 @@ export interface TargetPattern {
     range: number;
     halfAngleDeg: number;
     nearRadius: number;
+    /**
+     * nearRadius 판정 범위. 'all' = 사방 (돌아볼 때 바짝 붙어 있으면 무조건 보임),
+     * 'front' = 돌아본 쪽 절반만 (원래 얼굴 쪽은 돌아보면 등 뒤가 되니 안 보임. 서서 다니는 대상용)
+     */
+    nearArc: 'all' | 'front';
     /** 어느 쪽 어깨 너머로 돌아볼지 비중 (화면 기준 왼쪽·가운데·오른쪽) */
     sideWeights: { left: number; center: number; right: number };
     /** 어깨 너머로 볼 때 부채꼴이 치우치는 각도 */

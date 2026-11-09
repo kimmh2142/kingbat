@@ -51,6 +51,8 @@ export const GWAJANG: TargetPattern = {
     range: 300,
     halfAngleDeg: 55,
     nearRadius: 70,
+    // 서서 통화할 땐 앞이 트여 있다: 얼굴 쪽 바로 앞에 서 있다가 억울하게 걸리지 않게 돌아본 쪽 절반만 (11/9)
+    nearArc: 'front',
     sideWeights: { left: 2, center: 1, right: 2 },
     skewDeg: 30,
   },

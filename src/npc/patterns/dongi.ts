@@ -51,6 +51,8 @@ export const DONGI: TargetPattern = {
     range: 300,
     halfAngleDeg: 55,
     nearRadius: 70,
+    // 앉아만 있고 책상이 앞을 막으니 사방 판정 (STAGE 1 그대로)
+    nearArc: 'all',
     // 진짜 전조(손이 사라지고 머리 쭈뼛) 때 흘깃 보는 쪽으로 부채꼴이 치우친다
     sideWeights: { left: 2, center: 1, right: 2 },
     skewDeg: 30,
