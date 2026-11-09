@@ -5,11 +5,14 @@ import { CHAJANG } from '../npc/patterns/chajang';
 import { DAERI } from '../npc/patterns/daeri';
 import { GWAJANG } from '../npc/patterns/gwajang';
 import type { PatrolPattern, TargetPattern } from '../npc/types';
+import { FLOOR_7F, type FloorMap } from './office7f';
 
 export interface StageConfig {
   id: number;
   /** HUD에 보이는 이름 */
   label: string;
+  /** 이 스테이지의 층 맵 */
+  floor: FloorMap;
   /** 공략 대상 (자리는 맵에서 owner가 pattern.id인 책상) */
   target: TargetPattern;
   /** 순찰하는 방해 NPC (자리는 owner가 pattern.id인 책상) */
@@ -36,6 +39,7 @@ export const STAGES: Record<number, StageConfig> = {
   1: {
     id: 1,
     label: 'STAGE 1 · 동기 이동기',
+    floor: FLOOR_7F,
     target: DONGI,
     patrols: [DAERI],
     timeLimit: 150,
@@ -55,6 +59,7 @@ export const STAGES: Record<number, StageConfig> = {
   2: {
     id: 2,
     label: 'STAGE 2 · 과장 박통화',
+    floor: FLOOR_7F,
     target: GWAJANG,
     patrols: [DAERI, CHAJANG],
     timeLimit: 240,

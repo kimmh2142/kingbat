@@ -39,10 +39,14 @@ export class Items extends Phaser.Events.EventEmitter {
   /** 아직 첫 아이템을 안 만들었다 (첫 아이템은 정해진 곳에 정해진 것) */
   private firstPending = true;
 
-  constructor(private readonly scene: Phaser.Scene) {
+  constructor(
+    private readonly scene: Phaser.Scene,
+    /** 이 층에서 아이템이 나오는 곳 */
+    private readonly spawns: ItemSpawnSpot[] = ITEM_SPAWNS,
+  ) {
     super();
     for (const r of ITEM_RULES.firstSpawn.slice(0, ITEM_RULES.maxOnMap)) this.pending.push(rand(r));
-    for (const s of ITEM_SPAWNS) {
+    for (const s of spawns) {
       if (s.prop) scene.add.image(s.x, s.y - 10, s.prop).setOrigin(0.5, 1).setDepth(s.y - 10);
     }
   }
@@ -134,12 +138,12 @@ export class Items extends Phaser.Events.EventEmitter {
   private spawn(): boolean {
     if (this.onMap.length >= ITEM_RULES.maxOnMap) return false;
     const used = new Set(this.onMap.map((m) => m.spot));
-    let free = ITEM_SPAWNS.filter((s) => !used.has(s) && s !== this.lastPicked);
-    if (!free.length) free = ITEM_SPAWNS.filter((s) => !used.has(s));
+    let free = this.spawns.filter((s) => !used.has(s) && s !== this.lastPicked);
+    if (!free.length) free = this.spawns.filter((s) => !used.has(s));
     if (!free.length) return false;
     let spot: ItemSpawnSpot = Phaser.Utils.Array.GetRandom(free);
     let id: ItemId;
-    const first = ITEM_SPAWNS.find((s) => s.id === ITEM_RULES.firstItem.spot);
+    const first = this.spawns.find((s) => s.id === ITEM_RULES.firstItem.spot);
     if (this.firstPending && first && !used.has(first)) {
       spot = first;
       id = ITEM_RULES.firstItem.id;

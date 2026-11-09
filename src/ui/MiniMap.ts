@@ -1,6 +1,5 @@
 import Phaser from 'phaser';
 import { COLORS, FONT, GAME_HEIGHT, GAME_WIDTH } from '../config';
-import { DESKS, ROOMS, WORLD } from '../data/office7f';
 import { MINIMAP } from '../data/tuning';
 import { DEPTH, type OfficeMap } from '../systems/OfficeMap';
 import type { TouchControls } from './TouchControls';
@@ -22,6 +21,12 @@ const ROOM_COLORS: Record<string, number> = {
   hall: 0xeee6f0,
   entrance: 0xeee6f0,
   office: 0xfde7ef,
+  lounge: 0xd6efe2,
+  execHall: 0xeee6f0,
+  lobby: 0xeee6f0,
+  exec: 0xfde7ef,
+  ceo: 0xfff3c4,
+  power: 0xe3e0ea,
 };
 
 /**
@@ -53,13 +58,13 @@ export class MiniMap {
     targetRank: string,
   ) {
     const sw = MINIMAP.width;
-    const ss = sw / WORLD.width;
-    const sh = WORLD.height * ss;
+    const ss = sw / this.map.floor.world.width;
+    const sh = this.map.floor.world.height * ss;
     this.small = isTouch
       ? { x: GAME_WIDTH - sw - MINIMAP.margin, y: MINIMAP.touchTop, s: ss }
       : { x: GAME_WIDTH - sw - MINIMAP.margin, y: GAME_HEIGHT - sh - MINIMAP.margin, s: ss };
-    const bs = MINIMAP.bigWidth / WORLD.width;
-    this.big = { x: (GAME_WIDTH - MINIMAP.bigWidth) / 2, y: (GAME_HEIGHT - WORLD.height * bs) / 2 + 14, s: bs };
+    const bs = MINIMAP.bigWidth / this.map.floor.world.width;
+    this.big = { x: (GAME_WIDTH - MINIMAP.bigWidth) / 2, y: (GAME_HEIGHT - this.map.floor.world.height * bs) / 2 + 14, s: bs };
 
     this.dim = scene.add
       .rectangle(0, 0, GAME_WIDTH, GAME_HEIGHT, 0x3b2a33, 0.45)
@@ -81,16 +86,16 @@ export class MiniMap {
       this.bigTexts.push(t);
       return t;
     };
-    for (const r of ROOMS) {
+    for (const r of this.map.floor.rooms) {
       const locked = map.isLocked(r);
       text(b.x + (r.x + r.w / 2) * b.s, b.y + (r.y + r.h / 2) * b.s, locked ? `${r.name}\n(STAGE ${r.unlockStage})` : r.name, 16, locked ? '#757575' : COLORS.text);
     }
     const seat = map.mySeat;
-    text(b.x + seat.x * b.s, b.y + seat.y * b.s - 18, '내 자리', 14, '#e0457b');
+    text(b.x + seat.x * b.s, b.y + seat.y * b.s - 18, this.map.floor.mySeatLabel, 14, '#e0457b');
     text(GAME_WIDTH / 2, b.y - 16, isTouch ? '전체 지도 · 화면을 누르면 닫혀요' : '전체 지도 · M에서 손을 떼면 닫혀요', 18);
     // 범례 (점 색과 같은 글자색)
     const legend: [string, string][] = [['● 나', '#ff4f8b'], [`● ${targetRank}`, '#e53935'], ['● 방해 NPC', '#ffa000'], ['◆ 아이템', '#f9a825'], ['■ 내 자리', '#f06292']];
-    legend.forEach(([s, c], i) => text(GAME_WIDTH / 2 + (i - (legend.length - 1) / 2) * 104, b.y + WORLD.height * b.s + 16, s, 16, c));
+    legend.forEach(([s, c], i) => text(GAME_WIDTH / 2 + (i - (legend.length - 1) / 2) * 104, b.y + this.map.floor.world.height * b.s + 16, s, 16, c));
 
     // 모바일: 미니맵을 누르면 크게, 크게 보는 중엔 아무 데나 누르면 닫힘
     const sm = this.small;
@@ -101,7 +106,7 @@ export class MiniMap {
   /** 미니맵 영역 (테스트·겹침 확인용) */
   get rect(): { x: number; y: number; w: number; h: number } {
     const m = this.isBig ? this.big : this.small;
-    return { x: m.x, y: m.y, w: WORLD.width * m.s, h: WORLD.height * m.s };
+    return { x: m.x, y: m.y, w: this.map.floor.world.width * m.s, h: this.map.floor.world.height * m.s };
   }
 
   /** @param holdBig M을 누르고 있는가 */
@@ -143,21 +148,21 @@ export class MiniMap {
     const { s } = m;
     const X = (x: number) => m.x + x * s;
     const Y = (y: number) => m.y + y * s;
-    const w = WORLD.width * s;
-    const h = WORLD.height * s;
+    const w = this.map.floor.world.width * s;
+    const h = this.map.floor.world.height * s;
     g.clear();
     // 바탕
     g.fillStyle(0xffffff, big ? 1 : 0.88).fillRoundedRect(m.x - 4, m.y - 4, w + 8, h + 8, 8);
     // 벽 (방이 아닌 곳)
     g.fillStyle(0xe6d7de).fillRect(X(0), Y(0), w, h);
     // 방 (안 열린 곳은 회색)
-    for (const r of ROOMS) {
+    for (const r of this.map.floor.rooms) {
       const locked = this.map.isLocked(r);
       g.fillStyle(locked ? 0xbdbdbd : (ROOM_COLORS[r.id] ?? 0xf5f5f5), locked ? 0.7 : 1).fillRect(X(r.x), Y(r.y), r.w * s, r.h * s);
     }
     // 책상 (길 찾기용)
     g.fillStyle(0xd7b98e);
-    for (const d of DESKS) g.fillRect(X(d.x - 62), Y(d.y - 56), 124 * s, 56 * s);
+    for (const d of this.map.floor.desks) g.fillRect(X(d.x - 62), Y(d.y - 56), 124 * s, 56 * s);
     // 내 자리 (확정하러 가는 곳)
     const seat = this.map.mySeat;
     const sr = big ? 9 : 4;
@@ -165,7 +170,7 @@ export class MiniMap {
     g.lineStyle(big ? 3 : 1.5, 0xffffff).strokeRoundedRect(X(seat.x) - sr, Y(seat.y) - sr, sr * 2, sr * 2, 2);
     // 지금 보이는 화면
     const v = k.view;
-    g.lineStyle(big ? 2 : 1.5, COLORS.outline, 0.55).strokeRect(X(Math.max(0, v.x)), Y(Math.max(0, v.y)), Math.min(v.width, WORLD.width) * s, Math.min(v.height, WORLD.height) * s);
+    g.lineStyle(big ? 2 : 1.5, COLORS.outline, 0.55).strokeRect(X(Math.max(0, v.x)), Y(Math.max(0, v.y)), Math.min(v.width, this.map.floor.world.width) * s, Math.min(v.height, this.map.floor.world.height) * s);
     // 아이템: 노란 마름모 반짝 (대리 주황 점과 헷갈리지 않게 모양을 다르게)
     const pulse = 0.6 + Math.abs(Math.sin(this.t * 5)) * 0.4;
     for (const it of k.items) {

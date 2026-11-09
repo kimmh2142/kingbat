@@ -55,12 +55,13 @@ export class Extras {
   /** 통로 그래프: 점 → 이웃 점들 */
   private readonly graph = new Map<string, { p: Point; next: Point[] }>();
 
-  constructor(scene: Phaser.Scene, desks: Desk[]) {
+  constructor(scene: Phaser.Scene, desks: Desk[], enabled = true) {
     this.seats = desks.filter((d) => d.owner === 'coworker').map((desk) => ({ desk, at: { x: desk.x, y: desk.y - 62 }, taken: null }));
     this.buildGraph();
     this.blockers = scene.physics.add.group({ immovable: true, allowGravity: false });
 
-    const total = EXTRA_RULES.seated + EXTRA_RULES.walking;
+    // 엑스트라가 없는 층(8층 임원층)은 아무도 안 만든다
+    const total = enabled ? EXTRA_RULES.seated + EXTRA_RULES.walking : 0;
     const seats = Phaser.Utils.Array.Shuffle([...this.seats]);
     const places = Phaser.Utils.Array.Shuffle([...EXTRA_PLACES]);
     for (let i = 0; i < total; i++) {

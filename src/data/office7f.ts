@@ -1,4 +1,5 @@
 import { TEX, type TextureKey } from '../assets/keys';
+import { ITEM_SPAWNS, type ItemSpawnSpot } from './items';
 import type { PropType } from './props';
 
 // 7층 사무실 맵. 좌표 단위는 px, 원점은 왼쪽 위.
@@ -21,7 +22,7 @@ export interface Room extends Rect {
   unlockStage?: number;
 }
 
-export type DeskOwner = 'me' | 'dongi' | 'daeri' | 'gwajang' | 'chajang' | 'coworker';
+export type DeskOwner = 'me' | 'dongi' | 'daeri' | 'gwajang' | 'chajang' | 'daepyo' | 'biseo' | 'isa' | 'coworker';
 
 export interface Desk {
   id: string;
@@ -162,3 +163,45 @@ export const WALL_DECOR: WallDecor[] = [
 
 /** 시작 위치: 내 자리 의자 */
 export const PLAYER_START = { x: COLS[0] + DESK_W / 2, y: ROWS[2] - 100 };
+
+/** 한 층 맵 (7층·8층). 스테이지마다 어느 층을 쓸지 StageConfig.floor로 고른다 */
+export interface FloorMap {
+  id: string;
+  world: { width: number; height: number };
+  walls: Rect[];
+  barriers: Barrier[];
+  rooms: Room[];
+  /** 잠긴 구역 안에 미리 보여 줄 작은 방 이름 */
+  subRoomLabels: (Rect & { name: string })[];
+  desks: Desk[];
+  props: PropPlacement[];
+  wallDecor: WallDecor[];
+  playerStart: { x: number; y: number };
+  /** 위쪽 창문 벽: 창문이 시작되는 x, 창문 대신 타일로 칠할 구간 */
+  windows: { from: number; tile?: { x: number; w: number; color: number } };
+  /** 점수 확정 책상 이름표 */
+  mySeatLabel: string;
+  /** 이름표를 안 붙이는 넓은 방 */
+  noSign: string[];
+  itemSpawns: ItemSpawnSpot[];
+  /** 회색 엑스트라 직원이 있는 층 */
+  extras: boolean;
+}
+
+export const FLOOR_7F: FloorMap = {
+  id: '7f',
+  world: WORLD,
+  walls: WALLS,
+  barriers: BARRIERS,
+  rooms: ROOMS,
+  subRoomLabels: SUB_ROOM_LABELS,
+  desks: DESKS,
+  props: PROPS,
+  wallDecor: WALL_DECOR,
+  playerStart: PLAYER_START,
+  windows: { from: 540, tile: { x: 24, w: 456, color: 0xd6efe2 } },
+  mySeatLabel: '내 자리',
+  noSign: ['office', 'manager'],
+  itemSpawns: ITEM_SPAWNS,
+  extras: true,
+};

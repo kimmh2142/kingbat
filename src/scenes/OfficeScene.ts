@@ -4,8 +4,7 @@ import { FONT, GAME_HEIGHT, GAME_WIDTH } from '../config';
 import type { CaughtReasonId } from '../data/caughtReasons';
 import { APPROVAL } from '../data/approval';
 import { Approval } from '../systems/Approval';
-import { ITEM_RULES, ITEM_SPAWNS, ITEMS, type ItemId } from '../data/items';
-import { PLAYER_START, WORLD } from '../data/office7f';
+import { ITEM_RULES, ITEMS, type ItemId } from '../data/items';
 import { nextStage, STAGES, type StageConfig } from '../data/stages';
 import { TIP_BACK_SPOT, TIPS, TUTORIAL_TEXT, type TipId } from '../data/tutorial';
 import { CAMERA, MINIMAP, POKE } from '../data/tuning';
@@ -137,10 +136,10 @@ export class OfficeScene extends Phaser.Scene {
     // 안내창이 꺼져 있을 때: 다시 도전이면 혼잣말은 이미 봤으니 생략
     this.thoughtShown = (!!data?.retry && !this.tipsOn) || !this.stage.tutorial;
 
-    this.map = new OfficeMap(this, this.stage.id);
+    this.map = new OfficeMap(this, this.stage.id, this.stage.floor);
     this.touch = new TouchControls(this);
     this.controls = new Controls(this, this.touch);
-    this.player = new Player(this, PLAYER_START.x, PLAYER_START.y);
+    this.player = new Player(this, this.stage.floor.playerStart.x, this.stage.floor.playerStart.y);
     this.physics.add.collider(this.player.feet, this.map.colliders);
 
     const desk = this.map.desks.find((d) => d.owner === this.stage.target.id)!;
@@ -152,7 +151,7 @@ export class OfficeScene extends Phaser.Scene {
     this.physics.add.collider(this.player.feet, this.targetBlocker);
 
     // 회색 엑스트라 직원: 빈자리에 앉아 있거나 돌아다니고, 플레이어를 가로막는다
-    this.extras = new Extras(this, this.map.desks);
+    this.extras = new Extras(this, this.map.desks, this.stage.floor.extras);
     this.physics.add.collider(this.player.feet, this.extras.blockers);
 
     // 방해 NPC (STAGE 1 대리 김카페, STAGE 2 + 차장 오의심): 자리 ↔ 목적지 왕복, 걸을 때 바닥에 시야 부채꼴
@@ -162,7 +161,7 @@ export class OfficeScene extends Phaser.Scene {
     this.poke = new Poke(this, this.score);
     this.hide = new Hide(this, this.score);
     this.score.on('change', () => this.announceGoal());
-    this.items = new Items(this);
+    this.items = new Items(this, this.stage.floor.itemSpawns);
     this.pranks = new Pranks(this, this.score, this.items, this.target);
     this.pranks.laughFrom = (x, y) => this.extras.nearestTo(x, y, 320);
     if (this.stage.mission.id === 'parade') this.pranks.on('parade', () => this.completeMission());
@@ -878,7 +877,7 @@ export class OfficeScene extends Phaser.Scene {
       this.extras.drawDebug(g);
       // 아이템 생성 지점(노랑)과 동기 가방 껌 범위(분홍)
       g.lineStyle(2, 0xf9a825, 0.9);
-      for (const s of ITEM_SPAWNS) g.strokeCircle(s.x, s.y, ITEM_RULES.pickupRadius);
+      for (const s of this.stage.floor.itemSpawns) g.strokeCircle(s.x, s.y, ITEM_RULES.pickupRadius);
       g.lineStyle(2, 0xec407a, 0.9).strokeCircle(this.pranks.bag.x, this.pranks.bag.y, ITEM_RULES.gumRange);
       const t = this.target;
       // 콕 찌르기 범위
@@ -904,7 +903,7 @@ export class OfficeScene extends Phaser.Scene {
     cam.setZoom(this.controls.isTouch ? CAMERA.zoomTouch : CAMERA.zoom);
     // 맵 맨 위(탕비실·동기 자리)에서도 머리 위 글자가 HUD 아래로 보이게 위쪽에 HUD 높이만큼 여유를 둔다.
     // 미니맵 쪽 끝(PC 아래, 모바일 위)에도 미니맵 높이만큼 여유를 둬서, 맵 끝에 서도 나·대상이 미니맵에 가리지 않게 한다 (11/9)
-    const mapH = (WORLD.height * MINIMAP.width) / WORLD.width + MINIMAP.margin * 2;
+    const mapH = (this.stage.floor.world.height * MINIMAP.width) / this.stage.floor.world.width + MINIMAP.margin * 2;
     const topPx = this.controls.isTouch ? Math.max(CAMERA.hudTop, MINIMAP.touchTop + mapH) : CAMERA.hudTop;
     const bottomPx = this.controls.isTouch ? 0 : mapH;
     const top = topPx / cam.zoom;
