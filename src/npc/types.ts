@@ -141,5 +141,6 @@ export interface PatrolPattern {
   /** 지나가다 플레이어를 붙잡기 ("커피 좀 사 올래?") */
   grab?: { chance: number; radius: number; seconds: number; cooldown: number; line: string; thanks: string };
   /** 빈손인 플레이어가 시야에 들어오면 잠깐 세운다 ("뭐 해요?"). cooldown은 풀려난 뒤부터 */
-  stop?: { seconds: number; cooldown: number; line: string };
+  /** lines: 세울 때마다 이 중 하나 (바로 전 대사는 빼고). face: 세울 때 표정 (없으면 발견 표정) */
+  stop?: { seconds: number; cooldown: number; lines: string[]; face?: TextureKey };
 }

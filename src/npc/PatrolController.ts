@@ -46,6 +46,7 @@ export class PatrolController {
   private path: Point[] = [];
   private pathIndex = 0;
   private readonly seat: Point;
+  private lastStopLine = '';
   /** 발견·붙잡기가 끝나면 돌아갈 상태 */
   private resume: PatrolState = 'work';
   /** 멈췄을 때 하던 일의 남은 시간 (커피 타다가 멈추면 이어서) */
@@ -167,8 +168,15 @@ export class PatrolController {
     this.timer = S.seconds;
     this.stopCooldown = S.seconds + S.cooldown;
     this.lookAt(px, py);
-    this.view.setPose({ ...this.pattern.walkPose, face: this.pattern.react.pose.face, bubble: S.line });
+    this.view.setPose({ ...this.pattern.walkPose, face: S.face ?? this.pattern.react.pose.face, bubble: this.pickStopLine(S.lines) });
     return true;
+  }
+
+  /** 세울 때 대사: 매번 바뀌게 바로 전 대사는 빼고 고른다 */
+  private pickStopLine(lines: string[]): string {
+    const pool = lines.length > 1 ? lines.filter((l) => l !== this.lastStopLine) : lines;
+    this.lastStopLine = Phaser.Utils.Array.GetRandom(pool);
+    return this.lastStopLine;
   }
 
   /** 하던 일을 잠깐 멈춘다 (발견·붙잡기 뒤 이어서 하려고) */

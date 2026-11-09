@@ -53,6 +53,6 @@ export const DAERI: PatrolPattern = {
   stay: { duration: [3, 5], facing: 'up', pose: { hands: 'side' } },
   vision: { range: 220, halfAngleDeg: 40, nearRadius: 40 },
   react: { duration: [1.2, 1.5], pose: { face: TEX.faceShock, hands: 'cup', bubble: '어머! 지금 뭐 했어요?' } },
-  stop: { seconds: 1.5, cooldown: 8, line: '뭐 해요?' },
+  stop: { seconds: 1.5, cooldown: 8, lines: ['뭐 해요?'] },
   grab: { chance: 0.3, radius: 60, seconds: 3, cooldown: 25, line: '커피 좀 사 올래?', thanks: '고마워~' },
 };

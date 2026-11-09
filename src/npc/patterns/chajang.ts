@@ -6,7 +6,7 @@ import type { PatrolPattern } from '../types';
 //  - 과장 자리 뒤: 과장 등 뒤(찌르는 자리)를 쓸고 지나간다
 //  - 복사실 쪽: 과장이 복사기 앞에 서 있을 때 등 뒤를 내려다본다
 //  - 일반 직원석 오른쪽 끝: 관리자 구역 → 내 자리로 도망치는 길을 지킨다
-// 대리처럼 붙잡지는 않고, 빈손으로 시야에 들어오면 잠깐 세운다.
+// 대리처럼 붙잡지는 않고, 빈손으로 시야에 들어오면 잠깐 세워서 일을 던진다 (대사는 매번 다르게, 11/9).
 
 export const CHAJANG: PatrolPattern = {
   id: 'chajang',
@@ -55,5 +55,19 @@ export const CHAJANG: PatrolPattern = {
   stay: { duration: [3, 5], facing: 'down', pose: { face: TEX.faceSuspicious, hands: 'side', bubble: '흐음…' } },
   vision: { range: 230, halfAngleDeg: 38, nearRadius: 40 },
   react: { duration: [1.2, 1.5], pose: { face: TEX.faceShock, hands: 'side', bubble: '거기 너! 다 봤어!' } },
-  stop: { seconds: 1.2, cooldown: 12, line: '난 다 보고 있어.' },
+  stop: {
+    seconds: 1.2,
+    cooldown: 12,
+    face: TEX.faceHappy,
+    lines: [
+      '아까 줬던 보고서 말인데~',
+      '이거 내일 아침까지 되지?',
+      '엑셀 셀 병합 좀 다 풀어 줄래?',
+      '회의록에 오타 하나 있더라~',
+      'PPT 폰트 궁서체로 바꿔 봐',
+      '주간 보고 양식 또 바뀌었어~',
+      '복사 50부만 부탁해~',
+      '그거 그냥 처음부터 다시 하자',
+    ],
+  },
 };
