@@ -43,6 +43,8 @@ export class Items extends Phaser.Events.EventEmitter {
     private readonly scene: Phaser.Scene,
     /** 이 층에서 아이템이 나오는 곳 */
     private readonly spawns: ItemSpawnSpot[] = ITEM_SPAWNS,
+    /** 이 스테이지에 나오는 아이템 */
+    private readonly pool: ItemId[] = Object.keys(ITEMS) as ItemId[],
   ) {
     super();
     for (const r of ITEM_RULES.firstSpawn.slice(0, ITEM_RULES.maxOnMap)) this.pending.push(rand(r));
@@ -167,7 +169,7 @@ export class Items extends Phaser.Events.EventEmitter {
 
   /** 그 자리에 나올 수 있는 것 중 맵과 슬롯에 적은 종류를 우선 (한 종류만 계속 나오지 않게) */
   private pickType(spot: ItemSpawnSpot): ItemId {
-    const all = Object.keys(ITEMS) as ItemId[];
+    const all = this.pool;
     const allowed = all.filter((id) => !spot.not?.includes(id));
     const ids = allowed.length ? allowed : all;
     const count = (id: ItemId) => this.onMap.filter((m) => m.id === id).length + this.slots.filter((s) => s === id).length;

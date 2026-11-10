@@ -185,7 +185,7 @@ export class OfficeScene extends Phaser.Scene {
     this.poke = new Poke(this, this.score);
     this.hide = new Hide(this, this.score);
     this.score.on('change', () => this.announceGoal());
-    this.items = new Items(this, this.stage.floor.itemSpawns);
+    this.items = new Items(this, this.stage.floor.itemSpawns, this.stage.items);
     this.pranks = new Pranks(this, this.score, this.items, this.target);
     this.pranks.laughFrom = (x, y) => this.extras.nearestTo(x, y, 320);
     if (this.stage.mission.id === 'parade') this.pranks.on('parade', () => this.completeMission());

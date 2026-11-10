@@ -5,7 +5,7 @@ import type { Range } from '../npc/types';
 // 장난이 성공하면 점수는 바로 확정된다 (임시 점수 아님).
 // 수치는 초기값이며 플레이 테스트로 조정한다.
 
-export type ItemId = 'postit' | 'gum';
+export type ItemId = 'postit' | 'gum' | 'monitor' | 'chair';
 
 export interface ItemDef {
   id: ItemId;
@@ -27,6 +27,9 @@ export const ITEMS: Record<ItemId, ItemDef> = {
   postit: { id: 'postit', name: '포스트잇', icon: TEX.itemPostit, points: 15, useSeconds: 0.5, hint: '포스트잇 붙이기', howTo: '포스트잇: {who} 등 뒤에서 {key}! 붙이면 바로 점수' },
   // 동기가 자리를 비웠을 때 가방 손잡이에 붙인다. 점수는 동기가 돌아와 가방을 만질 때 들어온다.
   gum: { id: 'gum', name: '껌', icon: TEX.itemGum, points: 15, useSeconds: 0.6, hint: '가방에 껌 붙이기', howTo: '껌: {who} 자리 비었을 때 가방 근처에서 {key}! 돌아와 앉으면 점수' },
+  // Lv2 (STAGE 2~): 대상이 자리를 비웠을 때. 점수는 돌아와 앉을 때 들어온다 (껌과 같은 방식)
+  monitor: { id: 'monitor', name: '모니터 끄기', icon: TEX.itemMonitor, points: 20, useSeconds: 0.7, hint: '모니터 전원 끄기', howTo: '모니터: {who} 자리 비었을 때 책상 앞에서 {key}! 돌아와 앉으면 점수' },
+  chair: { id: 'chair', name: '의자 최저', icon: TEX.itemChair, points: 20, useSeconds: 0.8, hint: '의자 높이 최저로', howTo: '의자: {who} 자리 비었을 때 의자 옆에서 {key}! 앉는 순간 쿵!' },
 };
 
 /** 아이템이 나오는 곳 (택배 상자, 서랍, 탕비실 선반). 좌표는 줍는 위치(바닥) */
@@ -64,8 +67,12 @@ export const ITEM_RULES = {
   slots: 3,
   /** 동기 가방에서 이 거리(px) 안이면 껌을 붙일 수 있다 */
   gumRange: 70,
-  /** 동기가 가방에서 이만큼(px) 떨어져 있어야 껌을 붙일 수 있다 */
+  /** 동기가 가방에서 이만큼(px) 떨어져 있어야 껌을 붙일 수 있다 (모니터·의자도 같은 기준) */
   gumOwnerAway: 160,
+  /** 모니터 끄기: 대상 책상 앞에서 이 거리(px) 안 */
+  monitorRange: 85,
+  /** 의자 최저: 대상 의자에서 이 거리(px) 안 */
+  chairRange: 80,
   /** 포스트잇이 붙어 있는 동안 주변 직원이 "킥킥" 웃는 간격(초) */
   laughEvery: [2.5, 4] as Range,
   /** 포스트잇 붙인 대상이 걸어가는 동안(퍼레이드)은 더 자주 킥킥 */

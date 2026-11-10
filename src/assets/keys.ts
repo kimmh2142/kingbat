@@ -115,6 +115,8 @@ export const TEX = {
   // 아이템과 장난 흔적
   itemPostit: 'item_postit',
   itemGum: 'item_gum',
+  itemMonitor: 'item_monitor',
+  itemChair: 'item_chair',
   parcel: 'parcel',
   postitNote: 'postit_note',
   gumBlob: 'gum_blob',

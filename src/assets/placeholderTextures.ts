@@ -1084,6 +1084,32 @@ const DEFS: Record<TextureKey, { w: number; h: number; draw: Draw }> = {
       g.fillStyle(0xe91e63).fillCircle(18, 18, 3.5);
     },
   },
+  [TEX.itemMonitor]: {
+    // Lv2 모니터 끄기: 작은 모니터 + 빨간 전원 표시
+    w: 36,
+    h: 36,
+    draw: (g) => {
+      g.fillStyle(0x37474f).fillRoundedRect(4, 6, 28, 20, 4);
+      g.lineStyle(LINE, O).strokeRoundedRect(4, 6, 28, 20, 4);
+      g.fillStyle(0x6f6a85).fillRect(15, 26, 6, 4).fillRoundedRect(10, 29, 16, 4, 2);
+      g.lineStyle(3, 0xef5350).beginPath().arc(18, 16, 6, -Math.PI * 0.3, Math.PI * 1.3).strokePath();
+      g.lineBetween(18, 8, 18, 15);
+    },
+  },
+  [TEX.itemChair]: {
+    // Lv2 의자 높이 최저: 의자 + 아래 화살표
+    w: 36,
+    h: 36,
+    draw: (g) => {
+      g.fillStyle(0x7e7a94).fillRoundedRect(8, 3, 16, 14, 4);
+      g.lineStyle(2, O).strokeRoundedRect(8, 3, 16, 14, 4);
+      g.fillStyle(0x7e7a94).fillRoundedRect(5, 16, 22, 7, 3);
+      g.lineStyle(2, O).strokeRoundedRect(5, 16, 22, 7, 3);
+      g.lineStyle(3, O).lineBetween(16, 23, 16, 31);
+      g.fillStyle(0x42a5f5).fillTriangle(26, 14, 34, 14, 30, 22);
+      g.fillRect(28, 4, 4, 10);
+    },
+  },
   [TEX.parcel]: {
     // 입구 택배 상자 (아이템이 나오는 곳, 기준점 아래쪽 가운데)
     w: 60,

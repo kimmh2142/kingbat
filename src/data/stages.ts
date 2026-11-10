@@ -8,6 +8,7 @@ import { ISA } from '../npc/patterns/isa';
 import { DAERI } from '../npc/patterns/daeri';
 import { GWAJANG } from '../npc/patterns/gwajang';
 import type { PatrolPattern, TargetPattern } from '../npc/types';
+import type { ItemId } from './items';
 import { FLOOR_7F, type FloorMap } from './office7f';
 import { FLOOR_8F } from './office8f';
 
@@ -30,6 +31,8 @@ export interface StageConfig {
   urgentAt: number;
   /** 특별 미션 (클리어 조건: 킹받음 100 확정 + 미션 성공). id로 어떤 미션 판정을 쓸지 고른다 */
   mission: { id: 'parade' | 'approval' | 'blackout'; name: string; goal: string; points: number };
+  /** 이 스테이지 맵에 나오는 아이템 (스테이지가 오를수록 Lv2가 섞인다) */
+  items: ItemId[];
   /** 돌발 이벤트 "인사팀 방문" (STAGE 3) */
   hrVisit?: boolean;
   /** 튜토리얼 스테이지 (단계 안내 칸·속마음 안내창). STAGE 1만 */
@@ -46,6 +49,7 @@ export const STAGES: Record<number, StageConfig> = {
     id: 1,
     label: 'STAGE 1 · 동기 이동기',
     floor: FLOOR_7F,
+    items: ['postit', 'gum'],
     target: DONGI,
     patrols: [DAERI],
     timeLimit: 150,
@@ -66,6 +70,7 @@ export const STAGES: Record<number, StageConfig> = {
     id: 2,
     label: 'STAGE 2 · 과장 박통화',
     floor: FLOOR_7F,
+    items: ['postit', 'gum', 'monitor', 'chair'],
     target: GWAJANG,
     patrols: [DAERI, CHAJANG],
     timeLimit: 240,
@@ -86,6 +91,7 @@ export const STAGES: Record<number, StageConfig> = {
     id: 3,
     label: 'STAGE 3 · 대표 나대표',
     floor: FLOOR_8F,
+    items: ['postit', 'gum', 'chair'],
     target: DAEPYO,
     patrols: [BISEO, ISA],
     hrVisit: true,
