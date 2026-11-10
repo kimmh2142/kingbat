@@ -32,6 +32,9 @@ interface Window {
     patrols?: { id: string; kind?: string; state: string; x: number; y: number; route?: number }[];
     caughtBy?: Record<string, number>;
     targetSees?: boolean;
+    combo?: number;
+    tipQueue?: string[];
+    tipsShown?: string[];
     lastCaught?: { by: string; reason: string; player: { x: number; y: number }; who: { x: number; y: number }; facing: string; side: number } | null;
     extras?: { state: string; x: number; y: number; blocked: boolean }[];
     items?: {

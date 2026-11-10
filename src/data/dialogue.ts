@@ -59,6 +59,7 @@ export const MONOLOGUE = [
 ].join('\n');
 
 // STAGE 1 빌런 포인트 (기준 문서 PART 3): 일을 떠넘겨 놓고 몰래 쇼핑몰을 본다.
+// 도입 컷신은 스테이지마다 3장면 (11/10 교수님 "시나리오는 간단히"): 떠넘김 → 빌런 포인트 → 다짐
 export const STORIES: Record<number, StageStory> = {
   1: {
     villain: 'dongi',
@@ -67,12 +68,9 @@ export const STORIES: Record<number, StageStory> = {
     quote: '"야, 우리 동기잖아!"',
     // 오프닝 독백("때리고만 싶다")은 2026-11-07 뺐다. 바로 동기 컷신부터
     steps: [
-      { shot: 'ask', who: 'dongi', text: '저기… 나 오늘 진짜 너무 바빠서 그러는데 ㅠㅠ' },
-      { shot: 'dump', who: 'dongi', text: '이것 좀 대신 처리해 줄 수 있을까? 우리 동기잖아~ ㅠㅠㅠ' },
-      { shot: 'reply', who: 'me', text: '어… 어어, 그래… 줘 봐…' },
+      { shot: 'dump', who: 'dongi', text: '나 오늘 너무 바빠서 ㅠㅠ 이것 좀 대신 해 줘~ 우리 동기잖아~' },
       { shot: 'shopping', who: 'dongi', text: '흐흐… 이 니트 예쁘다~ 장바구니 쏙!' },
-      { shot: 'angry', who: 'me', text: '……바쁘다며?' },
-      { shot: 'vow', who: 'me', text: '좋아. 퇴근 전까지, 제대로 킹받게 해 주지!' },
+      { shot: 'vow', who: 'me', text: '……바쁘다며? 좋아, 퇴근 전까지 제대로 킹받게 해 주지!' },
     ],
   },
   // STAGE 2 빌런 포인트 (기준 문서 STAGE 2): 퇴근 5분 전에 일을 던지고, 통화하며 왔다 갔다 걷는다.
@@ -82,12 +80,9 @@ export const STORIES: Record<number, StageStory> = {
     subtitle: '박과장',
     quote: '"퇴근 5분 전에 이것만!"',
     steps: [
-      { shot: 'ask', who: 'gwajang', caption: '오후 5:55 · 퇴근 5분 전', text: '네~ 사장님~ …아, 자네! 마침 잘 있었네~' },
-      { shot: 'dump', who: 'gwajang', text: '퇴근 5분 전인데~ 이것만 좀! 금방 해, 금방~' },
-      { shot: 'reply', who: 'me', text: '…5분 전인데요?' },
+      { shot: 'dump', who: 'gwajang', caption: '오후 5:55 · 퇴근 5분 전', text: '자네! 퇴근 5분 전인데~ 이것만 좀! 금방 해, 금방~' },
       { shot: 'pacing', who: 'gwajang', text: '네~ 사장님~ 하하하! 그 자료요? 제가 다 해 놨죠~' },
-      { shot: 'pacingAngry', who: 'me', text: '……"제가 다 해 놨죠"?' },
-      { shot: 'vow', who: 'me', text: '좋아. 오늘은 과장님도 칼퇴 못 하게 해 주지!' },
+      { shot: 'vow', who: 'me', text: '"제가 다 해 놨죠"?! 오늘은 과장님도 칼퇴 못 하게 해 주지!' },
     ],
   },
   // STAGE 3 도입 (기준 문서 STAGE 3): 대표실. 소문을 들은 대표가 흥미로워한다.
@@ -97,10 +92,9 @@ export const STORIES: Record<number, StageStory> = {
     subtitle: '대표 나대표',
     quote: '"최후의 킹받음"',
     steps: [
-      { shot: 'ceo', who: 'daepyo', caption: '8층 · 대표실', text: '요즘 회사에 이상한 소문이 돌더군.' },
-      { shot: 'ceoReport', who: 'biseo', text: '누군가 직원들에게 계속 장난을 친다고 합니다.' },
-      { shot: 'ceoLaugh', who: 'daepyo', text: '허허… 재미있는 친구군.' },
-      { shot: 'vow', who: 'me', text: '여기까지 왔는데… 마지막까지 가야지!' },
+      { shot: 'ceo', who: 'daepyo', caption: '8층 · 대표실', text: '요즘 직원들에게 장난치는 녀석이 있다지?' },
+      { shot: 'ceoLaugh', who: 'daepyo', text: '허허… 재미있는 친구군. 어디 나도 한번 당해 볼까?' },
+      { shot: 'vow', who: 'me', text: '여기까지 왔다. 마지막은 대표님이다!' },
     ],
   },
 };
@@ -116,16 +110,11 @@ STORIES[ENDING_STORY] = {
   quote: '',
   steps: [
     { shot: 'final', who: 'daepyo', text: '…자네였군.' },
-    { shot: 'finalMe', who: 'me', text: '아… 아닙니다!' },
-    { shot: 'finalOk', who: 'daepyo', text: '내가 몇 번을 돌아봐도 자네는 항상 일하고 있더군. 이런 눈치라니… 좋아. 이제 내 자리에 앉아보게.' },
+    { shot: 'finalOk', who: 'daepyo', text: '몇 번을 돌아봐도 자네는 늘 일하고 있더군. 이런 눈치라니… 내 자리에 앉아보게.' },
     { shot: 'promoted', who: 'none', text: '축하합니다! 당신이 새로운 대표가 되었습니다!' },
-    { shot: 'cheer', who: 'staff', text: '대표님! 축하드립니다!' },
-    { shot: 'cheer', who: 'me', text: '하하하! 드디어 내가 대표라니!' },
     { shot: 'newbie', who: 'newbie', caption: '다음 날 아침', text: '안녕하세요! 오늘부터 일하게 된 신입입니다!' },
-    { shot: 'newbie', who: 'me', text: '그래! 앞으로 잘해보자고!' },
     { shot: 'poke', who: 'none', text: '콕!' },
     { shot: 'pokeMe', who: 'me', text: '어?! 누가 나 건드렸어?!' },
-    { shot: 'innocent', who: 'newbie', text: '(타닥타닥…)' },
     { shot: 'monologue', who: 'none', text: '직장생활은 돌고 돈다.\n\n…이제 당신이 당할 차례입니다.' },
   ],
 };

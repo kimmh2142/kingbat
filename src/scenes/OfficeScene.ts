@@ -459,6 +459,7 @@ export class OfficeScene extends Phaser.Scene {
       target: { state: this.target.state, x: Math.round(this.target.x), y: Math.round(this.target.y), side: this.target.lookSide, left: this.target.remaining, facing: this.target.facingName, hangup: this.target.hangingUp },
       score: { confirmed: this.score.confirmed, temp: this.score.temp },
       poking: this.poke.active,
+      combo: this.poke.combo,
       caught: this.caughtCount,
       hidden: this.hide.hidden,
       /** 대상 시야에 내 자리가 들어 있는가 (확인용) */
@@ -476,6 +477,8 @@ export class OfficeScene extends Phaser.Scene {
       tutorial: { step: this.tutorial.current, line: this.hud.missionLine },
       thought: !!this.thought,
       tip: this.tipDialog.current,
+      tipQueue: [...this.tipQueue],
+      tipsShown: [...this.tipsShown],
       missionStep: this.missionStep,
       backSpot: this.backSpot.visible ? { x: Math.round(this.backSpot.x), y: Math.round(this.backSpot.y) } : null,
       minimap: { big: this.miniMap.isBig, opacity: Math.round(this.miniMap.opacity * 100) / 100, ...this.miniMap.rect },
@@ -559,7 +562,7 @@ export class OfficeScene extends Phaser.Scene {
   private setupTips(): void {
     this.tipDialog = new TipDialog(this);
     this.items.on('picked', (id: ItemId) => id === 'postit' && this.tip('picked'));
-    this.pranks.on('used', (id: ItemId) => id === 'postit' && this.tip('stuck'));
+    // STAGE 1 안내는 시작 목표·포스트잇 붙이기·첫 임시 점수 3개만 (11/10 "안내·시나리오는 간단히"). 특별 미션은 포스트잇 안내에 합쳤다
     // 시작 목표는 첫 포스트잇이 맵에 생기면 (1~2초 뒤) 그 포스트잇을 비추며
     if (this.stage.tutorial) {
       const onSpawn = (m: { id: ItemId }) => {
@@ -757,7 +760,8 @@ export class OfficeScene extends Phaser.Scene {
     let temp = 0;
     let confirmed = 0;
     this.score.on('change', () => {
-      if (this.score.temp > temp) this.sfx.play('poke');
+      // 콤보가 이어질수록 뽁 → 뾱 → 뿅 음이 올라간다
+      if (this.score.temp > temp) this.sfx.play('poke', 1 + Math.min(this.poke.combo, 40) * 0.025);
       // 클리어 순간엔 클리어 소리만
       if (this.score.confirmed > confirmed && !this.cleared) this.sfx.play('confirm');
       temp = this.score.temp;
@@ -781,7 +785,6 @@ export class OfficeScene extends Phaser.Scene {
     this.hide.onConfirm = () => {
       t.complete('confirm');
       if (!this.confirmSpot) this.confirmSpot = { x: this.player.x, y: this.player.y };
-      this.tip('confirmed');
     };
     t.on('change', (id: string) => {
       this.refreshMission();
@@ -841,7 +844,7 @@ export class OfficeScene extends Phaser.Scene {
       const d = Phaser.Math.Distance.Between(p.x, p.y, this.target.x, this.target.y);
       if (d <= TUTORIAL_TEXT.firstTellRange) {
         this.thoughtShown = true;
-        if (this.tipsOn) return this.tip('tell');
+        // 첫 돌아봄은 게임을 멈추지 않고 주인공 혼잣말로만
         this.thoughtT = TUTORIAL_TEXT.firstTellSeconds;
         this.thought = this.add
           .text(p.x, p.y, TUTORIAL_TEXT.firstTell, {

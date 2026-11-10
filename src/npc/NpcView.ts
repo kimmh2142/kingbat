@@ -45,6 +45,9 @@ export class NpcView {
   private deskY = 0;
   private t = 0;
   private joltT = 0;
+  /** 콕 콤보로 달아오른 정도 (0~1): 머리가 빨개지고, 움찔이 커지고, 끝까지 차면 김이 난다 */
+  private heat = 0;
+  private steamT = 0;
   private bubbleOverride?: { text: string; until: number };
 
   constructor(
@@ -152,6 +155,11 @@ export class NpcView {
   }
 
   /** 콕 찔릴 때 움찔 */
+  /** 콕 콤보로 달아오른 정도 (0~1). 0이면 천천히 식는다 */
+  setPokeHeat(h: number): void {
+    this.heat = Math.max(this.heat, Phaser.Math.Clamp(h, 0, 1));
+  }
+
   jolt(): void {
     this.joltT = 0.12;
   }
@@ -230,9 +238,29 @@ export class NpcView {
       this.note.setPosition(back ? 0 : 19, back ? -22 : -30).setAngle(back ? -8 : 14).setScale(back ? 1 : 0.8);
     }
 
-    // 움찔
+    // 움찔 (달아오를수록 크게)
     if (this.joltT > 0) this.joltT -= dt;
-    this.parts.x = this.joltT > 0 ? Math.sin(this.joltT * 120) * 3 : 0;
+    this.parts.x = this.joltT > 0 ? Math.sin(this.joltT * 120) * (3 + this.heat * 5) : 0;
+    // 달아오름: 머리가 빨개지고, 끝까지 차면 머리 위로 김. 찌르지 않으면 천천히 식는다
+    this.heat = Math.max(0, this.heat - dt * 0.12);
+    if (this.heat > 0.02) {
+      const c = Phaser.Display.Color.Interpolate.ColorWithColor(
+        Phaser.Display.Color.ValueToColor(0xffffff),
+        Phaser.Display.Color.ValueToColor(0xff7a7a),
+        100,
+        Math.round(this.heat * 100),
+      );
+      this.head.setTint(Phaser.Display.Color.GetColor(c.r, c.g, c.b));
+    } else this.head.clearTint();
+    if (this.heat > 0.75) {
+      this.steamT -= dt;
+      if (this.steamT <= 0) {
+        this.steamT = 0.25;
+        const s = this.root.scene;
+        const puff = s.add.circle(this.root.x + Phaser.Math.Between(-16, 16), this.root.y + HEAD_Y - 50, 6, 0xffffff, 0.9).setDepth(this.root.depth + 2);
+        s.tweens.add({ targets: puff, y: puff.y - 40, alpha: 0, scale: 1.8, duration: 700, onComplete: () => puff.destroy() });
+      }
+    }
 
     this.updateHands(p, back);
     this.updateBubble(p);

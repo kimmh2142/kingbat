@@ -1,4 +1,5 @@
-// 튜토리얼 안내창 확인 (?tips=1): 시작 목표 → 포스트잇 줍기 → 붙이기(특별 미션 설명) → 임시 점수 → 확정.
+// 튜토리얼 안내창 확인 (?tips=1): STAGE 1 안내는 3개만 (11/10): 시작 목표 → 포스트잇 줍기(특별 미션 설명 포함) → 첫 임시 점수.
+// 붙이기·첫 돌아봄·첫 확정 때는 안 뜬다.
 // 안내창이 떠 있는 동안 퇴근 시계가 멈추는지, 동기 등 뒤 "여기서 Z!" 표시, [다시 안 보기](N) → 새로 들어와도 안 뜸,
 // 타이틀에서 T로 다시 켜기, 모바일 버튼 터치로 닫기.
 // 사용법: npm run dev 를 켠 상태에서  node scripts/check-tips.mjs
@@ -26,7 +27,8 @@ const waitFor = async (fn, ms) => {
 };
 /** 떠 있는 안내창을 Space로 닫는다 (뜬 직후 0.45초는 입력을 안 받음) */
 const close = async () => {
-  await page.waitForTimeout(700);
+  // 뜬 직후 0.8초(게임 시간)는 입력을 안 받는다
+  await page.waitForTimeout(1500);
   await page.keyboard.press('Space');
   await page.waitForTimeout(200);
 };
@@ -78,10 +80,12 @@ await page.screenshot({ path: 'screenshots/tips-2-backspot-far.png' });
 await tp(spot.x, spot.y);
 await page.waitForTimeout(300);
 await page.keyboard.press('KeyZ');
-const stuck = await waitTip('stuck', 6000);
+// 붙이기는 시간이 걸린다 (헤드리스는 게임 시간이 느려 넉넉히). 다 붙을 때까지 기다리며 안내가 안 뜨는지 본다
+await waitFor(() => window.__kingbat.score.confirmed > 0, 10000);
+const stuck = await waitTip('stuck', 1500);
 await page.screenshot({ path: 'screenshots/tips-3-stuck.png' });
-await close();
-log.push(['①② 줍기·붙이기', { picked, 등뒤표시: spot, spotOn, stuck, 포스트잇: (await k()).items.postit }]);
+// 붙이기 안내는 이제 없다: 여기서 Space를 누르면 동기 등 뒤라 콕이 된다
+log.push(['①② 줍기·붙이기', { picked, 등뒤표시: spot, spotOn, '붙이기안내(안 떠야)': stuck, 포스트잇: (await k()).items.postit }]);
 
 // ④ 임시 점수: 업무 중인 동기 등 뒤에서 콕
 let temp = false;
@@ -92,26 +96,26 @@ for (let i = 0; i < 6 && !temp; i++) {
   await page.keyboard.down('Space');
   await waitFor(() => window.__kingbat.score.temp > 0 || !!window.__kingbat.tip || window.__kingbat.cutin, 6000);
   await page.keyboard.up('Space');
-  temp = await waitTip('temp', 1500);
+  // 안내는 다음 프레임들에 뜬다 (헤드리스는 느려 넉넉히)
+  temp = await waitTip('temp', 6000);
   if (!temp && (await k()).tip) await close();
 }
 await page.waitForTimeout(300);
 await page.screenshot({ path: 'screenshots/tips-4-temp.png' });
-await close();
-log.push(['④ 임시점수', { 뜸: temp, 점수: (await k()).score }]);
-
-// ⑤ 내 자리 E 꾹 → 확정 안내 → [다시 안 보기](N)
-await tp(664, 952);
-await page.waitForTimeout(300);
-await page.keyboard.down('KeyE');
-const confirmed = await waitTip('confirmed', 15000);
-await page.keyboard.up('KeyE');
-await page.screenshot({ path: 'screenshots/tips-5-confirmed.png' });
-await page.waitForTimeout(700);
+// [다시 안 보기](N)로 끄기
+await page.waitForTimeout(1500);
 await page.keyboard.press('KeyN');
 await page.waitForTimeout(300);
 const stored = await page.evaluate(() => localStorage.getItem('kingbat.tipsOff'));
-log.push(['⑤ 확정·끄기', { 뜸: confirmed, 닫힘: (await k()).tip === null, 저장: stored }]);
+log.push(['④ 임시점수·끄기', { 뜸: temp, 점수: (await k()).score, 닫힘: (await k()).tip === null, 저장: stored }]);
+
+// ⑤ 내 자리 E 꾹 → 확정 (안내는 안 뜬다)
+await tp(664, 952);
+await page.waitForTimeout(300);
+await page.keyboard.down('KeyE');
+await page.waitForTimeout(1500);
+await page.keyboard.up('KeyE');
+log.push(['⑤ 확정', { 점수: (await k()).score, 안내: (await k()).tip }]);
 
 // 새로 들어와도 안 뜸
 await page.reload();

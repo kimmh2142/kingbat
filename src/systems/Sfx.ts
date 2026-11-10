@@ -53,7 +53,8 @@ export class Sfx {
 
   constructor(private readonly scene: Phaser.Scene) {}
 
-  play(name: SfxName): void {
+  /** @param pitch 음 높이 배율 (콕 콤보가 이어질수록 올라간다) */
+  play(name: SfxName, pitch = 1): void {
     this.log.push(name);
     if (this.log.length > 20) this.log.shift();
     const key = `sfx-${name}`;
@@ -70,8 +71,8 @@ export class Sfx {
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
       osc.type = n.type ?? 'sine';
-      osc.frequency.setValueAtTime(n.f, now + n.t);
-      if (n.slide) osc.frequency.exponentialRampToValueAtTime(n.slide, now + n.t + n.d);
+      osc.frequency.setValueAtTime(n.f * pitch, now + n.t);
+      if (n.slide) osc.frequency.exponentialRampToValueAtTime(n.slide * pitch, now + n.t + n.d);
       const vol = (n.vol ?? 0.15) * sound.volume;
       gain.gain.setValueAtTime(0.0001, now + n.t);
       gain.gain.exponentialRampToValueAtTime(vol, now + n.t + 0.01);

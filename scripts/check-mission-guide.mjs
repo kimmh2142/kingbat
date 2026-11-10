@@ -82,7 +82,7 @@ for (const n of [1, 2, 3]) {
 log.push(['안내창', tips]);
 
 // 1-2) STAGE 1 안내가 켜져 있으면 노란 토스트("아이템이 생겼다", 포스트잇 사용법)는 안 뜬다.
-// 처음 확정을 숨는 곳(화분)에서 하면 확정 안내는 내 자리가 아니라 그 화분 쪽을 비춘다
+// 화분 뒤에서 첫 확정: 안내 없이 점수만 확정
 {
   const p = await open('?stage=1&tips=1');
   const toasts = new Set();
@@ -115,16 +115,13 @@ log.push(['안내창', tips]);
   await tp(p, 450, 1040);
   await p.waitForTimeout(300);
   await p.keyboard.down('KeyE');
-  const got = await p
-    .waitForFunction(() => window.__kingbat?.tip === 'confirmed', null, { timeout: 15000 })
-    .then(() => true)
-    .catch(() => false);
+  await p.waitForTimeout(1500);
   await p.keyboard.up('KeyE');
   await p.waitForTimeout(400);
-  const w = await p.evaluate(() => window.__kingbatTest.tipWorld());
-  await p.screenshot({ path: 'screenshots/spot-confirm-plant.png' });
+  const after = await k(p);
   clearInterval(watch);
-  log.push(['STAGE 1', { 미션칸_안내켬: barOn, 노란안내: [...toasts], 확정안내: got, 비춘곳: w, 화분과거리: w ? Math.round(Math.hypot(w.x - 450, w.y - 1000)) : null }]);
+  // STAGE 1 안내는 3개만 (11/10): 첫 확정 때는 안내 없이 점수만
+  log.push(['STAGE 1', { 미션칸_안내켬: barOn, 노란안내: [...toasts], 확정: after.score, 확정안내: after.tip }]);
   await p.close();
 }
 
