@@ -102,7 +102,7 @@ export class Blackout extends Phaser.Events.EventEmitter implements MissionTask 
       return this.phase === 'onFloor' ? BLACKOUT.lines.needCushion : `${e}: 배전반 내리기`;
     }
     if (this.phase === 'placing') return null;
-    if (this.carrying && this.nearChair(x, y)) return this.canPlace ? `${e}: 방석 깔기` : BLACKOUT.lines.needAway;
+    if (this.carrying && this.nearChair(x, y)) return this.canPlace ? `${e}: 방석 깔기` : this.dark > 0 ? BLACKOUT.lines.needAway : BLACKOUT.lines.needDark;
     return null;
   }
 
@@ -111,7 +111,7 @@ export class Blackout extends Phaser.Events.EventEmitter implements MissionTask 
     const s = (text: string, at: MissionStep['at'], icon: TextureKey = TEX.cushion, verb?: string) => ({ text: stepKey(text, touch, verb), at, icon });
     if (this.phase === 'onFloor') return s(S.pick, BLACKOUT.cushion);
     if (this.carrying) {
-      if (this.checking) return s(S.chair, BLACKOUT.chair, TEX.cushion, '깔기');
+      if (this.checking && this.dark > 0) return s(S.chair, BLACKOUT.chair, TEX.cushion, '깔기');
       return s(this.cool > 0 || this.dark > 0 ? S.cooling : S.panel, BLACKOUT.panel, TEX.powerPanel, '내리기');
     }
     if (this.phase === 'placing') return s(S.placing, null, TEX.cushion, '깔기');
@@ -132,7 +132,7 @@ export class Blackout extends Phaser.Events.EventEmitter implements MissionTask 
       if (this.nearPanel(x, y) && this.phase !== 'onFloor' && this.dark <= 0 && this.cool <= 0) this.cutPower();
       else if (this.carrying && this.nearChair(x, y)) {
         if (this.canPlace) this.startPlacing(player);
-        else popWord(this.scene, x, y - 110, BLACKOUT.lines.needAway, { color: '#5a3a4a', size: 18 });
+        else popWord(this.scene, x, y - 110, this.dark > 0 ? BLACKOUT.lines.needAway : BLACKOUT.lines.needDark, { color: '#5a3a4a', size: 18 });
       }
     }
 
@@ -177,7 +177,8 @@ export class Blackout extends Phaser.Events.EventEmitter implements MissionTask 
   // ---------------------------------------------------------------- 진행
 
   private get canPlace(): boolean {
-    return this.checking && this.target.awayFromSeat;
+    // 정전 중에만 (11/10): 불이 켜지면 못 깐다
+    return this.checking && this.target.awayFromSeat && this.dark > 0;
   }
 
   private pick(player: Player): void {
@@ -198,7 +199,7 @@ export class Blackout extends Phaser.Events.EventEmitter implements MissionTask 
     s.cameras.main.shake(180, 0.005);
     this.shade.setVisible(true).setAlpha(0);
     s.tweens.add({ targets: this.shade, alpha: 1, duration: 200 });
-    this.target.forceTrip(B.checkRoute);
+    this.target.forceTrip(B.checkRoute, true);
     this.target.view.say(B.lines.daepyoDark, 2);
     B.lines.voices.forEach((line, i) => s.time.delayedCall(500 + i * 1100, () => this.voice(line, i)));
     // 비서: 손전등을 켜고 문 앞으로 (길고 좁은 노란 시야)
@@ -215,6 +216,12 @@ export class Blackout extends Phaser.Events.EventEmitter implements MissionTask 
 
   private lightsOn(): void {
     this.dark = 0;
+    // 깔던 중이면 방석을 챙겨 물러난다 (들키진 않음). 다시 불을 꺼야 한다
+    if (this.phase === 'placing') {
+      this.phase = 'carrying';
+      this.endSwing();
+      popWord(this.scene, BLACKOUT.chair.x, BLACKOUT.chair.y - 100, BLACKOUT.lines.tooLate, { color: '#5a3a4a', size: 22 });
+    }
     this.cool = BLACKOUT.cooldown;
     this.scene.tweens.add({ targets: this.shade, alpha: 0, duration: 400, onComplete: () => this.shade.setVisible(false) });
     this.voice(BLACKOUT.lines.lightsOn, 0);

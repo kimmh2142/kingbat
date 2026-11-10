@@ -13,8 +13,11 @@ export const BLACKOUT = {
   pickRange: 70,
   panelRange: 80,
   chairRange: 95,
-  /** 정전 시간 (초) */
-  darkSeconds: 15,
+  /**
+   * 정전 시간 (초). 방석은 정전 중에만 깔 수 있어서 15→24 (11/10).
+   * 배전반→대표 의자 걸어서 약 12초(아래 출구·세로 복도·대표실 문, 약 2300px) + 흔들리는 방석 3번 약 4초 + 여유
+   */
+  darkSeconds: 24,
   /** 불이 켜진 뒤 다시 내릴 수 있을 때까지 (초) */
   cooldown: 8,
   /**
@@ -59,6 +62,8 @@ export const BLACKOUT = {
     voices: ['(7층) 동기: 어? 뭐야! 정전이야?', '(7층) 과장: 내 회의 자료!', '(7층) 부장: 누가 전원 껐어!!'],
     daepyoDark: '흠? 정전인가?',
     needAway: '대표가 자리를 비웠을 때!',
+    needDark: '불이 꺼져 있을 때만! 배전반부터',
+    tooLate: '불이 켜졌다! 방석 챙겨서 후퇴…',
     placing: '가운데 올 때 눌러!',
     hit: '딱!',
     miss: '삐끗!',

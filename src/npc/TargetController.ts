@@ -434,10 +434,14 @@ export class TargetController {
     this.timer = this.duration;
   }
 
-  /** 다음 업무가 끝나면 바로 이 길로 자리를 비운다 */
-  forceTrip(routeIndex: number): void {
+  /**
+   * 다음 업무가 끝나면 바로 이 길로 자리를 비운다.
+   * @param now 평소 업무 중이면 끝나길 기다리지 않고 바로 일어선다 (정전처럼 놀라서 나갈 때). 돌아보는 중이면 그건 마저 한다
+   */
+  forceTrip(routeIndex: number, now = false): void {
     this.forcedRoute = routeIndex;
     this.tripTimer = 0;
+    if (now && (this.state === 'work' || this.state === 'distracted')) this.enter('leaving');
   }
 
   /** 이번에 갈 곳 (routes가 없으면 path 하나) */
