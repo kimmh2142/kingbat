@@ -1,14 +1,14 @@
 import Phaser from 'phaser';
 
-// 배경 음악 (11/10 "귀엽고 통통거리는 느낌"): 소리 파일 없이 브라우저에서 합성하는 직접 작곡한 짧은 반복 곡.
-// 마림바 같은 통통 멜로디 + 뿅뿅 베이스 + 작은 찰칵 박자. C 장조, I–vi–IV–V 4마디 × 2 (뒤 4마디는 살짝 변형).
+// 배경 음악 (11/10 "귀엽고 통통거리는 느낌" → "더 신나게 + 8비트"): 소리 파일 없이 브라우저에서 합성하는 직접 작곡한 짧은 반복 곡.
+// 8비트 게임기 소리: 네모파(뿅뿅) 멜로디 + 삼각파 베이스 + 둠칫 북(쿵·칫). C 장조, I–vi–IV–V 4마디 × 2 (뒤 4마디는 살짝 변형).
 // 장면이 바뀌어도 끊기지 않게 게임 전체에서 하나만 돈다. 소리 끄기(🔊/🔇)는 이 기기에 저장한다.
 // 진짜 음악 파일이 생기면 'bgm' 키로 불러오면 그 파일을 대신 튼다.
 
 const MUTE_KEY = 'kingbat.sound.off';
-const BPM = 116;
+const BPM = 132;
 /** 퇴근 직전 등 급할 때 빠르기 */
-const BPM_FAST = 136;
+const BPM_FAST = 156;
 const VOL = 0.5;
 
 const N: Record<string, number> = {};
@@ -44,6 +44,7 @@ class BgmPlayer {
   private nextAt = 0;
   private fast = false;
   private game: Phaser.Game | null = null;
+  private noise: AudioBuffer | null = null;
   private fileSound: Phaser.Sound.BaseSound | null = null;
   muted = false;
 
@@ -112,22 +113,23 @@ class BgmPlayer {
     const note = MELODY[bar][i];
     // 통통 튀게: 박마다 살짝 앞당겼다 늦췄다 (스윙)
     const swing = i % 2 === 1 ? eighth * 0.12 : 0;
-    if (note) this.marimba(N[note], t + swing);
+    if (note) this.lead(N[note], t + swing, eighth);
     const bass = BASS[bar % BASS.length];
     if (i === 0) this.bass(N[bass[0]], t);
     if (i === 3) this.bass(N[bass[1]], t + swing);
     if (i === 4) this.bass(N[bass[0]], t);
-    // 뒷박 찰칵
-    if (i % 2 === 1) this.tick(t + swing);
+    // 둠칫: 1·3박 쿵, 2·4박 칫, 뒷박 작은 칫
+    if (i === 0 || i === 4) this.kick(t);
+    if (i === 2 || i === 6) this.snare(t, 0.09);
+    else if (i % 2 === 1) this.snare(t + swing, 0.025);
   }
 
-  /** 마림바 같은 통: 사인 + 옥타브 위 약하게, 빠르게 사라진다 */
-  private marimba(f: number, t: number): void {
-    this.tone(f, t, 0.22, 'sine', 0.16);
-    this.tone(f * 4, t, 0.05, 'sine', 0.03);
+  /** 8비트 뿅: 네모파, 음 길이의 70%만 울리고 끊는다 (통통 끊기는 맛) */
+  private lead(f: number, t: number, eighth: number): void {
+    this.tone(f, t, eighth * 0.7, 'square', 0.06);
   }
 
-  /** 뿅 베이스: 짧은 삼각파, 살짝 아래로 미끄러짐 */
+  /** 8비트 베이스: 짧은 삼각파, 살짝 아래로 미끄러짐 */
   private bass(f: number, t: number): void {
     this.tone(f, t, 0.16, 'triangle', 0.22, f * 0.94);
   }
@@ -147,9 +149,31 @@ class BgmPlayer {
     osc.stop(t + d + 0.02);
   }
 
-  /** 찰칵: 아주 짧은 높은 소리 */
-  private tick(t: number): void {
-    this.tone(3200, t, 0.03, 'square', 0.015);
+  /** 쿵: 높은 음에서 뚝 떨어지는 사인 */
+  private kick(t: number): void {
+    this.tone(160, t, 0.14, 'sine', 0.35, 45);
+  }
+
+  /** 칫: 짧은 잡음 */
+  private snare(t: number, vol: number): void {
+    const ctx = this.ctx!;
+    if (!this.noise) {
+      const len = Math.floor(ctx.sampleRate * 0.2);
+      this.noise = ctx.createBuffer(1, len, ctx.sampleRate);
+      const d = this.noise.getChannelData(0);
+      for (let k = 0; k < len; k++) d[k] = Math.random() * 2 - 1;
+    }
+    const src = ctx.createBufferSource();
+    src.buffer = this.noise;
+    const hp = ctx.createBiquadFilter();
+    hp.type = 'highpass';
+    hp.frequency.value = 2500;
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(vol, t);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + 0.07);
+    src.connect(hp).connect(g).connect(this.out!);
+    src.start(t);
+    src.stop(t + 0.08);
   }
 }
 
