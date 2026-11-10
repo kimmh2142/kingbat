@@ -26,6 +26,11 @@ export class GuideToast {
     return this.text.visible ? this.text.text : '';
   }
 
+  hide(): void {
+    this.tween?.remove();
+    this.text.setVisible(false);
+  }
+
   show(message: string, seconds = 3.5): void {
     this.tween?.remove();
     this.text.setText(message).setVisible(true).setAlpha(1).setScale(0.6);

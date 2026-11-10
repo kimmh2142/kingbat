@@ -42,9 +42,12 @@ import { Prompt } from '../ui/Prompt';
 import { ResultPanel, type ResultKind } from '../ui/ResultPanel';
 import { TargetArrow } from '../ui/TargetArrow';
 import { TargetIntro } from '../ui/TargetIntro';
-import { TipDialog } from '../ui/TipDialog';
+import { TipDialog, type TipSpot } from '../ui/TipDialog';
 import { VisionCone } from '../ui/VisionCone';
 import { TouchControls } from '../ui/TouchControls';
+
+/** 안내 때문에 카메라가 비출 곳으로 갔다 오는 시간 (ms) */
+const TIP_PAN_MS = 550;
 
 export class OfficeScene extends Phaser.Scene {
   /** 지금 스테이지 수치·대상 (data/stages.ts) */
@@ -118,6 +121,8 @@ export class OfficeScene extends Phaser.Scene {
   private thoughtShown = false;
   /** 튜토리얼 안내창 (멈추고 설명). 꺼져 있으면 예전처럼 단계 칸·짧은 안내만 */
   private tipDialog!: TipDialog;
+  /** 안내 때문에 카메라가 옮겨 가는 중('going')·가 있음('away')·돌아오는 중('back') */
+  private tipPan: 'going' | 'away' | 'back' | null = null;
   private tipsOn = true;
   private readonly tipQueue: TipId[] = [];
   private readonly tipsShown = new Set<TipId>();
@@ -152,6 +157,7 @@ export class OfficeScene extends Phaser.Scene {
     // STAGE 2부터는 첫 돌아봄 혼잣말 없이, 시작할 때 특별 미션 안내창만
     this.tipsOn = !tipsSetting.off && !(navigator.webdriver && !params.has('tips'));
     this.tipQueue.length = 0;
+    this.tipPan = null;
     this.tipsShown.clear();
     // 안내창이 꺼져 있을 때: 다시 도전이면 혼잣말은 이미 봤으니 생략
     this.thoughtShown = (!!data?.retry && !this.tipsOn) || !this.stage.tutorial;
@@ -272,6 +278,11 @@ export class OfficeScene extends Phaser.Scene {
           this.cameras.main.centerOn(x, y);
         },
         setRemaining: (seconds: number) => this.clock.setRemaining(seconds),
+        tipSpot: () => (this.tipDialog.current ? this.tipSpot(this.tipDialog.current as TipId) : null),
+        cameraOnPlayer: () => {
+          const follow = (this.cameras.main as unknown as { _follow: unknown })._follow;
+          return this.tipPan === null && follow === this.player.cameraTarget;
+        },
         giveItem: (id: string) => this.items.give(id as ItemId),
         forceGrab: () => {
           const d = this.patrolById('daeri');
@@ -476,7 +487,7 @@ export class OfficeScene extends Phaser.Scene {
 
   /** 시작 소개·컷인·실패 화면 때문에 게임이 멈춰 있음 */
   private get paused(): boolean {
-    return !!this.intro?.active || this.cutin.active || this.failed || this.cleared || this.tipDialog.active;
+    return !!this.intro?.active || this.cutin.active || this.failed || this.cleared || this.tipDialog.active || !!this.tipPan;
   }
 
   /** 머리 위 진행 원: 대리에게 붙잡혀 있는 동안 남은 시간(주황), 아이템 붙이는 중(분홍) */
@@ -522,7 +533,15 @@ export class OfficeScene extends Phaser.Scene {
     this.tipDialog = new TipDialog(this);
     this.items.on('picked', (id: ItemId) => id === 'postit' && this.tip('picked'));
     this.pranks.on('used', (id: ItemId) => id === 'postit' && this.tip('stuck'));
-    if (this.stage.tutorial) this.tip('goal');
+    // 시작 목표는 첫 포스트잇이 맵에 생기면 (1~2초 뒤) 그 포스트잇을 비추며
+    if (this.stage.tutorial) {
+      const onSpawn = (m: { id: ItemId }) => {
+        if (m.id !== 'postit') return;
+        this.items.off('spawned', onSpawn);
+        this.tip('goal');
+      };
+      this.items.on('spawned', onSpawn);
+    }
     else if (this.stage.mission.id !== 'parade') this.tip(this.stage.mission.id);
     const g = this.add.graphics();
     g.fillStyle(0xffeb3b, 0.45).fillEllipse(0, 0, 70, 30);
@@ -544,34 +563,80 @@ export class OfficeScene extends Phaser.Scene {
     this.tipQueue.push(id);
   }
 
+  /** 비출 곳으로 카메라가 갔다가, 닫으면 나에게 돌아온다 */
   private flushTips(): void {
     if (!this.tipsOn || this.paused || !this.tipQueue.length) return;
     const id = this.tipQueue.shift()!;
     this.poke.cancel(this.target);
-    this.tipDialog.current = id;
-    this.tipDialog.show(TIPS[id], this.controls.isTouch, this.tipFocus(id), (off) => {
-      if (!off) return;
-      tipsSetting.off = true;
-      this.tipsOn = false;
-      this.tipQueue.length = 0;
+    const show = () => {
+      this.guide.hide();
+      this.tipDialog.current = id;
+      this.tipDialog.show(TIPS[id], this.controls.isTouch, () => this.tipSpot(id), (off) => {
+        this.tipPanBack();
+        if (!off) return;
+        tipsSetting.off = true;
+        this.tipsOn = false;
+        this.tipQueue.length = 0;
+      });
+    };
+    // 비출 곳이 있으면 카메라가 그쪽을 가운데로 (가까우면 짧게). 시작 직후엔 카메라가 아직 나에게 오는 중일 수 있어 화면 안인지로 판단하지 않는다
+    const w = this.tipWorld(id);
+    if (!w) return show();
+    const cam = this.cameras.main;
+    const ms = Phaser.Math.Clamp(Phaser.Math.Distance.Between(cam.midPoint.x, cam.midPoint.y, w.x, w.y) / 1.6, 150, TIP_PAN_MS);
+    this.tipPan = 'going';
+    cam.stopFollow();
+    cam.pan(w.x, w.y, ms, 'Sine.easeInOut', true, (_c: Phaser.Cameras.Scene2D.Camera, p: number) => {
+      if (p < 1) return;
+      this.tipPan = 'away';
+      show();
     });
   }
 
-  /** 안내창이 가리킬 화면 좌표 */
-  private tipFocus(id: TipId): { x: number; y: number } | null {
-    if (id === 'temp') return this.hud.gaugeCenter;
-    const cam = this.cameras.main;
-    const at = (x: number, y: number) => {
-      const v = cam.worldView;
-      if (!v.contains(x, y)) return null;
-      return { x: (x - v.x) * cam.zoom, y: (y - v.y) * cam.zoom };
-    };
-    if (id === 'goal') {
-      const m = this.items.onMap.find((i) => i.id === 'postit');
-      return m ? at(m.spot.x, m.spot.y) : null;
+  /** 카메라가 안내 때문에 옮겨 가 있었으면 나에게 돌아온다 */
+  private tipPanBack(): void {
+    if (this.tipPan !== 'away') return;
+    this.tipPan = 'back';
+    const p = this.player.cameraTarget;
+    this.cameras.main.pan(p.x, p.y, TIP_PAN_MS, 'Sine.easeInOut', true, (_c: Phaser.Cameras.Scene2D.Camera, t: number) => {
+      if (t < 1) return;
+      this.tipPan = null;
+      this.followPlayer();
+    });
+  }
+
+  /** 안내가 비출 곳 (월드 좌표, 반지름). 화면에 고정된 곳(게이지)이면 null */
+  private tipWorld(id: TipId): { x: number; y: number; r: number } | null {
+    const t = this.target;
+    switch (id) {
+      case 'goal': {
+        const m = this.items.onMap.find((i) => i.id === 'postit');
+        return m ? { x: m.spot.x, y: m.spot.y - 10, r: 62 } : null;
+      }
+      case 'picked':
+        return { x: t.x, y: t.y - TIP_BACK_SPOT - 10, r: 66 };
+      case 'stuck':
+      case 'tell':
+        return { x: t.x, y: t.y - 50, r: 86 };
+      case 'confirmed':
+        return { x: this.map.mySeat.x, y: this.map.mySeat.y - 30, r: 82 };
+      case 'approval':
+        return { x: APPROVAL.paper.x, y: APPROVAL.paper.y - 20, r: 66 };
+      case 'blackout':
+        return { x: BLACKOUT.cushion.x, y: BLACKOUT.cushion.y - 20, r: 66 };
+      default:
+        return null;
     }
-    if (id === 'picked' || id === 'stuck' || id === 'tell') return at(this.target.x, this.target.y - 40);
-    return null;
+  }
+
+  /** 안내가 비출 곳 (화면 좌표). 움직이는 동기·카메라 이동을 따라 매 프레임 다시 계산 */
+  private tipSpot(id: TipId): TipSpot | null {
+    if (id === 'temp') return this.hud.gaugeRect;
+    const w = this.tipWorld(id);
+    if (!w) return null;
+    const cam = this.cameras.main;
+    const v = cam.worldView;
+    return { x: (w.x - v.x) * cam.zoom, y: (w.y - v.y) * cam.zoom, r: w.r * cam.zoom };
   }
 
   /** 포스트잇을 고르고 있고 동기가 자리에서 일하는 중이면 등 뒤 바닥에 "여기서 Z!" */
@@ -580,7 +645,7 @@ export class OfficeScene extends Phaser.Scene {
     const x = t.x;
     const y = t.y - TIP_BACK_SPOT;
     const on =
-      !this.paused &&
+      (!this.paused || this.tipDialog.current === 'picked') &&
       this.items.selectedItem === 'postit' &&
       !this.pranks.postitOn &&
       !this.pranks.active &&

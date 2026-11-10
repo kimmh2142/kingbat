@@ -34,16 +34,44 @@ const tapE = async (page) => {
 };
 const tp = (page, x, y) => page.evaluate(([a, b]) => window.__kingbatTest.teleport(a, b), [x, y]);
 
-// 1) 시작 안내창: STAGE 1 = goal, STAGE 2 = approval, STAGE 3 = blackout
+/** 스크린샷 픽셀 밝기 (R+G+B)/3. 이미지 미리보기는 어두운 막을 밝게 보여줄 때가 있어 값으로 확인한다 */
+const bright = async (p, pts) => {
+  const buf = await p.screenshot();
+  return p.evaluate(
+    async ([d, pts]) => {
+      const i = new Image();
+      i.src = 'data:image/png;base64,' + d;
+      await i.decode();
+      const c = document.createElement('canvas');
+      c.width = i.width;
+      c.height = i.height;
+      const x = c.getContext('2d');
+      x.drawImage(i, 0, 0);
+      return pts.map(([a, b]) => {
+        const v = x.getImageData(Math.round(a), Math.round(b), 1, 1).data;
+        return Math.round((v[0] + v[1] + v[2]) / 3);
+      });
+    },
+    [buf.toString('base64'), pts],
+  );
+};
+
+// 1) 시작 스포트라이트 안내: STAGE 1 = goal(포스트잇), STAGE 2 = approval(서류), STAGE 3 = blackout(방석).
+// 비출 곳이 화면 밖이면 카메라가 갔다가 닫으면 돌아온다. 원 안은 밝고 바깥(화면 귀퉁이)은 어두운지 픽셀로 확인
 const tips = {};
 for (const n of [1, 2, 3]) {
   const p = await open(`?stage=${n}&tips=1`);
-  tips[n] = (await k(p)).tip;
-  if (n > 1) await p.screenshot({ path: `screenshots/mission-tip-${n}.png` });
-  await p.waitForTimeout(1200);
+  const want = { 1: 'goal', 2: 'approval', 3: 'blackout' }[n];
+  await p.waitForFunction((w) => window.__kingbat?.tip === w, want, { timeout: 10000 });
+  await p.waitForTimeout(500);
+  const spot = await p.evaluate(() => window.__kingbatTest.tipSpot());
+  const [inside, corner] = await bright(p, [[spot.x, spot.y], [40, 200]]);
+  await p.screenshot({ path: `screenshots/spot-tip-${n}.png` });
+  await p.waitForTimeout(400);
   await p.keyboard.press('Space');
-  await p.waitForTimeout(300);
-  tips[`${n}닫힘`] = (await k(p)).tip === null || !(await p.evaluate(() => window.__kingbat.tip));
+  await p.waitForTimeout(1500);
+  const back = await p.evaluate(() => window.__kingbatTest.cameraOnPlayer());
+  tips[n] = { 안내: want, 원안밝기: inside, 바깥밝기: corner, 닫힘: !(await p.evaluate(() => window.__kingbat.tip)), 카메라복귀: back };
   await p.close();
 }
 log.push(['안내창', tips]);

@@ -100,6 +100,12 @@ export class HUD {
     return { x: this.barX + BAR_W / 2, y: this.barY + BAR_H / 2 };
   }
 
+  /** 킹받음 게이지와 옆 숫자를 감싸는 영역 (안내 스포트라이트용, 가운데 + 크기) */
+  get gaugeRect(): { x: number; y: number; w: number; h: number } {
+    const right = this.value.x + this.value.width;
+    return { x: (this.barX + right) / 2, y: this.barY + BAR_H / 2, w: right - this.barX, h: BAR_H + 8 };
+  }
+
   /** 미션 칸에 지금 보이는 글 (테스트용) */
   get missionLine(): string {
     return this.missionText.text;
