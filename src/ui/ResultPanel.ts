@@ -80,7 +80,7 @@ export class ResultPanel {
     this.rays(0xffffff, 0.45);
 
     // 킹받은 대상 얼굴 (크게, 부들부들)
-    const face = this.targetFace(250, 250, TEX.faceShock, true);
+    const face = this.targetFace(stage, 250, 250, TEX.faceShock, true);
     this.bubble(250, 96, stage.lines.clear);
     s.tweens.add({ targets: face, x: face.x + 3, duration: 45, yoyo: true, repeat: -1 });
 
@@ -135,7 +135,7 @@ export class ResultPanel {
     const info = this.info;
     this.add(s.add.rectangle(0, 0, GAME_WIDTH, GAME_HEIGHT, 0x2a1d24, 0.78).setOrigin(0));
     this.rays(0xff3d6e, 0.18);
-    this.targetFace(270, 270, TEX.faceSuspicious, false);
+    this.targetFace(info.stage, 270, 270, TEX.faceSuspicious, false);
     this.bubble(270, 110, info.stage.lines.caught);
     const cx = 650;
     this.stamp(cx, 140, '딱 걸렸다!', '#ff3d6e', -8);
@@ -177,13 +177,14 @@ export class ResultPanel {
     this.scene.tweens.add({ targets: t, scale: 1, alpha: 1, duration: 260, ease: 'Back.Out' });
   }
 
-  /** 대상 얼굴 크게 (머리 + 표정 + 분노 마크) */
-  private targetFace(x: number, y: number, face: string, angry: boolean): Phaser.GameObjects.Container {
+  /** 그 스테이지 공략 대상 크게 (몸 + 머리 + 표정 + 분노 마크) */
+  private targetFace(stage: StageConfig, x: number, y: number, face: string, angry: boolean): Phaser.GameObjects.Container {
     const s = this.scene;
+    const look = stage.target.appearance;
     const c = this.add(
       s.add.container(x, y, [
-        s.add.image(0, 60, TEX.dongiBody).setOrigin(0.5, 1),
-        s.add.image(0, 30, TEX.dongiHeadFront).setOrigin(0.5, 1),
+        s.add.image(0, 60, look.body).setOrigin(0.5, 1),
+        s.add.image(0, 30, look.headFront).setOrigin(0.5, 1),
         s.add.image(0, 6, face),
       ]),
     ) as Phaser.GameObjects.Container;
