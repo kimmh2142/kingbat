@@ -71,7 +71,8 @@ for (const n of [1, 2, 3]) {
   const inside = Math.max(...v.slice(0, 4));
   const corner = v[4];
   await p.screenshot({ path: `screenshots/spot-tip-${n}.png` });
-  await p.waitForTimeout(400);
+  // 뜬 직후 0.8초(게임 시간)는 입력을 안 받는다. STAGE 2·3은 헤드리스에서 게임 시간이 더 느리게 흘러 넉넉히
+  await p.waitForTimeout(2000);
   await p.keyboard.press('Space');
   await p.waitForTimeout(1500);
   const back = await p.evaluate(() => window.__kingbatTest.cameraOnPlayer());
@@ -144,7 +145,7 @@ log.push(['안내창', tips]);
   const steps = {};
   const waitTip = async (p, id) => p.waitForFunction((w) => window.__kingbat?.tip === w, id, { timeout: 15000 }).then(() => true, () => false);
   const close = async (p) => {
-    await p.waitForTimeout(1500);
+    await p.waitForTimeout(2500);
     await p.keyboard.press('Space');
     await p.waitForTimeout(1500);
   };
