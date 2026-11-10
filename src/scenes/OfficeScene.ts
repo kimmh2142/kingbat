@@ -7,6 +7,9 @@ import { Approval } from '../systems/Approval';
 import { BLACKOUT } from '../data/blackout';
 import { Blackout } from '../systems/Blackout';
 import { RunStats } from '../systems/RunStats';
+import { HrVisit } from '../systems/HrVisit';
+import { HR_VISIT } from '../data/hrVisit';
+import { INSA } from '../npc/patterns/insa';
 import { ENDING_STORY } from '../data/dialogue';
 import type { MissionTask } from '../systems/MissionTask';
 import { ITEM_RULES, ITEMS, type ItemId } from '../data/items';
@@ -87,6 +90,8 @@ export class OfficeScene extends Phaser.Scene {
   /** STAGE 2 특별 미션 "전 직원 칼퇴 승인서" (그 스테이지에만) */
   private approval: Approval | null = null;
   private blackout: Blackout | null = null;
+  /** STAGE 3 돌발 이벤트 인사팀 방문 */
+  private hrVisit: HrVisit | null = null;
   /** E로 하는 특별 미션 (승인서·대정전). 없으면 null */
   private task: MissionTask | null = null;
   /** 시작 타깃 소개 (끝나면 null) */
@@ -126,6 +131,7 @@ export class OfficeScene extends Phaser.Scene {
     this.approval = null;
     this.blackout = null;
     this.task = null;
+    this.hrVisit = null;
     this.failed = false;
     this.result = null;
     this.tapped = false;
@@ -166,6 +172,14 @@ export class OfficeScene extends Phaser.Scene {
 
     // 방해 NPC (STAGE 1 대리 김카페, STAGE 2 + 차장 오의심): 자리 ↔ 목적지 왕복, 걸을 때 바닥에 시야 부채꼴
     this.patrols = this.stage.patrols.map((p) => new PatrolController(this, p, this.map.desks.find((d) => d.owner === p.id)!));
+    // STAGE 3 인사팀: 평소엔 숨어 있다가 방문 때만 나타나는 순찰 NPC (들킴·시야·미니맵은 다른 순찰과 같이)
+    if (this.stage.hrVisit) {
+      const others = [...this.patrols];
+      const hr = new PatrolController(this, INSA, HR_VISIT.desk);
+      this.patrols.push(hr);
+      this.hrVisit = new HrVisit(this, hr, others);
+      this.hrVisit.on('ding', () => this.guide.show(HR_VISIT.lines.dingToast, 3));
+    }
 
     this.score = new Score();
     this.poke = new Poke(this, this.score);
@@ -262,6 +276,8 @@ export class OfficeScene extends Phaser.Scene {
         },
         addScore: (points: number) => this.score.addConfirmed(points),
         completeMission: () => this.completeMission(),
+        hrNow: () => this.hrVisit?.startNow(),
+        addTemp: (points: number) => this.score.addTemp(points),
         // 결과 화면 확인용: 하트를 다 잃은 것처럼
         loseAll: () => {
           this.life.lose('turned');
@@ -338,6 +354,7 @@ export class OfficeScene extends Phaser.Scene {
       this.hide.update(dt, this.controls.hideHeld && !grabbed, this.player, this.map, this.poke.active || this.pranks.active || eForMission);
       this.target.update(dt);
       for (const p of this.patrols) p.update(dt);
+      this.hrVisit?.update(dt, (this.blackout?.dark ?? 0) > 0);
       this.extras.update(dt, this.player);
       this.checkCaught();
       // 컷인·실패 화면 동안은 퇴근 시계도 멈춘다
@@ -349,7 +366,7 @@ export class OfficeScene extends Phaser.Scene {
     const t = this.target;
     const looking = t.state === 'look' || t.state === 'react';
     this.targetCone.update(dt, looking ? { x: t.x, y: t.y, dir: t.lookDir, ...t.pattern.look } : null);
-    this.patrols.forEach((p, i) => this.patrolCones[i].update(dt, p.cone));
+    this.patrols.forEach((p, i) => this.patrolCones[i].update(dt, p.cone, p.coneColor));
     this.drawGrabRing();
     this.targetArrow.update(this.cameras.main, this.paused ? null : this.target);
     this.itemArrow.update(this.cameras.main, this.paused ? null : this.firstItemToFind());
@@ -376,9 +393,9 @@ export class OfficeScene extends Phaser.Scene {
       {
         player: this.player,
         target: this.target,
-        patrols: this.patrols,
+        patrols: this.patrols.filter((p) => !p.hidden),
         // 미니맵 밑에 들어가면 흐려지게: 나·대상·방해 NPC
-        people: [this.player, this.target, ...this.patrols],
+        people: [this.player, this.target, ...this.patrols.filter((p) => !p.hidden)],
         items: this.items.onMap.map((m) => m.spot),
         view: this.cameras.main.worldView,
       },
@@ -404,6 +421,7 @@ export class OfficeScene extends Phaser.Scene {
       mission: this.missionDone,
       approval: this.approval ? { phase: this.approval.phase, seq: [...this.approval.seq], index: this.approval.index } : null,
       blackout: this.blackout ? { phase: this.blackout.phase, dark: this.blackout.dark } : null,
+      hr: this.hrVisit ? { phase: this.hrVisit.phase, timer: this.hrVisit.timer } : null,
       tutorial: { step: this.tutorial.current, line: this.hud.missionLine },
       thought: !!this.thought,
       tip: this.tipDialog.current,
@@ -577,7 +595,7 @@ export class OfficeScene extends Phaser.Scene {
 
   /** STAGE 3 대정전과 최후의 방석: 대표가 돌아와 앉으면 뿌우우욱 → 성공 */
   private setupBlackout(): void {
-    this.blackout = new Blackout(this, this.target);
+    this.blackout = new Blackout(this, this.target, this.patrolById('biseo'));
     this.setupTask(this.blackout, BLACKOUT.lines.picked);
   }
 
@@ -752,7 +770,8 @@ export class OfficeScene extends Phaser.Scene {
     // 순찰 중인 방해 NPC 시야 (바닥 부채꼴)
     const seen = this.patrols.find((p) => p.canSee(x, y));
     // 비서에게 보이면 원인 문구도 비서 전용
-    if (seen) return this.onCaught(sticking ? stickReason : seen.pattern.id === 'biseo' ? 'secretary' : 'escaping', seen);
+    const seenReason: CaughtReasonId = seen?.pattern.id === 'biseo' ? 'secretary' : seen?.pattern.id === 'insa' ? 'hr' : 'escaping';
+    if (seen) return this.onCaught(sticking ? stickReason : seenReason, seen);
   }
 
   /** 들킴: 임시 점수 소멸 → 컷인(하트 -1) → 하트가 없으면 실패 화면 */
@@ -855,7 +874,7 @@ export class OfficeScene extends Phaser.Scene {
   /** 확인용 방해 NPC 상태 */
   private patrolInfo(p: PatrolController | undefined) {
     if (!p) return undefined;
-    return { kind: p.grabKind, state: p.state, x: Math.round(p.x), y: Math.round(p.y), route: p.routeIndex };
+    return { kind: p.grabKind, state: p.state, x: Math.round(p.x), y: Math.round(p.y), route: p.routeIndex, hidden: p.hidden, range: p.vision.range };
   }
 
   private setupDebug(): void {

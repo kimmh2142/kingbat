@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import { TEX } from '../assets/keys';
 import { FONT, GAME_HEIGHT, GAME_WIDTH } from '../config';
 import { BLACKOUT } from '../data/blackout';
+import type { PatrolController } from '../npc/PatrolController';
 import type { TargetController } from '../npc/TargetController';
 import type { Player } from '../player/Player';
 import { popWord } from '../ui/Popups';
@@ -37,6 +38,8 @@ export class Blackout extends Phaser.Events.EventEmitter implements MissionTask 
   constructor(
     private readonly scene: Phaser.Scene,
     private readonly target: TargetController,
+    /** 정전 중 손전등을 켜는 비서 (없으면 손전등 없음) */
+    private readonly secretary?: PatrolController,
   ) {
     super();
     const B = BLACKOUT;
@@ -165,6 +168,14 @@ export class Blackout extends Phaser.Events.EventEmitter implements MissionTask 
     this.target.forceTrip(B.checkRoute);
     this.target.view.say(B.lines.daepyoDark, 2);
     B.lines.voices.forEach((line, i) => s.time.delayedCall(500 + i * 1100, () => this.voice(line, i)));
+    // 비서: 손전등을 켜고 문 앞으로 (길고 좁은 노란 시야)
+    const sec = this.secretary;
+    if (sec) {
+      sec.visionOverride = B.flashlight.vision;
+      sec.coneColorOverride = B.flashlight.color;
+      sec.goNow(B.flashlight.route);
+      sec.view.say(B.flashlight.line, 2.5);
+    }
     this.emit('sheet');
     this.emit('dark', true);
   }
@@ -174,6 +185,10 @@ export class Blackout extends Phaser.Events.EventEmitter implements MissionTask 
     this.cool = BLACKOUT.cooldown;
     this.scene.tweens.add({ targets: this.shade, alpha: 0, duration: 400, onComplete: () => this.shade.setVisible(false) });
     this.voice(BLACKOUT.lines.lightsOn, 0);
+    if (this.secretary) {
+      this.secretary.visionOverride = undefined;
+      this.secretary.coneColorOverride = undefined;
+    }
     this.emit('dark', false);
   }
 

@@ -22,14 +22,15 @@ export class VisionCone {
 
   constructor(
     scene: Phaser.Scene,
-    private readonly color = 0xe53935,
+    private color = 0xe53935,
   ) {
     this.g = scene.add.graphics().setDepth(DEPTH.floor + 6);
   }
 
   /** shape가 null이면 서서히 사라진다 */
-  update(dt: number, shape: ConeShape | null): void {
+  update(dt: number, shape: ConeShape | null, color?: number): void {
     if (shape) this.last = shape;
+    if (color !== undefined) this.color = color;
     // 켜질 땐 빠르게, 꺼질 땐 조금 남았다가 사라지게
     this.alpha = Phaser.Math.Linear(this.alpha, shape ? 1 : 0, Math.min(1, dt * (shape ? 18 : 8)));
     this.g.clear();

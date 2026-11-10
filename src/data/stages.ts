@@ -4,6 +4,7 @@ import { DONGI } from '../npc/patterns/dongi';
 import { BISEO } from '../npc/patterns/biseo';
 import { CHAJANG } from '../npc/patterns/chajang';
 import { DAEPYO } from '../npc/patterns/daepyo';
+import { ISA } from '../npc/patterns/isa';
 import { DAERI } from '../npc/patterns/daeri';
 import { GWAJANG } from '../npc/patterns/gwajang';
 import type { PatrolPattern, TargetPattern } from '../npc/types';
@@ -29,6 +30,8 @@ export interface StageConfig {
   urgentAt: number;
   /** 특별 미션 (클리어 조건: 킹받음 100 확정 + 미션 성공). id로 어떤 미션 판정을 쓸지 고른다 */
   mission: { id: 'parade' | 'approval' | 'blackout'; name: string; goal: string; points: number };
+  /** 돌발 이벤트 "인사팀 방문" (STAGE 3) */
+  hrVisit?: boolean;
   /** 튜토리얼 스테이지 (단계 안내 칸·속마음 안내창). STAGE 1만 */
   tutorial: boolean;
   /** 결과 화면 대사 */
@@ -84,7 +87,8 @@ export const STAGES: Record<number, StageConfig> = {
     label: 'STAGE 3 · 대표 나대표',
     floor: FLOOR_8F,
     target: DAEPYO,
-    patrols: [BISEO],
+    patrols: [BISEO, ISA],
+    hrVisit: true,
     timeLimit: 300,
     clockStart: 17 * 60 + 55,
     clockEnd: 18 * 60,

@@ -18,6 +18,7 @@ interface Window {
     mission?: boolean;
     approval?: { phase: string; seq: string[]; index: number } | null;
     blackout?: { phase: string; dark: number } | null;
+    hr?: { phase: string; timer: number } | null;
     /** 단계 안내: 지금 단계 id(다 끝나면 null)와 미션 칸 글 */
     tutorial?: { step: string | null; line: string };
     thought?: boolean;
@@ -42,7 +43,7 @@ interface Window {
       guide?: string;
     };
   };
-  __kingbatTest?: { teleport(x: number, y: number): void; setRemaining(seconds: number): void; forceGrab(): void; calmDaeri(): void; addScore(points: number): void; completeMission(): void; loseAll(): void; giveItem(id: string): boolean };
+  __kingbatTest?: { teleport(x: number, y: number): void; setRemaining(seconds: number): void; forceGrab(): void; calmDaeri(): void; addScore(points: number): void; completeMission(): void; hrNow(): void; addTemp(points: number): void; loseAll(): void; giveItem(id: string): boolean };
   __kingbatTexture?: (key: string) => string;
   __kingbatStory?: { step(): number; shot(): string | null; total: number; typing(): boolean };
   __kingbatTitle?: { howToOpen(): boolean; howToPage(): number; selected(): number; tipsOn(): boolean };

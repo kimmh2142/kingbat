@@ -63,6 +63,15 @@ export class PatrolController {
   grabCooldown = 0;
   /** 이번에 옆을 지나가며 이미 붙잡을지 굴려 봤는가 (한 번 지나갈 때 한 번만) */
   private grabRolled = false;
+  /** 맵에 없는 상태 (인사팀: 방문할 때만 나타난다). 숨어 있으면 시야·업데이트 없음 */
+  hidden = false;
+  /** 자리로 돌아오면 사라진다 (인사팀: 엘리베이터로 돌아감) */
+  vanishAtSeat = false;
+  /** 시야·부채꼴 색 덮어쓰기 (정전 중 비서 손전등) */
+  visionOverride?: PatrolPattern['vision'];
+  coneColorOverride?: number;
+  /** 다음에 갈 경로를 정해 둔다 (없으면 비중대로) */
+  private forcedRoute: number | null = null;
 
   constructor(
     scene: Phaser.Scene,
@@ -95,18 +104,46 @@ export class PatrolController {
 
   /** 지금 시야가 있는가 (자리에서 일할 땐 없음) */
   get watching(): boolean {
-    return this.state === 'go' || this.state === 'stay' || this.state === 'return';
+    return !this.hidden && (this.state === 'go' || this.state === 'stay' || this.state === 'return');
+  }
+
+  get vision(): PatrolPattern['vision'] {
+    return this.visionOverride ?? this.pattern.vision;
+  }
+
+  get coneColor(): number {
+    return this.coneColorOverride ?? this.pattern.coneColor;
   }
 
   /** 바닥에 그릴 시야. 시야가 없으면 null */
   get cone(): ConeShape | null {
-    if (!this.watching && this.state !== 'react') return null;
-    return { x: this.pos.x, y: this.pos.y, dir: this.dir, ...this.pattern.vision };
+    if (this.hidden || (!this.watching && this.state !== 'react')) return null;
+    return { x: this.pos.x, y: this.pos.y, dir: this.dir, ...this.vision };
+  }
+
+  /** 자리에서 일하는 중이면 바로 이 경로로 나선다 (비서: 정전 때 문 앞, 인사팀: 방문) */
+  goNow(routeIndex: number): void {
+    this.forcedRoute = routeIndex;
+    if (this.state === 'work') this.timer = 0;
+  }
+
+  /** 숨어 있던 NPC가 나타나 바로 이 경로로 나선다 (인사팀) */
+  appear(routeIndex: number): void {
+    this.hidden = false;
+    this.view.setVisible(true);
+    this.enter('work');
+    this.goNow(routeIndex);
+  }
+
+  /** 맵에서 사라진다 */
+  vanish(): void {
+    this.hidden = true;
+    this.view.setVisible(false);
   }
 
   canSee(x: number, y: number): boolean {
     if (!this.watching) return false;
-    const V = this.pattern.vision;
+    const V = this.vision;
     const dx = x - this.pos.x;
     const dy = y - this.pos.y;
     const dist = Math.hypot(dx, dy);
@@ -188,6 +225,7 @@ export class PatrolController {
   update(dt: number): void {
     this.grabCooldown = Math.max(0, this.grabCooldown - dt);
     this.stopCooldown = Math.max(0, this.stopCooldown - dt);
+    if (this.hidden) return;
     if (this.state === 'go' || this.state === 'return') {
       this.walk(dt);
     } else {
@@ -255,7 +293,10 @@ export class PatrolController {
   private walk(dt: number): void {
     const target = this.path[this.pathIndex];
     if (!target) {
-      this.enter(this.state === 'go' ? 'stay' : 'work');
+      const back = this.state === 'return';
+      this.enter(back ? 'work' : 'stay');
+      // 인사팀: 엘리베이터로 돌아오면 사라진다
+      if (back && this.vanishAtSeat) this.vanish();
       return;
     }
     const dx = target.x - this.pos.x;
@@ -277,6 +318,11 @@ export class PatrolController {
   }
 
   private pickRoute(): number {
+    if (this.forcedRoute !== null) {
+      const i = this.forcedRoute;
+      this.forcedRoute = null;
+      return i;
+    }
     const routes = this.pattern.routes;
     let r = Math.random() * routes.reduce((s, x) => s + x.weight, 0);
     for (let i = 0; i < routes.length; i++) {

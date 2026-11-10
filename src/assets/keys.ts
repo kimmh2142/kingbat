@@ -55,6 +55,18 @@ export const TEX = {
   biseoHeadFront: 'biseo_head_front',
   biseoHeadBack: 'biseo_head_back',
 
+  // 이사 엄감시 (STAGE 3 방해 NPC)
+  isaBody: 'isa_body',
+  isaBodyBack: 'isa_body_back',
+  isaHeadFront: 'isa_head_front',
+  isaHeadBack: 'isa_head_back',
+
+  // 인사팀 (STAGE 3 돌발 방문)
+  insaBody: 'insa_body',
+  insaBodyBack: 'insa_body_back',
+  insaHeadFront: 'insa_head_front',
+  insaHeadBack: 'insa_head_back',
+
   // 신입 (엔딩)
   newbieBody: 'newbie_body',
   newbieBodyBack: 'newbie_body_back',

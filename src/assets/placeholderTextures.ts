@@ -559,6 +559,110 @@ const DEFS: Record<TextureKey, { w: number; h: number; draw: Draw }> = {
       g.lineStyle(2, 0x3d3d52).lineBetween(14, 44, 44, 44);
     },
   },
+  // ------------------------------------------------------------ 이사 엄감시
+  [TEX.isaBody]: {
+    // 짙은 초록 정장 + 회중시계 줄
+    w: 44,
+    h: 40,
+    draw: (g, w) => {
+      g.fillStyle(0x2e3b32).fillRect(12, 26, w - 24, 8);
+      g.fillStyle(0x1c241f).fillRect(12, 34, 8, 5).fillRect(w - 20, 34, 8, 5);
+      g.fillStyle(0x3d5a45).fillRoundedRect(6, 1, w - 12, 27, 7);
+      g.lineStyle(LINE, O).strokeRoundedRect(6, 1, w - 12, 27, 7);
+      g.fillStyle(0xffffff).fillTriangle(w / 2 - 6, 2, w / 2 + 6, 2, w / 2, 12);
+      g.fillStyle(0x1c241f).fillTriangle(w / 2 - 3, 7, w / 2 + 3, 7, w / 2, 22);
+      g.lineStyle(2, 0xffd54f).beginPath().arc(w / 2 + 8, 16, 6, 0.2, Math.PI - 0.2).strokePath();
+    },
+  },
+  [TEX.isaBodyBack]: {
+    w: 44,
+    h: 40,
+    draw: (g, w) => {
+      g.fillStyle(0x2e3b32).fillRect(12, 26, w - 24, 8);
+      g.fillStyle(0x1c241f).fillRect(12, 34, 8, 5).fillRect(w - 20, 34, 8, 5);
+      g.fillStyle(0x34503c).fillRoundedRect(6, 1, w - 12, 27, 7);
+      g.lineStyle(LINE, O).strokeRoundedRect(6, 1, w - 12, 27, 7);
+    },
+  },
+  [TEX.isaHeadFront]: {
+    // 뾰족한 회색 가르마 + 외알 안경
+    w: 58,
+    h: 56,
+    draw: (g) => {
+      g.fillStyle(0xfbe0cb).fillCircle(29, 33, 21);
+      g.lineStyle(LINE, O).strokeCircle(29, 33, 21);
+      g.fillStyle(0xfbe0cb).fillCircle(8, 36, 5).fillCircle(50, 36, 5);
+      g.lineStyle(2, O).strokeCircle(8, 36, 5).strokeCircle(50, 36, 5);
+      g.fillStyle(0x757575).slice(29, 33, 22, Math.PI * 1.0, Math.PI * 2.0, false).fillPath();
+      g.fillStyle(0x757575).fillTriangle(10, 30, 16, 14, 22, 26);
+      g.lineStyle(3, 0xffd54f).strokeCircle(37, 34, 7);
+      g.lineStyle(1, 0xffd54f).lineBetween(44, 36, 46, 50);
+    },
+  },
+  [TEX.isaHeadBack]: {
+    w: 58,
+    h: 56,
+    draw: (g) => {
+      g.fillStyle(0xfbe0cb).fillCircle(8, 36, 5).fillCircle(50, 36, 5);
+      g.lineStyle(2, O).strokeCircle(8, 36, 5).strokeCircle(50, 36, 5);
+      g.fillStyle(0x757575).fillCircle(29, 33, 21);
+      g.lineStyle(LINE, O).strokeCircle(29, 33, 21);
+    },
+  },
+  // ------------------------------------------------------------ 인사팀
+  [TEX.insaBody]: {
+    // 베이지 정장 + 목걸이 사원증 + 클립보드
+    w: 44,
+    h: 40,
+    draw: (g, w) => {
+      g.fillStyle(0x8d7b68).fillRect(12, 26, w - 24, 8);
+      g.fillStyle(0x5d4e40).fillRect(12, 34, 8, 5).fillRect(w - 20, 34, 8, 5);
+      g.fillStyle(0xd7c4a8).fillRoundedRect(7, 1, w - 14, 27, 8);
+      g.lineStyle(LINE, O).strokeRoundedRect(7, 1, w - 14, 27, 8);
+      g.lineStyle(2, 0xe53935).lineBetween(w / 2 - 6, 2, w / 2, 14).lineBetween(w / 2 + 6, 2, w / 2, 14);
+      g.fillStyle(0xffffff).fillRect(w / 2 - 4, 14, 8, 9);
+      g.lineStyle(2, O).strokeRect(w / 2 - 4, 14, 8, 9);
+      g.fillStyle(0x8d6e63).fillRect(w - 16, 8, 10, 14);
+      g.fillStyle(0xffffff).fillRect(w - 14, 10, 6, 10);
+    },
+  },
+  [TEX.insaBodyBack]: {
+    w: 44,
+    h: 40,
+    draw: (g, w) => {
+      g.fillStyle(0x8d7b68).fillRect(12, 26, w - 24, 8);
+      g.fillStyle(0x5d4e40).fillRect(12, 34, 8, 5).fillRect(w - 20, 34, 8, 5);
+      g.fillStyle(0xc9b495).fillRoundedRect(7, 1, w - 14, 27, 8);
+      g.lineStyle(LINE, O).strokeRoundedRect(7, 1, w - 14, 27, 8);
+    },
+  },
+  [TEX.insaHeadFront]: {
+    // 꽉 묶은 똥머리 + 네모 안경
+    w: 58,
+    h: 56,
+    draw: (g) => {
+      g.fillStyle(0x4e342e).fillCircle(29, 9, 8);
+      g.lineStyle(2, O).strokeCircle(29, 9, 8);
+      g.fillStyle(0xfbe0cb).fillCircle(29, 33, 21);
+      g.lineStyle(LINE, O).strokeCircle(29, 33, 21);
+      g.fillStyle(0xfbe0cb).fillCircle(8, 36, 5).fillCircle(50, 36, 5);
+      g.lineStyle(2, O).strokeCircle(8, 36, 5).strokeCircle(50, 36, 5);
+      g.fillStyle(0x4e342e).slice(29, 33, 22, Math.PI * 1.05, Math.PI * 1.95, false).fillPath();
+      g.lineStyle(2, O).strokeRect(15, 30, 11, 8).strokeRect(32, 30, 11, 8).lineBetween(26, 33, 32, 33);
+    },
+  },
+  [TEX.insaHeadBack]: {
+    w: 58,
+    h: 56,
+    draw: (g) => {
+      g.fillStyle(0xfbe0cb).fillCircle(8, 36, 5).fillCircle(50, 36, 5);
+      g.lineStyle(2, O).strokeCircle(8, 36, 5).strokeCircle(50, 36, 5);
+      g.fillStyle(0x4e342e).fillCircle(29, 33, 21);
+      g.lineStyle(LINE, O).strokeCircle(29, 33, 21);
+      g.fillStyle(0x4e342e).fillCircle(29, 9, 8);
+      g.lineStyle(2, O).strokeCircle(29, 9, 8);
+    },
+  },
   // ------------------------------------------------------------ 신입 (엔딩)
   [TEX.newbieBody]: {
     // 노란 카디건 + 새싹 초보 배지 + 사원증

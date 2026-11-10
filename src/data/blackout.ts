@@ -21,6 +21,13 @@ export const BLACKOUT = {
   placeTime: 1.0,
   /** 까는 중 대표가 돌아오는 길이면 이 거리 안에서 들킨다 */
   walkSeeRange: 220,
+  /** 정전 중 비서 손전등: 문 앞(비서 routes 0)으로 나와 길고 좁은 노란 빛으로 비춘다 */
+  flashlight: {
+    vision: { range: 300, halfAngleDeg: 22, nearRadius: 50 },
+    color: 0xfff176,
+    route: 0,
+    line: '(손전등 탁) 대표님, 괜찮으세요?',
+  },
   /** 정전 때 대표가 가는 곳 (대표 trip.routes 순서, 3 = 정전 확인) */
   checkRoute: 3,
   lines: {

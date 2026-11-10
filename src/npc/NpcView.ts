@@ -174,6 +174,15 @@ export class NpcView {
   }
 
   /** 컷신에서 장면을 바꿀 때 */
+  /** 통째로 보이기·숨기기 (인사팀처럼 잠깐 나타나는 사람) */
+  setVisible(on: boolean): void {
+    this.root.setVisible(on);
+    this.hands.setVisible(on);
+    this.label.setVisible(on && !!this.look.rank);
+    if (!on) this.anger.setVisible(false);
+    this.marker?.setVisible(on);
+  }
+
   destroy(): void {
     for (const o of [this.root, this.hands, this.label, this.anger, this.marker]) o?.destroy();
   }
