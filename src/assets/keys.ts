@@ -55,6 +55,12 @@ export const TEX = {
   biseoHeadFront: 'biseo_head_front',
   biseoHeadBack: 'biseo_head_back',
 
+  // 신입 (엔딩)
+  newbieBody: 'newbie_body',
+  newbieBodyBack: 'newbie_body_back',
+  newbieHeadFront: 'newbie_head_front',
+  newbieHeadBack: 'newbie_head_back',
+
   // 차장 오의심 (STAGE 2 방해 NPC)
   chajangBody: 'chajang_body',
   chajangBodyBack: 'chajang_body_back',

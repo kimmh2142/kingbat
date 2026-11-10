@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import { FINAL_ASSETS } from '../assets/manifest';
 import { generatePlaceholders } from '../assets/placeholderTextures';
 import { STAGES, stageFromUrl } from '../data/stages';
+import { ENDING_STORY } from '../data/dialogue';
 
 export class BootScene extends Phaser.Scene {
   constructor() {
@@ -23,6 +24,10 @@ export class BootScene extends Phaser.Scene {
     const params = new URLSearchParams(location.search);
     // ?stage=N: 타이틀·도입 컷신 없이 그 스테이지부터 (연습·개발용). 아직 없는 스테이지면 예고 화면
     // ?stage=N&story=1: 그 스테이지 도입 컷신부터
+    if (params.has('ending')) {
+      this.scene.start(params.get('ending') === 'result' ? 'Ending' : 'Story', { stage: ENDING_STORY });
+      return;
+    }
     const stage = stageFromUrl();
     if (stage !== null) {
       if (!STAGES[stage]) this.scene.start('ComingSoon', { stage });

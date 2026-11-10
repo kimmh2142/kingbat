@@ -93,7 +93,7 @@ export const STAGES: Record<number, StageConfig> = {
     mission: { id: 'blackout', name: '대정전과 최후의 방석', goal: '배전반을 내리고 대표 의자에 방귀 방석을', points: 30 },
     lines: {
       clear: '누가…… 이런 짓을……!',
-      next: '축하합니다! 당신이 새로운 대표가 되었습니다!',
+      next: '대표 공략 성공! 이제 마지막 이야기',
       clearMe: '아… 아닙니다!',
       caught: '자네, 오늘이 마지막 출근인가?',
     },

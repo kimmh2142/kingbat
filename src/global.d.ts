@@ -42,10 +42,11 @@ interface Window {
       guide?: string;
     };
   };
-  __kingbatTest?: { teleport(x: number, y: number): void; setRemaining(seconds: number): void; forceGrab(): void; calmDaeri(): void; addScore(points: number): void; loseAll(): void; giveItem(id: string): boolean };
+  __kingbatTest?: { teleport(x: number, y: number): void; setRemaining(seconds: number): void; forceGrab(): void; calmDaeri(): void; addScore(points: number): void; completeMission(): void; loseAll(): void; giveItem(id: string): boolean };
   __kingbatTexture?: (key: string) => string;
   __kingbatStory?: { step(): number; shot(): string | null; total: number; typing(): boolean };
   __kingbatTitle?: { howToOpen(): boolean; howToPage(): number; selected(): number; tipsOn(): boolean };
   /** STAGE 2 예고 화면이 떠 있음 */
   __kingbatComingSoon?: boolean;
+  __kingbatEnding?: { total: number; caught: number; stars: number; records: number };
 }

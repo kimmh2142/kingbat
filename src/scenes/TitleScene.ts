@@ -6,6 +6,7 @@ import { DONGI } from '../npc/patterns/dongi';
 import { popWord } from '../ui/Popups';
 import { tipsSetting } from '../systems/Tutorial';
 import { HowToPanel } from '../ui/HowToPanel';
+import { RunStats } from '../systems/RunStats';
 
 interface MenuButton {
   root: Phaser.GameObjects.Container;
@@ -96,7 +97,8 @@ export class TitleScene extends Phaser.Scene {
   }
 
   private startGame(): void {
-    // 도입 컷신 → 게임 (컷신에서 건너뛰기 가능)
+    // 도입 컷신 → 게임 (컷신에서 건너뛰기 가능). 새로 출근하니 기록은 처음부터
+    RunStats.reset();
     this.scene.start('Story', { stage: 1 });
   }
 

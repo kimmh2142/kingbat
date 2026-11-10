@@ -6,6 +6,8 @@ import { APPROVAL } from '../data/approval';
 import { Approval } from '../systems/Approval';
 import { BLACKOUT } from '../data/blackout';
 import { Blackout } from '../systems/Blackout';
+import { RunStats } from '../systems/RunStats';
+import { ENDING_STORY } from '../data/dialogue';
 import type { MissionTask } from '../systems/MissionTask';
 import { ITEM_RULES, ITEMS, type ItemId } from '../data/items';
 import { nextStage, STAGES, type StageConfig } from '../data/stages';
@@ -259,6 +261,7 @@ export class OfficeScene extends Phaser.Scene {
           }
         },
         addScore: (points: number) => this.score.addConfirmed(points),
+        completeMission: () => this.completeMission(),
         // 결과 화면 확인용: 하트를 다 잃은 것처럼
         loseAll: () => {
           this.life.lose('turned');
@@ -800,6 +803,14 @@ export class OfficeScene extends Phaser.Scene {
     this.sfx.play('clear');
     this.target.view.setPose({ face: TEX.faceShock });
     this.target.view.say(this.stage.lines.clear, 3);
+    RunStats.record({
+      stage: this.stage.id,
+      confirmed: this.score.confirmed,
+      caught: this.caughtCount,
+      caughtBy: { ...this.life.caughtBy },
+      seconds: Math.round(this.stage.timeLimit - this.clock.remaining),
+      hearts: this.life.hearts,
+    });
     this.showResult('clear');
   }
 
@@ -824,11 +835,10 @@ export class OfficeScene extends Phaser.Scene {
       },
       () => this.retry(),
       () => this.scene.start('Title'),
-      // 다음 스테이지가 아직 없으면 예고 화면으로
+      // 마지막 스테이지 다음은 엔딩 컷신
       () => {
         const next = nextStage(this.stage.id);
-        if (next === null) this.scene.start('ComingSoon');
-        else this.scene.start('Story', { stage: next });
+        this.scene.start('Story', { stage: next ?? ENDING_STORY });
       },
     );
   }

@@ -2,7 +2,7 @@ import Phaser from 'phaser';
 import { TEX } from '../assets/keys';
 import { COLORS, FONT, GAME_HEIGHT, GAME_WIDTH } from '../config';
 import { CAUGHT_REASONS, type CaughtReasonId } from '../data/caughtReasons';
-import type { StageConfig } from '../data/stages';
+import { nextStage, type StageConfig } from '../data/stages';
 import { DEPTH } from '../systems/OfficeMap';
 
 export type ResultKind = 'clear' | 'overtime' | 'caught';
@@ -93,9 +93,10 @@ export class ResultPanel {
     this.stars(cx, 232, info.hearts, info.maxHearts);
     this.text(cx, 284, `남은 시간 ${fmt(info.remaining)}   ·   들킨 횟수 ${info.caughtCount}번`, 20, COLORS.text);
     this.text(cx, 330, `나: "${stage.lines.clearMe}"`, 20, '#8d6fb0');
-    this.button(cx - 110, 410, '다음 스테이지', 0xffd54f, this.onNext);
+    const last = nextStage(stage.id) === null;
+    this.button(cx - 110, 410, last ? '엔딩 보기' : '다음 스테이지', 0xffd54f, this.onNext);
     this.button(cx + 110, 410, '다시 하기', 0xffffff, this.onRetry);
-    if (!info.touch) this.text(cx, 456, 'Space: 다음 스테이지   ·   R: 다시 하기   ·   Esc: 타이틀로', 15, COLORS.text);
+    if (!info.touch) this.text(cx, 456, `Space: ${last ? '엔딩 보기' : '다음 스테이지'}   ·   R: 다시 하기   ·   Esc: 타이틀로`, 15, COLORS.text);
   }
 
   private overtime(): void {

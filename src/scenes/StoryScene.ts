@@ -7,6 +7,9 @@ import { DONGI } from '../npc/patterns/dongi';
 import { GWAJANG } from '../npc/patterns/gwajang';
 import { BISEO } from '../npc/patterns/biseo';
 import { DAEPYO } from '../npc/patterns/daepyo';
+import { EXTRA_LOOKS } from '../data/extras';
+import { STAGES } from '../data/stages';
+import type { NpcLook } from '../npc/types';
 import { popWord } from '../ui/Popups';
 
 /** 컷신 무대 가운데 (월드 좌표). 카메라를 2배로 키워 캐릭터를 크게 보여준다 */
@@ -149,7 +152,9 @@ export class StoryScene extends Phaser.Scene {
     this.done = true;
     this.cameras.main.fadeOut(300, 59, 42, 51);
     this.uiCam.fadeOut(300, 59, 42, 51);
-    this.uiCam.once(Phaser.Cameras.Scene2D.Events.FADE_OUT_COMPLETE, () => this.scene.start('Office', { stage: this.stage }));
+    // 엔딩 컷신(STAGES에 없는 번호)이 끝나면 엔딩 결과 화면
+    const next = STAGES[this.stage] ? 'Office' : 'Ending';
+    this.uiCam.once(Phaser.Cameras.Scene2D.Events.FADE_OUT_COMPLETE, () => this.scene.start(next, { stage: this.stage }));
   }
 
   private showStep(): void {
@@ -256,6 +261,18 @@ export class StoryScene extends Phaser.Scene {
         return this.ceoSet('report');
       case 'ceoLaugh':
         return this.ceoSet('laugh');
+      case 'final':
+      case 'finalMe':
+      case 'finalOk':
+        return this.finalSet(kind);
+      case 'promoted':
+      case 'cheer':
+        return this.newBossSet(kind);
+      case 'newbie':
+      case 'poke':
+      case 'pokeMe':
+      case 'innocent':
+        return this.newbieSet(kind);
       case 'vow':
         return this.vowSet();
     }
@@ -433,6 +450,157 @@ export class StoryScene extends Phaser.Scene {
       const meY = 338;
       this.me(meX, meY);
       this.keep(this.add.image(meX - 30, meY + 14, TEX.plantBig).setOrigin(0.5, 1).setDepth(meY + 2));
+    }
+  }
+
+  // ------------------------------------------------------------ 엔딩
+
+  /** 뿌우우욱 직후 대표실: 대표가 일어나 나를 본다. final = "…자네였군", finalMe = 나 식은땀, finalOk = 의자를 권한다 */
+  private finalSet(kind: 'final' | 'finalMe' | 'finalOk'): void {
+    const deskX = 470;
+    const deskY = 300;
+    this.keep(this.add.image(deskX, deskY - 62, TEX.chair).setOrigin(0.5, 1).setDepth(deskY - 62));
+    this.keep(this.add.image(deskX, deskY, TEX.bossDesk).setOrigin(0.5, 1).setDepth(deskY));
+    // 의자 위 납작해진 방석
+    this.keep(this.add.image(deskX, deskY - 80, TEX.cushion).setScale(0.8, 0.5).setDepth(deskY - 61));
+    const boss = new NpcView(this, { ...DAEPYO.appearance, rank: '' }, false);
+    this.npcs.push(boss);
+    boss.standAt(400, 352, 'right');
+    const me = this.me(570, 352);
+    if (kind === 'final') {
+      boss.setPose({ face: TEX.faceSuspicious, hands: 'side', tilt: 8 });
+      this.cameras.main.pan(485, 300, 500, 'Sine.easeOut');
+      this.cameras.main.zoomTo(2.4, 500, 'Sine.easeOut');
+    } else if (kind === 'finalMe') {
+      boss.setPose({ face: TEX.faceSuspicious, hands: 'side' });
+      const drop = this.keep(this.add.ellipse(596, 236, 8, 12, 0x90caf9).setStrokeStyle(2, COLORS.outline).setDepth(9000));
+      this.tweens.add({ targets: drop, y: 252, alpha: 0.3, duration: 600, repeat: -1 });
+      this.tweens.add({ targets: me, x: 571.5, duration: 45, yoyo: true, repeat: -1 });
+    } else {
+      // 허허 웃으며 손을 펴 자기 의자를 가리킨다
+      boss.setPose({ face: TEX.faceHappy, hands: 'side', tilt: -6 });
+      const arrow = this.keep(
+        this.add.text(deskX, deskY - 150, '↓', { fontFamily: FONT, fontSize: '26px', color: '#8e24aa', stroke: '#ffffff', strokeThickness: 5 }).setOrigin(0.5).setDepth(9000),
+      );
+      this.tweens.add({ targets: arrow, y: arrow.y + 8, duration: 350, yoyo: true, repeat: -1 });
+    }
+  }
+
+  /** 대표 자리에 앉은 나. promoted = 축하 문구와 꽃가루, cheer = 직원들이 박수 */
+  private newBossSet(kind: 'promoted' | 'cheer'): void {
+    const deskX = 490;
+    const deskY = 345;
+    this.keep(this.add.image(deskX, deskY - 62, TEX.chair).setOrigin(0.5, 1).setDepth(deskY - 62));
+    this.me(deskX, deskY - 58);
+    this.keep(this.add.image(deskX, deskY, TEX.bossDesk).setOrigin(0.5, 1).setDepth(deskY));
+    // 금색 명패
+    this.keep(this.add.rectangle(deskX, deskY - 40, 70, 16, 0xffd54f).setStrokeStyle(2, COLORS.outline).setDepth(deskY + 1));
+    this.keep(this.add.text(deskX, deskY - 40, '대표', { fontFamily: FONT, fontSize: '12px', color: COLORS.text }).setOrigin(0.5).setDepth(deskY + 2));
+    this.confetti();
+    if (kind === 'promoted') {
+      const card = this.add
+        .text(GAME_WIDTH / 2, 120, '👑 새로운 대표 취임! 👑', { fontFamily: FONT, fontSize: '44px', color: '#ff3d6e', stroke: '#ffffff', strokeThickness: 10 })
+        .setOrigin(0.5)
+        .setScale(2.4)
+        .setAlpha(0)
+        .setAngle(-4);
+      this.shotUi.add(card);
+      this.tweens.add({ targets: card, scale: 1, alpha: 1, duration: 320, ease: 'Back.Out' });
+      return;
+    }
+    // 회색 직원들이 양옆에서 박수
+    [330, 395, 590, 655].forEach((x, i) => {
+      const look: NpcLook = { ...EXTRA_LOOKS[i % EXTRA_LOOKS.length] };
+      const v = new NpcView(this, look, false);
+      this.npcs.push(v);
+      v.standAt(x, 372, i < 2 ? 'right' : 'left');
+      v.setPose({ face: TEX.faceHappy, hands: 'side' });
+      this.tweens.add({ targets: v.root, y: 366, duration: 180, yoyo: true, repeat: -1, delay: i * 70 });
+    });
+    const clap = this.keep(
+      this.add.text(GAME_WIDTH / 2 - 10, 220, '짝짝짝!', { fontFamily: FONT, fontSize: '18px', color: '#ff9800', stroke: '#ffffff', strokeThickness: 4 }).setOrigin(0.5).setDepth(9000),
+    );
+    this.tweens.add({ targets: clap, scale: 1.2, duration: 160, yoyo: true, repeat: -1 });
+  }
+
+  /**
+   * 다음 날: 나는 대표 자리, 신입이 인사하러 온다.
+   * newbie = 꾸벅 인사, poke = 내 등 뒤로 와서 콕!, pokeMe = 내가 두리번, innocent = 신입은 모른 척 타이핑 + 머리 위 킹받음 0→1
+   */
+  private newbieSet(kind: 'newbie' | 'poke' | 'pokeMe' | 'innocent'): void {
+    const deskX = 490;
+    const deskY = 345;
+    this.keep(this.add.image(deskX, deskY - 62, TEX.chair).setOrigin(0.5, 1).setDepth(deskY - 62));
+    const me = this.me(deskX, deskY - 58);
+    this.keep(this.add.image(deskX, deskY, TEX.bossDesk).setOrigin(0.5, 1).setDepth(deskY));
+    const nb = new NpcView(
+      this,
+      { body: TEX.newbieBody, bodyBack: TEX.newbieBodyBack, headFront: TEX.newbieHeadFront, headBack: TEX.newbieHeadBack, rank: '', rankColor: 0 },
+      false,
+    );
+    this.npcs.push(nb);
+
+    if (kind === 'newbie') {
+      nb.standAt(360, 360, 'right');
+      nb.setPose({ face: TEX.faceHappy, hands: 'side', tilt: 0 });
+      // 꾸벅
+      this.tweens.add({ targets: nb.root, angle: 14, duration: 300, yoyo: true, hold: 300, repeat: -1, repeatDelay: 700 });
+      return;
+    }
+    if (kind === 'poke' || kind === 'pokeMe') {
+      // 내 의자 뒤 (창문 쪽)에 몰래 서 있다
+      nb.standAt(deskX + 52, deskY - 92, 'left');
+      nb.setPose({ back: true, hands: 'side' });
+      if (kind === 'poke') {
+        this.time.delayedCall(250, () => {
+          popWord(this, deskX + 20, deskY - 150, '콕!', { size: 40, color: '#ff3d6e' });
+          this.tweens.add({ targets: me, x: deskX + 6, duration: 40, yoyo: true, repeat: 3 });
+          this.cameras.main.shake(150, 0.008);
+        });
+      } else {
+        const q = this.keep(
+          this.add.text(deskX + 30, deskY - 150, '?!', { fontFamily: FONT, fontSize: '30px', color: '#e53935', stroke: '#ffffff', strokeThickness: 6 }).setOrigin(0.5).setDepth(9000),
+        );
+        this.tweens.add({ targets: q, angle: 12, duration: 120, yoyo: true, repeat: -1 });
+        this.tweens.add({ targets: me, x: deskX + 4, duration: 260, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
+      }
+      return;
+    }
+    // innocent: 신입은 옆 책상에서 모른 척 타닥타닥, 머리 위 킹받음 0 → 1. 나는 얼굴이 빨개지고 화면이 멈춘다
+    const nx = 330;
+    const ny = 360;
+    this.keep(this.add.image(nx, ny - 62, TEX.chair).setOrigin(0.5, 1).setDepth(ny - 62));
+    this.keep(this.add.image(nx, ny, TEX.desk).setOrigin(0.5, 1).setDepth(ny));
+    this.keep(this.add.image(nx - 18, ny - 30, TEX.monitor).setOrigin(0.5, 1).setDepth(ny + 0.1));
+    nb.sitAt(nx, ny - 62, ny);
+    nb.setPose({ face: TEX.faceNormal, hands: 'keyboard', typing: 1 });
+    const gauge = this.keep(
+      this.add
+        .text(nx, ny - 186, '킹받음 0', { fontFamily: FONT, fontSize: '14px', color: '#ffffff', backgroundColor: '#ff4f8b', padding: { x: 6, y: 3 } })
+        .setOrigin(0.5)
+        .setDepth(9000),
+    );
+    this.time.delayedCall(700, () => {
+      gauge.setText('킹받음 1');
+      this.tweens.add({ targets: gauge, scale: 1.4, duration: 150, yoyo: true });
+    });
+    // 내 얼굴이 빨개진다 + 핏대
+    this.time.delayedCall(1100, () => {
+      me.each((o: Phaser.GameObjects.GameObject) => (o as Phaser.GameObjects.Image).setTint?.(0xff8a80));
+      const anger = this.keep(this.add.image(deskX + 26, deskY - 160, TEX.angerMark).setDepth(9000).setScale(0.5));
+      this.tweens.add({ targets: anger, scale: 1.5, duration: 300, ease: 'Back.Out' });
+      this.cameras.main.pan(deskX - 60, deskY - 90, 400, 'Sine.easeOut');
+      this.cameras.main.zoomTo(2.6, 400, 'Sine.easeOut');
+    });
+  }
+
+  /** 꽃가루 */
+  private confetti(): void {
+    const colors = [0xff4f8b, 0xffd54f, 0x81c784, 0x64b5f6, 0xba68c8];
+    for (let i = 0; i < 40; i++) {
+      const x = 260 + Math.random() * 460;
+      const c = this.keep(this.add.rectangle(x, 120 - Math.random() * 120, 6, 10, colors[i % colors.length]).setDepth(9500));
+      this.tweens.add({ targets: c, y: 470, angle: 360 * (Math.random() < 0.5 ? -1 : 1), duration: 1800 + Math.random() * 1400, repeat: -1, delay: Math.random() * 1500 });
     }
   }
 

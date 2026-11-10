@@ -559,6 +559,57 @@ const DEFS: Record<TextureKey, { w: number; h: number; draw: Draw }> = {
       g.lineStyle(2, 0x3d3d52).lineBetween(14, 44, 44, 44);
     },
   },
+  // ------------------------------------------------------------ 신입 (엔딩)
+  [TEX.newbieBody]: {
+    // 노란 카디건 + 새싹 초보 배지 + 사원증
+    w: 44,
+    h: 40,
+    draw: (g, w) => {
+      g.fillStyle(0x6d6a7c).fillRect(12, 26, w - 24, 8);
+      g.fillStyle(0x4a4458).fillRect(12, 34, 8, 5).fillRect(w - 20, 34, 8, 5);
+      g.fillStyle(0xffe082).fillRoundedRect(7, 1, w - 14, 27, 8);
+      g.lineStyle(LINE, O).strokeRoundedRect(7, 1, w - 14, 27, 8);
+      g.fillStyle(0xffffff).fillTriangle(w / 2 - 6, 2, w / 2 + 6, 2, w / 2, 10);
+      g.fillStyle(0x81c784).fillTriangle(12, 10, 18, 6, 18, 14).fillTriangle(18, 6, 24, 10, 18, 14);
+      g.fillStyle(0x90caf9).fillRect(w - 18, 12, 8, 10);
+      g.lineStyle(2, O).strokeRect(w - 18, 12, 8, 10);
+    },
+  },
+  [TEX.newbieBodyBack]: {
+    w: 44,
+    h: 40,
+    draw: (g, w) => {
+      g.fillStyle(0x6d6a7c).fillRect(12, 26, w - 24, 8);
+      g.fillStyle(0x4a4458).fillRect(12, 34, 8, 5).fillRect(w - 20, 34, 8, 5);
+      g.fillStyle(0xffd54f).fillRoundedRect(7, 1, w - 14, 27, 8);
+      g.lineStyle(LINE, O).strokeRoundedRect(7, 1, w - 14, 27, 8);
+    },
+  },
+  [TEX.newbieHeadFront]: {
+    // 동글동글 까만 머리 + 바보털 한 가닥
+    w: 58,
+    h: 56,
+    draw: (g) => {
+      g.fillStyle(0xfbe0cb).fillCircle(29, 33, 21);
+      g.lineStyle(LINE, O).strokeCircle(29, 33, 21);
+      g.fillStyle(0xfbe0cb).fillCircle(8, 36, 5).fillCircle(50, 36, 5);
+      g.lineStyle(2, O).strokeCircle(8, 36, 5).strokeCircle(50, 36, 5);
+      g.fillStyle(0x3e2723).slice(29, 33, 22, Math.PI * 1.0, Math.PI * 2.0, false).fillPath();
+      g.fillStyle(0x3e2723).fillCircle(16, 24, 7).fillCircle(42, 24, 7);
+      g.lineStyle(3, 0x3e2723).beginPath().moveTo(29, 12).lineTo(33, 3).lineTo(38, 6).strokePath();
+    },
+  },
+  [TEX.newbieHeadBack]: {
+    w: 58,
+    h: 56,
+    draw: (g) => {
+      g.fillStyle(0xfbe0cb).fillCircle(8, 36, 5).fillCircle(50, 36, 5);
+      g.lineStyle(2, O).strokeCircle(8, 36, 5).strokeCircle(50, 36, 5);
+      g.fillStyle(0x3e2723).fillCircle(29, 33, 21);
+      g.lineStyle(LINE, O).strokeCircle(29, 33, 21);
+      g.lineStyle(3, 0x3e2723).beginPath().moveTo(29, 12).lineTo(33, 3).lineTo(38, 6).strokePath();
+    },
+  },
   // ------------------------------------------------------------ 차장 오의심
   [TEX.chajangBody]: {
     // 회색 정장 + 보라 넥타이, 팔짱 낀 듯 각진 어깨
