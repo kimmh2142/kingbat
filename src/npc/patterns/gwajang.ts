@@ -1,7 +1,7 @@
 import { TEX } from '../../assets/keys';
 import type { TargetPattern } from '../types';
 
-// STAGE 2 과장 박통화: "퇴근 5분 전에 이것만!"
+// STAGE 2 과장 박과장: "퇴근 5분 전에 이것만!"
 // 기준 문서 PART 3 STAGE 2 행동 패턴.
 //  - 평소: "네~ 사장님~" 큰 소리로 통화. 자리와 복사실 앞·회의실 앞을 왔다 갔다 한다
 //  - 페이크: "…네?" 말이 뚝 끊김 → "아~ 하하하! 그렇죠!" 다시 웃으며 통화
@@ -12,7 +12,7 @@ import type { TargetPattern } from '../types';
 
 export const GWAJANG: TargetPattern = {
   id: 'gwajang',
-  name: '과장 박통화',
+  name: '박과장',
   appearance: {
     body: TEX.gwajangBody,
     bodyBack: TEX.gwajangBodyBack,

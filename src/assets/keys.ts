@@ -37,7 +37,7 @@ export const TEX = {
   dongiHeadBack: 'dongi_head_back',
   dongiHairSpike: 'dongi_hair_spike',
 
-  // 과장 박통화 (STAGE 2 공략 대상)
+  // 과장 박과장 (STAGE 2 공략 대상)
   gwajangBody: 'gwajang_body',
   gwajangBodyBack: 'gwajang_body_back',
   gwajangHeadFront: 'gwajang_head_front',

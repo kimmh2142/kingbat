@@ -17,7 +17,7 @@ export interface StoryStep {
 
 export const SPEAKERS: Record<Speaker, { name: string; color: number }> = {
   dongi: { name: '동기 이동기', color: 0xf06292 },
-  gwajang: { name: '과장 박통화', color: 0xff9800 },
+  gwajang: { name: '박과장', color: 0xff9800 },
   daepyo: { name: '대표 나대표', color: 0x8e24aa },
   biseo: { name: '비서 김비서', color: 0x5c6bc0 },
   newbie: { name: '신입', color: 0xffb300 },
@@ -79,7 +79,7 @@ export const STORIES: Record<number, StageStory> = {
   2: {
     villain: 'gwajang',
     title: 'STAGE 2',
-    subtitle: '과장 박통화',
+    subtitle: '박과장',
     quote: '"퇴근 5분 전에 이것만!"',
     steps: [
       { shot: 'ask', who: 'gwajang', caption: '오후 5:55 · 퇴근 5분 전', text: '네~ 사장님~ …아, 자네! 마침 잘 있었네~' },

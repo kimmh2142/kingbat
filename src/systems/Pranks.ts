@@ -11,6 +11,11 @@ import type { Items } from './Items';
 import type { Score } from './Score';
 
 const rand = (r: Range) => Phaser.Math.FloatBetween(r[0], r[1]);
+/** 받침이 있으면 '이', 없으면 '가' (과장이 · 동기가 · 대표가) */
+const iGa = (word: string) => {
+  const c = word.charCodeAt(word.length - 1) - 0xac00;
+  return c >= 0 && c < 11172 && c % 28 ? '이' : '가';
+};
 
 /**
  * 아이템 장난 (Lv1 포스트잇·껌).
@@ -97,7 +102,7 @@ export class Pranks extends Phaser.Events.EventEmitter {
       }
       if (this.gumOnBag) return { ok: false, why: '이미 붙였어!' };
     }
-    if (!this.ownerAway) return { ok: false, why: `${rank}가 자리를 비웠을 때!` };
+    if (!this.ownerAway) return { ok: false, why: `${rank}${iGa(rank)} 자리를 비웠을 때!` };
     return { ok: true };
   }
 

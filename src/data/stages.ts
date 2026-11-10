@@ -68,7 +68,7 @@ export const STAGES: Record<number, StageConfig> = {
   // STAGE 2: 기준 문서 제한시간 4분, 퇴근 시계 오후 5:55부터 (과장이 업무를 던지는 순간)
   2: {
     id: 2,
-    label: 'STAGE 2 · 과장 박통화',
+    label: 'STAGE 2 · 박과장',
     floor: FLOOR_7F,
     items: ['postit', 'gum', 'monitor', 'chair'],
     target: GWAJANG,
