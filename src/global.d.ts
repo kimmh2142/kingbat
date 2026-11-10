@@ -23,6 +23,7 @@ interface Window {
     tutorial?: { step: string | null; line: string };
     thought?: boolean;
     tip?: string | null;
+    missionStep?: { text: string; at: { x: number; y: number } | null } | null;
     backSpot?: { x: number; y: number } | null;
     minimap?: { big: boolean; opacity?: number; x: number; y: number; w: number; h: number };
     sfx?: string[];

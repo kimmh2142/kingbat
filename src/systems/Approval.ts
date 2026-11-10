@@ -6,7 +6,7 @@ import type { TargetController } from '../npc/TargetController';
 import type { Player } from '../player/Player';
 import { popWord } from '../ui/Popups';
 import type { TouchControls } from '../ui/TouchControls';
-import type { MissionTask } from './MissionTask';
+import { type MissionStep, type MissionTask, stepKey } from './MissionTask';
 import { DEPTH } from './OfficeMap';
 
 const ARROWS: Arrow[] = ['up', 'down', 'left', 'right'];
@@ -100,6 +100,15 @@ export class Approval extends Phaser.Events.EventEmitter implements MissionTask 
     const e = touch ? '숨기 버튼' : 'E';
     if (this.nearPaper(x, y)) return `${e}: 가짜 서류 줍기`;
     if (this.carrying && this.nearPile(x, y)) return this.target.awayFromSeat ? `${e}: 결재 더미에 끼우기` : APPROVAL.lines.needAway;
+    return null;
+  }
+
+  step(touch: boolean): MissionStep | null {
+    const S = APPROVAL.steps;
+    const s = (text: string, at: MissionStep['at']) => ({ text: stepKey(text, touch), at, icon: TEX.paperPile });
+    if (this.phase === 'onTable') return s(S.pick, APPROVAL.paper);
+    if (this.carrying) return this.target.awayFromSeat ? s(S.file, APPROVAL.pile) : s(S.wait, APPROVAL.pile);
+    if (this.sorting) return s(S.sort, null);
     return null;
   }
 

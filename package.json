@@ -31,7 +31,8 @@
     "check:blackout": "node scripts/check-blackout.mjs",
     "check:ending": "node scripts/check-ending.mjs",
     "check:stage3": "node scripts/check-stage3.mjs",
-    "check:lv2": "node scripts/check-lv2.mjs"
+    "check:lv2": "node scripts/check-lv2.mjs",
+    "check:mission": "node scripts/check-mission-guide.mjs"
   },
   "dependencies": {
     "@fontsource/jua": "^5.3.0",

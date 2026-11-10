@@ -11,7 +11,7 @@ import { HrVisit } from '../systems/HrVisit';
 import { HR_VISIT } from '../data/hrVisit';
 import { INSA } from '../npc/patterns/insa';
 import { ENDING_STORY } from '../data/dialogue';
-import type { MissionTask } from '../systems/MissionTask';
+import type { MissionStep, MissionTask } from '../systems/MissionTask';
 import { ITEM_RULES, ITEMS, type ItemId } from '../data/items';
 import { nextStage, STAGES, type StageConfig } from '../data/stages';
 import { TIP_BACK_SPOT, TIPS, TUTORIAL_TEXT, type TipId } from '../data/tutorial';
@@ -99,6 +99,10 @@ export class OfficeScene extends Phaser.Scene {
   private targetArrow!: TargetArrow;
   /** 첫 아이템을 주울 때까지 아이템 쪽을 가리키는 노란 화살표 */
   private itemArrow!: TargetArrow;
+  /** 특별 미션 지금 단계의 목적지: 화면 밖이면 초록 화살표, 화면 안이면 바닥 위 ★ */
+  private missionArrow!: TargetArrow;
+  private missionStar!: Phaser.GameObjects.Text;
+  private missionStep: MissionStep | null = null;
   private guide!: GuideToast;
   private extras!: Extras;
   /** STAGE 1 단계 안내 (상단 미션 칸) */
@@ -145,8 +149,8 @@ export class OfficeScene extends Phaser.Scene {
     const params = new URLSearchParams(location.search);
     // 튜토리얼 안내창: "다시 안 보기"를 안 눌렀으면 다시 도전해도 나온다.
     // Playwright 확인 스크립트는 바로 플레이해야 하므로 끈다 (?tips=1이면 보여줌)
-    // STAGE 2부터는 튜토리얼 안내창·첫 돌아봄 혼잣말 없음
-    this.tipsOn = this.stage.tutorial && !tipsSetting.off && !(navigator.webdriver && !params.has('tips'));
+    // STAGE 2부터는 첫 돌아봄 혼잣말 없이, 시작할 때 특별 미션 안내창만
+    this.tipsOn = !tipsSetting.off && !(navigator.webdriver && !params.has('tips'));
     this.tipQueue.length = 0;
     this.tipsShown.clear();
     // 안내창이 꺼져 있을 때: 다시 도전이면 혼잣말은 이미 봤으니 생략
@@ -238,8 +242,16 @@ export class OfficeScene extends Phaser.Scene {
     this.targetArrow = new TargetArrow(this);
     this.seatArrow = new TargetArrow(this, { color: 0xf06292, icon: TEX.chair, iconScale: 0.55 });
     this.itemArrow = new TargetArrow(this, { color: 0xf9a825, icon: ITEMS.postit.icon });
+    this.missionArrow = new TargetArrow(this, { color: 0x43c47f });
+    this.missionStar = this.add
+      .text(0, 0, '★', { fontFamily: FONT, fontSize: '30px', color: '#ffeb3b', stroke: '#2e9e6b', strokeThickness: 6 })
+      .setOrigin(0.5, 1)
+      .setDepth(DEPTH.label + 4)
+      .setScale(CAMERA.textScale)
+      .setVisible(false);
+    this.tweens.add({ targets: this.missionStar, scale: CAMERA.textScale * 1.2, duration: 420, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
     this.setupCamera();
-    this.miniMap = new MiniMap(this, this.map, this.touch, this.controls.isTouch, this.stage.target.appearance.rank);
+    this.miniMap = new MiniMap(this, this.map, this.touch, this.controls.isTouch, this.stage.target.appearance.rank, this.stage.mission.id !== 'parade');
     this.setupDebug();
     // 시작 타깃 소개. 다시 도전(하트 0개·야근)이면 생략.
     // Playwright 확인 스크립트는 바로 플레이해야 하므로 생략한다 (?intro=1이면 보여줌)
@@ -368,8 +380,9 @@ export class OfficeScene extends Phaser.Scene {
     this.targetCone.update(dt, looking ? { x: t.x, y: t.y, dir: t.lookDir, ...t.pattern.look } : null);
     this.patrols.forEach((p, i) => this.patrolCones[i].update(dt, p.cone, p.coneColor));
     this.drawGrabRing();
-    this.targetArrow.update(this.cameras.main, this.paused ? null : this.target);
-    this.itemArrow.update(this.cameras.main, this.paused ? null : this.firstItemToFind());
+    this.targetArrow.update(this.cameras.main, this.paused ? null : this.target, this.miniMap.rect);
+    this.itemArrow.update(this.cameras.main, this.paused ? null : this.firstItemToFind(), this.miniMap.rect);
+    this.updateMissionGuide();
     this.target.view.setAnger(this.score.total / this.score.goal);
     const near = Phaser.Math.Distance.Between(this.player.x, this.player.y, this.target.x, this.target.y) < 110;
     this.target.view.setLabelFaded(near && this.player.y < this.target.y);
@@ -397,6 +410,7 @@ export class OfficeScene extends Phaser.Scene {
         // 미니맵 밑에 들어가면 흐려지게: 나·대상·방해 NPC
         people: [this.player, this.target, ...this.patrols.filter((p) => !p.hidden)],
         items: this.items.onMap.map((m) => m.spot),
+        mission: this.missionStep?.at,
         view: this.cameras.main.worldView,
       },
       this.controls.isDown('KeyM'),
@@ -425,6 +439,7 @@ export class OfficeScene extends Phaser.Scene {
       tutorial: { step: this.tutorial.current, line: this.hud.missionLine },
       thought: !!this.thought,
       tip: this.tipDialog.current,
+      missionStep: this.missionStep,
       backSpot: this.backSpot.visible ? { x: Math.round(this.backSpot.x), y: Math.round(this.backSpot.y) } : null,
       minimap: { big: this.miniMap.isBig, opacity: Math.round(this.miniMap.opacity * 100) / 100, ...this.miniMap.rect },
       sfx: [...this.sfx.log],
@@ -507,7 +522,8 @@ export class OfficeScene extends Phaser.Scene {
     this.tipDialog = new TipDialog(this);
     this.items.on('picked', (id: ItemId) => id === 'postit' && this.tip('picked'));
     this.pranks.on('used', (id: ItemId) => id === 'postit' && this.tip('stuck'));
-    this.tip('goal');
+    if (this.stage.tutorial) this.tip('goal');
+    else if (this.stage.mission.id !== 'parade') this.tip(this.stage.mission.id);
     const g = this.add.graphics();
     g.fillStyle(0xffeb3b, 0.45).fillEllipse(0, 0, 70, 30);
     g.lineStyle(3, 0xf57f17).strokeEllipse(0, 0, 70, 30);
@@ -522,6 +538,8 @@ export class OfficeScene extends Phaser.Scene {
   /** 안내창 예약 (판마다 한 번씩). 다른 연출이 끝나 게임이 움직일 때 띄운다 */
   private tip(id: TipId): void {
     if (!this.tipsOn || this.tipsShown.has(id)) return;
+    // STAGE 2·3은 특별 미션 안내창만 (동기 튜토리얼 안내는 STAGE 1에서만)
+    if (!this.stage.tutorial && id !== this.stage.mission.id) return;
     this.tipsShown.add(id);
     this.tipQueue.push(id);
   }
@@ -670,12 +688,26 @@ export class OfficeScene extends Phaser.Scene {
     const m = this.stage.mission;
     // 튜토리얼이 아닌 스테이지: 미션 칸엔 특별 미션만
     if (!this.stage.tutorial) {
-      this.hud.setMission(this.missionDone ? `✔ ${m.name} 성공!` : `★ 특별 미션 "${m.name}": ${m.goal}`, this.missionDone);
+      const st = this.missionStep;
+      this.hud.setMission(this.missionDone ? `✔ ${m.name} 성공!` : st ? `★ 미션 ${st.text}` : `★ 특별 미션 "${m.name}": ${m.goal}`, this.missionDone);
       return;
     }
     const line = t.text(this.controls.isTouch);
     const all = t.finished && this.missionDone;
     this.hud.setMission(all ? `✔ ${this.stage.mission.name} 성공! · ${line}` : `★ ${line}`, all);
+  }
+
+  /** STAGE 2·3 특별 미션 단계: 상단 미션 칸 + 목적지 ★(화면 안) / 초록 화살표(화면 밖) + 미니맵 별 */
+  private updateMissionGuide(): void {
+    this.missionStep = this.task && !this.missionDone ? this.task.step(this.controls.isTouch) : null;
+    if (!this.stage.tutorial) this.refreshMission();
+    const at = this.paused ? null : (this.missionStep?.at ?? null);
+    if (this.missionStep) this.missionArrow.setIcon(this.missionStep.icon, 28);
+    this.missionArrow.update(this.cameras.main, at && { x: at.x, y: at.y + 30 }, this.miniMap.rect);
+    // 바로 옆까지 오면 ★는 숨긴다 (E 안내와 겹치지 않게)
+    const show = !!at && Phaser.Math.Distance.Between(this.player.x, this.player.y, at.x, at.y) > 110;
+    this.missionStar.setVisible(show);
+    if (at) this.missionStar.setPosition(at.x, at.y - 70);
   }
 
   /** 처음 임시 점수를 들고 있는 동안: 내 자리 위 "▼ E 꾹" + 화면 밖이면 가장자리 화살표 */
@@ -684,7 +716,7 @@ export class OfficeScene extends Phaser.Scene {
     const on = !this.paused && t.done.has('poke') && !t.done.has('confirm') && this.score.temp > 0 && !this.hide.hidden;
     const seat = this.map.mySeat;
     this.seatMark.setVisible(on);
-    this.seatArrow.update(this.cameras.main, on ? { x: seat.x, y: seat.y + 50 } : null);
+    this.seatArrow.update(this.cameras.main, on ? { x: seat.x, y: seat.y + 50 } : null, this.miniMap.rect);
   }
 
   /** 동기가 처음 돌아보려 할 때(의심 1단계) 가까이 있으면 주인공 혼잣말 한 번 */

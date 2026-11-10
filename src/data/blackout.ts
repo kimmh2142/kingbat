@@ -30,6 +30,15 @@ export const BLACKOUT = {
   },
   /** 정전 때 대표가 가는 곳 (대표 trip.routes 순서, 3 = 정전 확인) */
   checkRoute: 3,
+  /** 상단 미션 칸 단계 안내 ({e} = E 또는 [숨기]) */
+  steps: {
+    pick: '① 임원 라운지에서 방귀 방석 줍기 ({e})',
+    panel: '② 배전반에서 {e}! 불 끄기',
+    cooling: '② 배전반이 식으면 다시 {e}',
+    chair: '③ 대표가 나간 사이 대표 의자 옆에서 {e}',
+    placing: '③ 슬쩍… 까는 중',
+    wait: '④ 숨어서 대표가 돌아와 앉길 기다리기',
+  },
   lines: {
     picked: '방귀 방석 GET! 배전반에서 E로 불을 끄자',
     needCushion: '방석부터 챙기자 (라운지)',

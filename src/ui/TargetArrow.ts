@@ -29,12 +29,18 @@ export class TargetArrow {
     scene.tweens.add({ targets: this.root, scale: 1.12, duration: 500, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
   }
 
-  setIcon(key: TextureKey): void {
-    if (this.icon.texture.key !== key) this.icon.setTexture(key);
+  /** fit을 주면 그림의 긴 변을 그 크기(px)에 맞춘다 */
+  setIcon(key: TextureKey, fit?: number): void {
+    if (this.icon.texture.key === key) return;
+    this.icon.setTexture(key);
+    if (fit) this.icon.setScale(fit / Math.max(this.icon.frame.width, this.icon.frame.height));
   }
 
-  /** 대상 위치(월드)를 넣으면 화면 밖일 때만 보인다. null이면 숨긴다 */
-  update(cam: Phaser.Cameras.Scene2D.Camera, target: { x: number; y: number } | null): void {
+  /**
+   * 대상 위치(월드)를 넣으면 화면 밖일 때만 보인다. null이면 숨긴다.
+   * avoid(화면 좌표 사각형, 작은 미니맵)에 걸리면 그 바깥 가장자리로 비켜 선다.
+   */
+  update(cam: Phaser.Cameras.Scene2D.Camera, target: { x: number; y: number } | null, avoid?: { x: number; y: number; w: number; h: number }): void {
     if (!target) {
       this.root.setVisible(false);
       return;
@@ -60,7 +66,19 @@ export class TargetArrow {
     const kx = dx !== 0 ? (dx > 0 ? right - cx : left - cx) / dx : Infinity;
     const ky = dy !== 0 ? (dy > 0 ? bottom - cy : top - cy) / dy : Infinity;
     const k = Math.min(kx, ky);
-    this.root.setPosition(cx + dx * k, cy + dy * k).setVisible(true);
+    let px = cx + dx * k;
+    let py = cy + dy * k;
+    if (avoid) {
+      const pad = 26;
+      if (px > avoid.x - pad && px < avoid.x + avoid.w + pad && py > avoid.y - pad && py < avoid.y + avoid.h + pad) {
+        // 미니맵 위쪽 또는 왼쪽 중 가까운 쪽으로
+        const up = py - (avoid.y - pad);
+        const leftward = px - (avoid.x - pad);
+        if (up < leftward) py = avoid.y < GAME_HEIGHT / 2 ? avoid.y + avoid.h + pad : avoid.y - pad;
+        else px = avoid.x - pad;
+      }
+    }
+    this.root.setPosition(px, py).setVisible(true);
     this.arrow.setRotation(Math.atan2(dy, dx));
   }
 }

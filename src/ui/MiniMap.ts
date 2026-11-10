@@ -11,6 +11,8 @@ export interface MiniMapMarks {
   /** 방해 NPC (순찰) */
   patrols: { x: number; y: number }[];
   items: { x: number; y: number }[];
+  /** 특별 미션 지금 단계의 목적지 (★) */
+  mission?: { x: number; y: number } | null;
   /** 이 사람들이 작은 미니맵 밑에 들어가면 미니맵을 흐리게 한다 (월드 좌표, 발 위치) */
   people: { x: number; y: number }[];
   view: Phaser.Geom.Rectangle;
@@ -56,6 +58,8 @@ export class MiniMap {
     touch: TouchControls,
     isTouch: boolean,
     targetRank: string,
+    /** E로 하는 특별 미션이 있으면 범례에 ★ */
+    hasMission = false,
   ) {
     const sw = MINIMAP.width;
     const ss = sw / this.map.floor.world.width;
@@ -95,6 +99,7 @@ export class MiniMap {
     text(GAME_WIDTH / 2, b.y - 16, isTouch ? '전체 지도 · 화면을 누르면 닫혀요' : '전체 지도 · M에서 손을 떼면 닫혀요', 18);
     // 범례 (점 색과 같은 글자색)
     const legend: [string, string][] = [['● 나', '#ff4f8b'], [`● ${targetRank}`, '#e53935'], ['● 방해 NPC', '#ffa000'], ['◆ 아이템', '#f9a825'], ['■ 내 자리', '#f06292']];
+    if (hasMission) legend.push(['★ 미션', '#2e9e6b']);
     legend.forEach(([s, c], i) => text(GAME_WIDTH / 2 + (i - (legend.length - 1) / 2) * 104, b.y + this.map.floor.world.height * b.s + 16, s, 16, c));
 
     // 모바일: 미니맵을 누르면 크게, 크게 보는 중엔 아무 데나 누르면 닫힘
@@ -180,6 +185,20 @@ export class MiniMap {
       const pts = [new Phaser.Math.Vector2(cx, cy - r), new Phaser.Math.Vector2(cx + r * 0.7, cy), new Phaser.Math.Vector2(cx, cy + r), new Phaser.Math.Vector2(cx - r * 0.7, cy)];
       g.fillStyle(0xfff176, pulse).fillPoints(pts, true);
       g.lineStyle(big ? 2 : 1.5, 0xf57f17).strokePoints(pts, true);
+    }
+    // 특별 미션 목적지: 초록 별
+    if (k.mission) {
+      const r = (big ? 13 : 7) * (0.85 + pulse * 0.3);
+      const cx = X(k.mission.x);
+      const cy = Y(k.mission.y);
+      const pts: Phaser.Math.Vector2[] = [];
+      for (let i = 0; i < 10; i++) {
+        const a = -Math.PI / 2 + (i * Math.PI) / 5;
+        const rr = i % 2 ? r * 0.45 : r;
+        pts.push(new Phaser.Math.Vector2(cx + Math.cos(a) * rr, cy + Math.sin(a) * rr));
+      }
+      g.fillStyle(0x43c47f).fillPoints(pts, true);
+      g.lineStyle(big ? 2 : 1.5, 0xffffff).strokePoints(pts, true);
     }
     const dot = (p: { x: number; y: number }, color: number, r: number) => {
       g.fillStyle(color).fillCircle(X(p.x), Y(p.y), r);

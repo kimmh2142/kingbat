@@ -1,12 +1,12 @@
 import Phaser from 'phaser';
-import { TEX } from '../assets/keys';
+import { TEX, type TextureKey } from '../assets/keys';
 import { FONT, GAME_HEIGHT, GAME_WIDTH } from '../config';
 import { BLACKOUT } from '../data/blackout';
 import type { PatrolController } from '../npc/PatrolController';
 import type { TargetController } from '../npc/TargetController';
 import type { Player } from '../player/Player';
 import { popWord } from '../ui/Popups';
-import type { MissionTask } from './MissionTask';
+import { type MissionStep, type MissionTask, stepKey } from './MissionTask';
 import { DEPTH } from './OfficeMap';
 
 type Phase = 'onFloor' | 'carrying' | 'placing' | 'placed' | 'done';
@@ -86,6 +86,19 @@ export class Blackout extends Phaser.Events.EventEmitter implements MissionTask 
       return this.phase === 'onFloor' ? BLACKOUT.lines.needCushion : `${e}: 배전반 내리기`;
     }
     if (this.carrying && this.nearChair(x, y)) return this.canPlace ? `${e}: 의자에 방석 깔기` : BLACKOUT.lines.needAway;
+    return null;
+  }
+
+  step(touch: boolean): MissionStep | null {
+    const S = BLACKOUT.steps;
+    const s = (text: string, at: MissionStep['at'], icon: TextureKey = TEX.cushion) => ({ text: stepKey(text, touch), at, icon });
+    if (this.phase === 'onFloor') return s(S.pick, BLACKOUT.cushion);
+    if (this.carrying) {
+      if (this.checking) return s(S.chair, BLACKOUT.chair);
+      return s(this.cool > 0 || this.dark > 0 ? S.cooling : S.panel, BLACKOUT.panel, TEX.powerPanel);
+    }
+    if (this.phase === 'placing') return s(S.placing, null);
+    if (this.phase === 'placed') return s(S.wait, null);
     return null;
   }
 
