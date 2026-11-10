@@ -14,7 +14,7 @@ import { ENDING_STORY, STORIES } from '../data/dialogue';
 import type { MissionStep, MissionTask } from '../systems/MissionTask';
 import { ITEM_RULES, ITEMS, type ItemId } from '../data/items';
 import { nextStage, STAGES, type StageConfig } from '../data/stages';
-import { TIP_BACK_SPOT, TIPS, TUTORIAL_TEXT, type TipId } from '../data/tutorial';
+import { MISSION_TIPS, TIP_BACK_SPOT, TIPS, TUTORIAL_TEXT, type TipId } from '../data/tutorial';
 import { CAMERA, MINIMAP, POKE } from '../data/tuning';
 import { Extras } from '../npc/Extras';
 import { PatrolController } from '../npc/PatrolController';
@@ -402,6 +402,8 @@ export class OfficeScene extends Phaser.Scene {
     this.targetArrow.update(this.cameras.main, this.paused ? null : this.target, this.miniMap.rect);
     this.itemArrow.update(this.cameras.main, this.paused ? null : this.firstItemToFind(), this.miniMap.rect);
     this.updateMissionGuide();
+    // 서류를 든 채 과장이 자리를 비우면: 지금이야!
+    if (this.approval?.carrying && this.target.awayFromSeat) this.tip('apprAway');
     this.target.view.setAnger(this.score.total / this.score.goal);
     const near = Phaser.Math.Distance.Between(this.player.x, this.player.y, this.target.x, this.target.y) < 110;
     this.target.view.setLabelFaded(near && this.player.y < this.target.y);
@@ -567,8 +569,8 @@ export class OfficeScene extends Phaser.Scene {
   /** 안내창 예약 (판마다 한 번씩). 다른 연출이 끝나 게임이 움직일 때 띄운다 */
   private tip(id: TipId): void {
     if (!this.tipsOn || this.tipsShown.has(id)) return;
-    // STAGE 2·3은 특별 미션 안내창만 (동기 튜토리얼 안내는 STAGE 1에서만)
-    if (!this.stage.tutorial && id !== this.stage.mission.id) return;
+    // STAGE 2·3은 특별 미션 단계 안내만 (동기 튜토리얼 안내는 STAGE 1에서만)
+    if (!this.stage.tutorial && !MISSION_TIPS[this.stage.mission.id]?.includes(id)) return;
     this.tipsShown.add(id);
     this.tipQueue.push(id);
   }
@@ -636,6 +638,19 @@ export class OfficeScene extends Phaser.Scene {
         return { x: APPROVAL.paper.x, y: APPROVAL.paper.y - 20, r: 66 };
       case 'blackout':
         return { x: BLACKOUT.cushion.x, y: BLACKOUT.cushion.y - 20, r: 66 };
+      case 'apprPicked':
+      case 'apprAway':
+        return { x: APPROVAL.pile.x, y: APPROVAL.pile.y - 40, r: 80 };
+      case 'boPicked':
+        return { x: BLACKOUT.panel.x, y: BLACKOUT.panel.y - 72, r: 80 };
+      case 'boDark':
+        return { x: BLACKOUT.chair.x, y: BLACKOUT.chair.y - 30, r: 80 };
+      case 'boPlaced': {
+        // 지금 자리에서 가장 가까운 숨는 곳
+        const p = this.player;
+        const h = [...this.map.hideSpots].sort((a, b) => Phaser.Math.Distance.Between(p.x, p.y, a.x, a.y) - Phaser.Math.Distance.Between(p.x, p.y, b.x, b.y))[0];
+        return h ? { x: h.x, y: h.y - 30, r: 76 } : null;
+      }
       default:
         return null;
     }
@@ -700,8 +715,13 @@ export class OfficeScene extends Phaser.Scene {
     task.on('done', () => this.completeMission());
     task.on('picked', () => {
       this.sfx.play('pick');
-      this.guide.show(pickedLine, 4);
+      // 안내가 켜져 있으면 다음 목적지를 스포트라이트로 비춘다 (노란 한 줄은 겹치니 생략)
+      if (this.approval) this.tip(this.target.awayFromSeat ? 'apprAway' : 'apprPicked');
+      else if (this.blackout) this.tip('boPicked');
+      if (!this.tipsOn) this.guide.show(pickedLine, 4);
     });
+    task.on('dark', (on: boolean) => on && this.tip('boDark'));
+    task.on('sheet', () => this.blackout?.phase === 'placed' && this.tip('boPlaced'));
     task.on('sheet', () => this.sfx.play('stick'));
     // 대상 도착·착석 알림은 포스트잇·껌(Pranks)도 쓰므로 이어 붙인다
     const arrive = this.target.onArrive;

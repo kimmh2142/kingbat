@@ -139,6 +139,60 @@ log.push(['안내창', tips]);
   await p.close();
 }
 
+// 1-4) STAGE 2·3 단계 안내 (?tips=1): 줍기 → 다음 목적지 스포트라이트, 정전 → 대표 의자, 깔기 끝 → 숨는 곳
+{
+  const steps = {};
+  const waitTip = async (p, id) => p.waitForFunction((w) => window.__kingbat?.tip === w, id, { timeout: 15000 }).then(() => true, () => false);
+  const close = async (p) => {
+    await p.waitForTimeout(1500);
+    await p.keyboard.press('Space');
+    await p.waitForTimeout(1500);
+  };
+  const lit = async (p) => {
+    const spot = await p.evaluate(() => window.__kingbatTest.tipSpot());
+    const d = spot.r * 0.55;
+    const v = await bright(p, [[spot.x, spot.y], [spot.x - d, spot.y], [spot.x + d, spot.y], [spot.x, spot.y + d], [40, 200]]);
+    return { 원안: Math.max(...v.slice(0, 4)), 바깥: v[4], 비춘곳: await p.evaluate(() => window.__kingbatTest.tipWorld()) };
+  };
+  // STAGE 2: 서류 줍기 → apprPicked (결재 더미)
+  const p2 = await open('?stage=2&tips=1');
+  await waitTip(p2, 'approval');
+  await close(p2);
+  await p2.evaluate(() => {
+    window.__kingbatTest.setRemaining(999);
+    window.__kingbatTest.calmDaeri();
+  });
+  await tp(p2, 2010, 1330);
+  steps.서류주움 = (await waitTip(p2, 'apprPicked')) || (await waitTip(p2, 'apprAway'));
+  await p2.waitForTimeout(800);
+  steps.서류_비춤 = await lit(p2);
+  await p2.screenshot({ path: 'screenshots/spot-appr-picked.png' });
+  await p2.close();
+  // STAGE 3: 방석 → boPicked (배전반) → 정전 boDark (의자)
+  const p3 = await open('?stage=3&tips=1');
+  await waitTip(p3, 'blackout');
+  await close(p3);
+  await p3.evaluate(() => {
+    window.__kingbatTest.setRemaining(999);
+    window.__kingbatTest.calmDaeri();
+  });
+  await tp(p3, 360, 500);
+  steps.방석주움 = await waitTip(p3, 'boPicked');
+  await p3.waitForTimeout(800);
+  steps.방석_비춤 = await lit(p3);
+  await p3.screenshot({ path: 'screenshots/spot-bo-picked.png' });
+  await close(p3);
+  await tp(p3, 2300, 1140);
+  await p3.waitForTimeout(400);
+  await tapE(p3);
+  steps.정전 = await waitTip(p3, 'boDark');
+  await p3.waitForTimeout(800);
+  steps.정전_비춤 = await lit(p3);
+  await p3.screenshot({ path: 'screenshots/spot-bo-dark.png' });
+  await p3.close();
+  log.push(['단계 안내', steps]);
+}
+
 // 2) STAGE 2 단계: ① 서류 줍기 → ② 결재 더미
 const p2 = await open('?stage=2');
 await p2.evaluate(() => {

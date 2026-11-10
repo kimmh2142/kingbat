@@ -41,7 +41,26 @@ export const TUTORIAL_TEXT = {
 // "다시 안 보기"를 누르면 이 기기에서는 다시 안 뜬다 (타이틀에서 다시 켤 수 있음).
 
 // STAGE 2·3은 시작할 때 특별 미션 안내창 하나 (11/10 팀원 피드백 "특별 미션 안내 부족")
-export type TipId = 'goal' | 'picked' | 'stuck' | 'tell' | 'temp' | 'confirmed' | 'approval' | 'blackout';
+export type TipId =
+  | 'goal'
+  | 'picked'
+  | 'stuck'
+  | 'tell'
+  | 'temp'
+  | 'confirmed'
+  | 'approval'
+  | 'apprPicked'
+  | 'apprAway'
+  | 'blackout'
+  | 'boPicked'
+  | 'boDark'
+  | 'boPlaced';
+
+/** STAGE 2·3에서 뜨는 안내: 특별 미션 단계가 바뀔 때마다 (11/10 "STAGE 3 안내 부족") */
+export const MISSION_TIPS: Record<string, TipId[]> = {
+  approval: ['approval', 'apprPicked', 'apprAway'],
+  blackout: ['blackout', 'boPicked', 'boDark', 'boPlaced'],
+};
 
 export interface TipDef {
   title: string;
@@ -78,13 +97,38 @@ export const TIPS: Record<TipId, TipDef> = {
   },
   approval: {
     title: '특별 미션: 전 직원 칼퇴 승인서 (+25)',
-    pc: '이 가짜 서류를 주워서, 과장이 자리 비울 때 결재 더미에 끼우자!\n위 미션 칸 순서와 초록 ★를 따라가면 돼.',
-    touch: '이 가짜 서류를 주워서, 과장이 자리 비울 때 결재 더미에 끼우자!\n위 미션 칸 순서와 초록 ★를 따라가면 돼.',
+    pc: '일단 이 가짜 서류부터 줍자! (지나가면 주워요)\n과장 결재 더미에 몰래 끼우면 부장이 뒤집어진다.',
+    touch: '일단 이 가짜 서류부터 줍자! (지나가면 주워요)\n과장 결재 더미에 몰래 끼우면 부장이 뒤집어진다.',
+  },
+  apprPicked: {
+    title: '가짜 서류 GET! 목적지는 여기',
+    pc: '과장 책상 위 결재 더미에 끼우자.\n과장이 자리를 비울 때까지 숨어서 기다리기! 지금 가면 들킨다.',
+    touch: '과장 책상 위 결재 더미에 끼우자.\n과장이 자리를 비울 때까지 숨어서 기다리기! 지금 가면 들킨다.',
+  },
+  apprAway: {
+    title: '과장이 자리를 비웠다! 지금이야',
+    pc: '결재 더미 앞에서 E → 화살표 3개를 순서대로!\n끼우는 동안 과장이 돌아오면 들킨다.',
+    touch: '결재 더미 앞에서 [끼우기] → 화살표 3개를 순서대로!\n끼우는 동안 과장이 돌아오면 들킨다.',
   },
   blackout: {
     title: '특별 미션: 대정전과 최후의 방석 (+30)',
-    pc: '이 방석을 들고 배전반을 내리면 정전! 대표가 나간 사이 의자에 깔자.\n위 미션 칸 순서와 초록 ★를 따라가면 돼. 비서 손전등 조심!',
-    touch: '이 방석을 들고 배전반을 내리면 정전! 대표가 나간 사이 의자에 깔자.\n위 미션 칸 순서와 초록 ★를 따라가면 돼. 비서 손전등 조심!',
+    pc: '일단 이 방귀 방석부터 줍자! (지나가면 주워요)\n대표 의자에 깔면 최후의 킹받음.',
+    touch: '일단 이 방귀 방석부터 줍자! (지나가면 주워요)\n대표 의자에 깔면 최후의 킹받음.',
+  },
+  boPicked: {
+    title: '방석 GET! 다음은 배전반',
+    pc: '여기 배전반에서 E! 불을 끄면 대표가 확인하러 나간다.\n방석은 들고 가자.',
+    touch: '여기 배전반에서 [내리기]! 불을 끄면 대표가 확인하러 나간다.\n방석은 들고 가자.',
+  },
+  boDark: {
+    title: '정전! 대표가 나간다',
+    pc: '대표가 나간 사이 이 의자 옆에서 E로 방석을 깔자!\n비서 손전등(노란 빛)에 비치면 들킨다. 불이 다시 켜지기 전에!',
+    touch: '대표가 나간 사이 이 의자 옆에서 [깔기]로 방석을 깔자!\n비서 손전등(노란 빛)에 비치면 들킨다. 불이 다시 켜지기 전에!',
+  },
+  boPlaced: {
+    title: '설치 완료! 이제 숨자',
+    pc: '가까운 숨는 곳에서 E 꾹, 대표가 돌아와 앉길 기다리자.\n뿌우우욱 하면 미션 성공!',
+    touch: '가까운 숨는 곳에서 [숨기] 꾹, 대표가 돌아와 앉길 기다리자.\n뿌우우욱 하면 미션 성공!',
   },
   confirmed: {
     title: '확정! 완벽한 알리바이',
