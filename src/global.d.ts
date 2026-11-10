@@ -44,7 +44,7 @@ interface Window {
       guide?: string;
     };
   };
-  __kingbatTest?: { teleport(x: number, y: number): void; setRemaining(seconds: number): void; forceGrab(): void; calmDaeri(): void; addScore(points: number): void; completeMission(): void; hrNow(): void; addTemp(points: number): void; loseAll(): void; giveItem(id: string): boolean; tipSpot(): { x: number; y: number } | null; cameraOnPlayer(): boolean };
+  __kingbatTest?: { teleport(x: number, y: number): void; setRemaining(seconds: number): void; forceGrab(): void; calmDaeri(): void; addScore(points: number): void; completeMission(): void; hrNow(): void; addTemp(points: number): void; loseAll(): void; giveItem(id: string): boolean; tipSpot(): { x: number; y: number } | null; cameraOnPlayer(): boolean; tipWorld(): { x: number; y: number } | null };
   __kingbatTexture?: (key: string) => string;
   __kingbatStory?: { step(): number; shot(): string | null; total: number; typing(): boolean };
   __kingbatTitle?: { howToOpen(): boolean; howToPage(): number; selected(): number; tipsOn(): boolean };

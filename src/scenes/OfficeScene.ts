@@ -123,6 +123,8 @@ export class OfficeScene extends Phaser.Scene {
   private tipDialog!: TipDialog;
   /** 안내 때문에 카메라가 옮겨 가는 중('going')·가 있음('away')·돌아오는 중('back') */
   private tipPan: 'going' | 'away' | 'back' | null = null;
+  /** 처음 확정한 곳 (확정 안내가 비춘다) */
+  private confirmSpot: { x: number; y: number } | null = null;
   private tipsOn = true;
   private readonly tipQueue: TipId[] = [];
   private readonly tipsShown = new Set<TipId>();
@@ -158,6 +160,7 @@ export class OfficeScene extends Phaser.Scene {
     this.tipsOn = !tipsSetting.off && !(navigator.webdriver && !params.has('tips'));
     this.tipQueue.length = 0;
     this.tipPan = null;
+    this.confirmSpot = null;
     this.tipsShown.clear();
     // 안내창이 꺼져 있을 때: 다시 도전이면 혼잣말은 이미 봤으니 생략
     this.thoughtShown = (!!data?.retry && !this.tipsOn) || !this.stage.tutorial;
@@ -202,13 +205,16 @@ export class OfficeScene extends Phaser.Scene {
     if (this.stage.mission.id === 'approval') this.setupApproval();
     if (this.stage.mission.id === 'blackout') this.setupBlackout();
     new ItemBar(this, this.items, this.touch);
-    // 아이템 안내: 첫 아이템이 생기면 한 번, 종류마다 처음 주우면 사용법 한 번
+    // 아이템 안내: 첫 아이템이 생기면 한 번, 종류마다 처음 주우면 사용법 한 번.
+    // STAGE 1에서 스포트라이트 안내가 켜져 있으면 같은 내용(첫 포스트잇·포스트잇 사용법)은 스포트라이트가 하므로 생략 (11/10)
     this.guide = new GuideToast(this);
-    this.items.once('spawned', () => this.guide.show('아이템이 생겼다! 지나가면 주워요'));
+    const spotlit = () => this.stage.tutorial && this.tipsOn;
+    this.items.once('spawned', () => !spotlit() && this.guide.show('아이템이 생겼다! 지나가면 주워요'));
     const taught = new Set<ItemId>();
     this.items.on('picked', (id: ItemId) => {
       if (taught.has(id)) return;
       taught.add(id);
+      if (id === 'postit' && spotlit()) return;
       this.guide.show(ITEMS[id].howTo.replace('{key}', this.controls.isTouch ? '[아이템] 버튼' : 'Z').replace('{who}', this.stage.target.appearance.rank), 4);
     });
     this.life = new Life();
@@ -279,6 +285,7 @@ export class OfficeScene extends Phaser.Scene {
         },
         setRemaining: (seconds: number) => this.clock.setRemaining(seconds),
         tipSpot: () => (this.tipDialog.current ? this.tipSpot(this.tipDialog.current as TipId) : null),
+        tipWorld: () => (this.tipDialog.current ? this.tipWorld(this.tipDialog.current as TipId) : null),
         cameraOnPlayer: () => {
           const follow = (this.cameras.main as unknown as { _follow: unknown })._follow;
           return this.tipPan === null && follow === this.player.cameraTarget;
@@ -619,7 +626,8 @@ export class OfficeScene extends Phaser.Scene {
       case 'tell':
         return { x: t.x, y: t.y - 50, r: 86 };
       case 'confirmed':
-        return { x: this.map.mySeat.x, y: this.map.mySeat.y - 30, r: 82 };
+        // 처음 확정한 그 자리 (내 자리든 숨는 곳이든)
+        return this.confirmSpot && { x: this.confirmSpot.x, y: this.confirmSpot.y - 40, r: 82 };
       case 'approval':
         return { x: APPROVAL.paper.x, y: APPROVAL.paper.y - 20, r: 66 };
       case 'blackout':
@@ -733,6 +741,7 @@ export class OfficeScene extends Phaser.Scene {
     this.score.on('change', () => this.score.temp > 0 && t.complete('poke'));
     this.hide.onConfirm = () => {
       t.complete('confirm');
+      if (!this.confirmSpot) this.confirmSpot = { x: this.player.x, y: this.player.y };
       this.tip('confirmed');
     };
     t.on('change', (id: string) => {

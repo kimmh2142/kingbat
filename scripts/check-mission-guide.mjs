@@ -76,6 +76,52 @@ for (const n of [1, 2, 3]) {
 }
 log.push(['안내창', tips]);
 
+// 1-2) STAGE 1 안내가 켜져 있으면 노란 토스트("아이템이 생겼다", 포스트잇 사용법)는 안 뜬다.
+// 처음 확정을 숨는 곳(화분)에서 하면 확정 안내는 내 자리가 아니라 그 화분 쪽을 비춘다
+{
+  const p = await open('?stage=1&tips=1');
+  const toasts = new Set();
+  const watch = setInterval(async () => {
+    try {
+      const g = await p.evaluate(() => window.__kingbat?.items?.guide);
+      if (g) toasts.add(g);
+    } catch {}
+  }, 150);
+  const closeTip = async (id) => {
+    const ok = await p.waitForFunction((w) => window.__kingbat?.tip === w, id, { timeout: 15000 }).then(() => true, () => false);
+    if (!ok) throw new Error(`안내 '${id}' 안 뜸: ` + JSON.stringify(await p.evaluate(() => ({ tip: window.__kingbat.tip, picked: window.__kingbat.items.slots, player: window.__kingbat.player }))));
+    // 뜬 직후 0.45초(게임 시간)는 입력을 안 받는다. 헤드리스는 프레임이 느려 넉넉히
+    await p.waitForTimeout(1500);
+    await p.keyboard.press('Space');
+    await p.waitForTimeout(900);
+  };
+  await closeTip('goal');
+  await p.evaluate(() => {
+    window.__kingbatTest.setRemaining(999);
+    window.__kingbatTest.calmDaeri();
+  });
+  const item = await p.evaluate(() => window.__kingbat.items.onMap.find((i) => i.id === 'postit'));
+  await tp(p, item.x, item.y);
+  await closeTip('picked');
+  // 화분(450, 1010) 뒤에서 임시 점수 들고 E 꾹 → 첫 확정
+  await p.evaluate(() => window.__kingbatTest.addTemp(5));
+  await closeTip('temp');
+  await tp(p, 450, 1040);
+  await p.waitForTimeout(300);
+  await p.keyboard.down('KeyE');
+  const got = await p
+    .waitForFunction(() => window.__kingbat?.tip === 'confirmed', null, { timeout: 15000 })
+    .then(() => true)
+    .catch(() => false);
+  await p.keyboard.up('KeyE');
+  await p.waitForTimeout(400);
+  const w = await p.evaluate(() => window.__kingbatTest.tipWorld());
+  await p.screenshot({ path: 'screenshots/spot-confirm-plant.png' });
+  clearInterval(watch);
+  log.push(['STAGE 1', { 노란안내: [...toasts], 확정안내: got, 비춘곳: w, 화분과거리: w ? Math.round(Math.hypot(w.x - 450, w.y - 1000)) : null }]);
+  await p.close();
+}
+
 // 2) STAGE 2 단계: ① 서류 줍기 → ② 결재 더미
 const p2 = await open('?stage=2');
 await p2.evaluate(() => {
