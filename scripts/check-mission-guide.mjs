@@ -95,8 +95,8 @@ log.push(['안내창', tips]);
   const closeTip = async (id) => {
     const ok = await p.waitForFunction((w) => window.__kingbat?.tip === w, id, { timeout: 15000 }).then(() => true, () => false);
     if (!ok) throw new Error(`안내 '${id}' 안 뜸: ` + JSON.stringify(await p.evaluate(() => ({ tip: window.__kingbat.tip, picked: window.__kingbat.items.slots, player: window.__kingbat.player }))));
-    // 뜬 직후 0.45초(게임 시간)는 입력을 안 받는다. 헤드리스는 프레임이 느려 넉넉히
-    await p.waitForTimeout(1500);
+    // 뜬 직후 0.8초(게임 시간)는 입력을 안 받는다. 헤드리스는 프레임이 느려 넉넉히
+    await p.waitForTimeout(2500);
     await p.keyboard.press('Space');
     await p.waitForTimeout(900);
   };
@@ -133,7 +133,7 @@ log.push(['안내창', tips]);
   const p = await open('?stage=1&tips=1');
   await p.waitForFunction(() => window.__kingbat?.tip === 'goal', null, { timeout: 10000 });
   const before = (await k(p)).tutorial.line;
-  await p.waitForTimeout(1500);
+  await p.waitForTimeout(2500);
   await p.keyboard.press('KeyN');
   await p.waitForTimeout(600);
   log.push(['STAGE 1 끔', { 끄기전: before, 끈뒤: (await k(p)).tutorial.line }]);
