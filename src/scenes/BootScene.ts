@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { FINAL_ASSETS } from '../assets/manifest';
+import { FINAL_ASSETS, FINAL_SCALE } from '../assets/manifest';
 import { generatePlaceholders } from '../assets/placeholderTextures';
 import { STAGES, stageFromUrl } from '../data/stages';
 import { ENDING_STORY } from '../data/dialogue';
@@ -15,7 +15,28 @@ export class BootScene extends Phaser.Scene {
     }
   }
 
+  /**
+   * 최종 그래픽(2배 크기)을 게임 속 크기로 줄여 같은 키에 다시 넣는다.
+   * 그림을 쓰는 코드의 크기·기준점은 임시 그래픽 기준이라 그대로 둔다
+   */
+  private shrinkFinals(): void {
+    for (const key of Object.keys(FINAL_ASSETS)) {
+      if (!this.textures.exists(key)) continue;
+      const src = this.textures.get(key).getSourceImage() as HTMLImageElement;
+      const w = Math.round(src.width / FINAL_SCALE);
+      const h = Math.round(src.height / FINAL_SCALE);
+      this.textures.remove(key);
+      const c = this.textures.createCanvas(key, w, h)!;
+      const ctx = c.getContext();
+      ctx.imageSmoothingEnabled = true;
+      ctx.imageSmoothingQuality = 'high';
+      ctx.drawImage(src, 0, 0, w, h);
+      c.refresh();
+    }
+  }
+
   create(): void {
+    this.shrinkFinals();
     // 최종 그래픽이 없는 키만 임시 그래픽으로 채운다
     generatePlaceholders(this);
     // 개발 중 그림 목록표 뽑기용 (scripts/export-art-list.mjs). 빌드에는 빠진다
