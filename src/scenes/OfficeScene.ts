@@ -190,7 +190,7 @@ export class OfficeScene extends Phaser.Scene {
       const others = [...this.patrols];
       const hr = new PatrolController(this, INSA, HR_VISIT.desk);
       this.patrols.push(hr);
-      this.hrVisit = new HrVisit(this, hr, others);
+      this.hrVisit = new HrVisit(this, hr, others, () => this.player);
       this.hrVisit.on('ding', () => this.guide.show(HR_VISIT.lines.dingToast, 3));
     }
 
@@ -457,7 +457,7 @@ export class OfficeScene extends Phaser.Scene {
       resultReady: !!this.result?.ready,
       mission: this.missionDone,
       approval: this.approval ? { phase: this.approval.phase, seq: [...this.approval.seq], index: this.approval.index } : null,
-      blackout: this.blackout ? { phase: this.blackout.phase, dark: this.blackout.dark, air: this.blackout.air } : null,
+      blackout: this.blackout ? { phase: this.blackout.phase, dark: this.blackout.dark, round: this.blackout.round, swing: this.blackout.swing } : null,
       hr: this.hrVisit ? { phase: this.hrVisit.phase, timer: this.hrVisit.timer } : null,
       tutorial: { step: this.tutorial.current, line: this.hud.missionLine },
       thought: !!this.thought,

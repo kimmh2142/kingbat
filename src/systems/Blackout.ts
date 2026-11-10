@@ -13,7 +13,7 @@ type Phase = 'onFloor' | 'carrying' | 'placing' | 'placed' | 'done';
 
 /**
  * STAGE 3 특별 미션 "대정전과 최후의 방석".
- * 라운지 방귀 방석 지나가며 줍기 → 배전반 E (정전 15초, 대표가 확인하러 나감) → 대표가 나간 사이 의자 옆에서 E 꾹 (바람 넣기 미니게임)
+ * 라운지 방귀 방석 지나가며 줍기 → 배전반 E (정전 15초, 대표가 확인하러 나감) → 대표가 나간 사이 의자 옆에서 E 꾹 (흔들리는 방석이 가운데 올 때 3번)
  * → 대표가 돌아와 앉으면 "뿌우우욱!" 'done'. 까는 중(busy)엔 움직일 수 없고, 보이면 들킨다(OfficeScene.checkCaught).
  */
 export class Blackout extends Phaser.Events.EventEmitter implements MissionTask {
@@ -25,8 +25,14 @@ export class Blackout extends Phaser.Events.EventEmitter implements MissionTask 
   dark = 0;
   /** 다시 내릴 수 있을 때까지 */
   private cool = 0;
-  /** 방석 바람 (0~1). 분홍 칸에서 손을 떼면 완성 */
-  air = 0;
+  /** 흔들리는 방석 놓기: 맞춘 횟수 (0~3) */
+  round = 0;
+  /** 방석이 의자 가운데서 벗어난 거리 (px, 0이면 정가운데) */
+  swing = 0;
+  private swingT = 0;
+  /** 빗나간 뒤 잠깐 못 누르는 시간 */
+  private lock = 0;
+  /** 가운데 표시와 맞춘 횟수 점 */
   private readonly gauge: Phaser.GameObjects.Graphics;
   private wasHeld = false;
   /** 정전으로 대표가 자리를 비운 동안 (이때만 방석을 깔 수 있다) */
@@ -54,7 +60,7 @@ export class Blackout extends Phaser.Events.EventEmitter implements MissionTask 
     this.carryView = scene.add.image(0, 0, TEX.cushion).setScale(0.7).setDepth(DEPTH.label + 3).setVisible(false);
     // 의자 위에 깔린 방석 (의자 그림 바로 앞. 대표가 앉으면 몸에 가려진다)
     this.seatView = scene.add.image(B.chair.x, B.chair.y - 22, TEX.cushion).setScale(0.8).setDepth(B.chair.y + 0.5).setVisible(false);
-    // 바람 넣기 게이지 (의자 오른쪽)
+    // 흔들리는 방석: 의자 가운데 표시 + 맞춘 횟수
     this.gauge = scene.add.graphics().setDepth(DEPTH.label + 4).setVisible(false);
     // 정전: 화면 전체를 어둡게 (이름표·HUD는 위에 보인다)
     this.shade = scene.add
@@ -96,7 +102,7 @@ export class Blackout extends Phaser.Events.EventEmitter implements MissionTask 
       return this.phase === 'onFloor' ? BLACKOUT.lines.needCushion : `${e}: 배전반 내리기`;
     }
     if (this.phase === 'placing') return null;
-    if (this.carrying && this.nearChair(x, y)) return this.canPlace ? `${e} 꾹: 방석 바람 넣기` : BLACKOUT.lines.needAway;
+    if (this.carrying && this.nearChair(x, y)) return this.canPlace ? `${e}: 방석 깔기` : BLACKOUT.lines.needAway;
     return null;
   }
 
@@ -115,13 +121,14 @@ export class Blackout extends Phaser.Events.EventEmitter implements MissionTask 
 
   update(dt: number, eHeld: boolean, blocked: boolean, player: Player): void {
     const pressed = eHeld && !this.wasHeld;
-    const released = !eHeld && this.wasHeld;
     this.wasHeld = eHeld;
     const { x, y } = player;
 
     // 방석은 일반 아이템처럼 지나가면 줍는다 (11/10)
     if (!blocked && this.nearCushion(x, y)) this.pick(player);
-    if (pressed && !blocked) {
+    // 깔기 미니게임 중 (시작한 그 누름은 판정에 안 쓴다: 먼저 처리)
+    if (this.phase === 'placing') this.swingStep(dt, pressed, player);
+    else if (pressed && !blocked) {
       if (this.nearPanel(x, y) && this.phase !== 'onFloor' && this.dark <= 0 && this.cool <= 0) this.cutPower();
       else if (this.carrying && this.nearChair(x, y)) {
         if (this.canPlace) this.startPlacing(player);
@@ -129,20 +136,19 @@ export class Blackout extends Phaser.Events.EventEmitter implements MissionTask 
       }
     }
 
-    if (this.phase === 'placing') this.pump(dt, eHeld, released, player);
 
     if (this.dark > 0) {
       this.dark -= dt;
       if (this.dark <= 0) this.lightsOn();
     } else if (this.cool > 0) this.cool -= dt;
 
-    this.carryView.setVisible(this.carrying || this.phase === 'placing').setPosition(x + 36, y - 92);
+    this.carryView.setVisible(this.carrying).setPosition(x + 36, y - 92);
   }
 
   onCaught(): void {
     if (this.phase !== 'placing') return;
     this.phase = 'onFloor';
-    this.endPump();
+    this.endSwing();
     this.floorView.setVisible(true);
     this.spark.setVisible(true);
     this.carryView.setVisible(false);
@@ -152,7 +158,7 @@ export class Blackout extends Phaser.Events.EventEmitter implements MissionTask 
   cancel(): void {
     if (this.phase === 'placing') {
       this.phase = 'carrying';
-      this.endPump();
+      this.endSwing();
     }
   }
 
@@ -221,62 +227,72 @@ export class Blackout extends Phaser.Events.EventEmitter implements MissionTask 
 
   private startPlacing(player: Player): void {
     this.phase = 'placing';
-    this.air = 0;
-    this.seatView.setVisible(true).setScale(0.4);
+    this.round = 0;
+    this.swingT = 0;
+    this.lock = 0;
+    this.seatView.setVisible(true).setScale(0.8);
     this.gauge.setVisible(true);
     popWord(this.scene, player.x, player.y - 110, BLACKOUT.lines.placing, { color: '#8d7f99', size: 20 });
   }
 
-  /** 바람 넣기: 누르는 동안 차오르고, 분홍 칸에서 떼면 완성. 끝까지 차면 뿌직 */
-  private pump(dt: number, held: boolean, released: boolean, player: Player): void {
-    const P = BLACKOUT.pump;
-    if (held) {
-      this.air += dt / P.fillTime;
-      if (this.air >= 1) {
-        this.air = 0;
-        popWord(this.scene, BLACKOUT.chair.x, BLACKOUT.chair.y - 90, BLACKOUT.lines.leak, { color: '#ec407a', size: 24 });
-        this.scene.cameras.main.shake(120, 0.004);
+  /**
+   * 흔들리는 방석 놓기 (11/10 "STAGE 3이 심심"): 의자 위에서 방석이 좌우로 흔들리고, 가운데 올 때 누르면 한 번 맞춤.
+   * 3번 맞추면 완성, 맞출수록 빨라진다. 빗나가면 "삐끗!" 잠깐 못 누름
+   */
+  private swingStep(dt: number, pressed: boolean, player: Player): void {
+    const W = BLACKOUT.swing;
+    this.lock = Math.max(0, this.lock - dt);
+    this.swingT += dt * W.speeds[Math.min(this.round, W.speeds.length - 1)];
+    // 삼각파: 가운데를 지나는 속도가 일정하다 (사인파는 가운데서 너무 빠르다)
+    this.swing = W.amp * (2 / Math.PI) * Math.asin(Math.sin(this.swingT));
+    const { x, y } = BLACKOUT.chair;
+    if (pressed && this.lock <= 0) {
+      if (Math.abs(this.swing) <= W.hit) {
+        this.round++;
+        popWord(this.scene, x, y - 100, this.round >= W.speeds.length ? BLACKOUT.lines.placed : BLACKOUT.lines.hit, { color: '#ec407a', size: 26 });
+        this.scene.cameras.main.shake(80, 0.003);
+        if (this.round >= W.speeds.length) return this.finishPlacing();
+      } else {
+        this.lock = W.missLock;
+        popWord(this.scene, player.x, player.y - 110, BLACKOUT.lines.miss, { color: '#8d7f99', size: 20 });
       }
-    } else if (released) {
-      if (this.air >= P.zone[0] && this.air <= P.zone[1]) return this.finishPlacing();
-      if (this.air > 0) popWord(this.scene, player.x, player.y - 110, BLACKOUT.lines.pumpMore, { color: '#8d7f99', size: 18 });
     }
-    // 방석이 부풀고, 누르는 동안 들썩들썩
-    const wobble = held ? Math.sin(this.scene.time.now / 40) * 0.04 : 0;
-    this.seatView.setScale(0.4 + this.air * 0.6 + wobble);
+    this.seatView.setPosition(x + this.swing, y - 22).setAngle(this.swing * 0.4);
     this.drawGauge();
   }
 
   private drawGauge(): void {
     const { x, y } = BLACKOUT.chair;
-    const [z0, z1] = BLACKOUT.pump.zone;
-    const gx = x + 70;
-    const top = y - 190;
-    const h = 140;
-    const w = 30;
-    const zTop = top + h * (1 - z1);
-    const zH = h * (z1 - z0);
+    const W = BLACKOUT.swing;
     const g = this.gauge.clear();
-    g.fillStyle(0xffffff, 0.95).fillRoundedRect(gx - w / 2, top, w, h, 10);
-    g.fillStyle(0xffd6e4).fillRect(gx - w / 2, zTop, w, zH);
-    g.fillStyle(this.air > z1 ? 0xef5350 : 0xf06292).fillRect(gx - w / 2 + 6, top + h * (1 - this.air), w - 12, h * this.air);
-    // 떼는 칸: 채움 위에 테두리 + 양옆 화살표 (채워져도 보이게)
-    g.lineStyle(4, 0xffeb3b).strokeRect(gx - w / 2 - 2, zTop, w + 4, zH);
-    g.fillStyle(0xffeb3b).fillTriangle(gx - w / 2 - 16, zTop + zH / 2 - 8, gx - w / 2 - 16, zTop + zH / 2 + 8, gx - w / 2 - 4, zTop + zH / 2);
-    g.fillTriangle(gx + w / 2 + 16, zTop + zH / 2 - 8, gx + w / 2 + 16, zTop + zH / 2 + 8, gx + w / 2 + 4, zTop + zH / 2);
-    g.lineStyle(4, 0x583848).strokeRoundedRect(gx - w / 2, top, w, h, 10);
+    // 가운데 표시: 노란 괄호 [  ] (이 안에 올 때 누르기)
+    const top = y - 44;
+    const bottom = y - 2;
+    g.lineStyle(4, this.lock > 0 ? 0xbdbdbd : 0xffeb3b);
+    for (const sx of [-1, 1]) {
+      const bx = x + sx * (W.hit + 22);
+      g.beginPath().moveTo(bx - sx * 8, top).lineTo(bx, top).lineTo(bx, bottom).lineTo(bx - sx * 8, bottom).strokePath();
+    }
+    g.fillStyle(0xffeb3b).fillTriangle(x - 8, top - 16, x + 8, top - 16, x, top - 4);
+    // 맞춘 횟수 점 3개 (책상 앞, 주인공에 가리지 않게)
+    for (let i = 0; i < W.speeds.length; i++) {
+      const cx = x + (i - 1) * 28;
+      g.fillStyle(i < this.round ? 0xec407a : 0xffffff).fillCircle(cx, y + 92, 10);
+      g.lineStyle(3, 0x583848).strokeCircle(cx, y + 92, 10);
+    }
   }
 
-  private endPump(): void {
-    this.air = 0;
+  private endSwing(): void {
+    this.round = 0;
+    this.swing = 0;
     this.gauge.setVisible(false);
-    this.seatView.setVisible(false).setScale(0.8);
+    this.seatView.setVisible(false).setPosition(BLACKOUT.chair.x, BLACKOUT.chair.y - 22).setAngle(0);
   }
 
   private finishPlacing(): void {
     this.phase = 'placed';
     this.gauge.setVisible(false);
-    this.seatView.setVisible(true).setScale(0.8);
+    this.seatView.setVisible(true).setPosition(BLACKOUT.chair.x, BLACKOUT.chair.y - 22).setAngle(0);
     popWord(this.scene, BLACKOUT.chair.x, BLACKOUT.chair.y - 70, BLACKOUT.lines.placed, { color: '#ec407a', size: 24 });
     this.emit('sheet');
   }

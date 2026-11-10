@@ -21,6 +21,8 @@ export class HrVisit extends Phaser.Events.EventEmitter {
     private readonly scene: Phaser.Scene,
     private readonly hr: PatrolController,
     private readonly others: PatrolController[],
+    /** 주인공 위치 (가까운 경로를 고르려고) */
+    private readonly player: () => { x: number; y: number },
   ) {
     super();
     hr.vanishAtSeat = true;
@@ -43,7 +45,7 @@ export class HrVisit extends Phaser.Events.EventEmitter {
         this.timer -= dt;
         if (this.timer > 0) return;
         this.phase = 'visiting';
-        this.hr.appear(Phaser.Math.Between(0, this.hr.pattern.routes.length - 1));
+        this.hr.appear(this.pickRoute());
         this.hr.view.say(L.arrive, 2.5);
         for (const o of this.others) o.view.say(L.busy, 3);
         this.emit('arrive');
@@ -56,6 +58,17 @@ export class HrVisit extends Phaser.Events.EventEmitter {
         this.emit('leave');
         return;
     }
+  }
+
+  /** 주인공과 가장 가까운 지점을 지나는 경로를 자주, 가끔은 아무 경로나 */
+  private pickRoute(): number {
+    const routes = this.hr.pattern.routes;
+    if (Math.random() >= HR_VISIT.nearRouteChance) return Phaser.Math.Between(0, routes.length - 1);
+    const p = this.player();
+    const dist = (i: number) => Math.min(...routes[i].path.map((q) => Phaser.Math.Distance.Between(p.x, p.y, q.x, q.y)));
+    let best = 0;
+    for (let i = 1; i < routes.length; i++) if (dist(i) < dist(best)) best = i;
+    return best;
   }
 
   /** 개발 테스트용: 바로 띵 */
