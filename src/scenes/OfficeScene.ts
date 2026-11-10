@@ -584,6 +584,7 @@ export class OfficeScene extends Phaser.Scene {
         tipsSetting.off = true;
         this.tipsOn = false;
         this.tipQueue.length = 0;
+        this.refreshMission();
       });
     };
     // 비출 곳이 있으면 카메라가 그쪽을 가운데로 (가까우면 짧게). 시작 직후엔 카메라가 아직 나에게 오는 중일 수 있어 화면 안인지로 판단하지 않는다
@@ -766,6 +767,8 @@ export class OfficeScene extends Phaser.Scene {
       this.hud.setMission(this.missionDone ? `✔ ${m.name} 성공!` : st ? `★ 미션 ${st.text}` : `★ 특별 미션 "${m.name}": ${m.goal}`, this.missionDone);
       return;
     }
+    // 스포트라이트 안내가 켜져 있으면 단계 설명은 안내가 맡고 미션 칸은 숨긴다 (11/10). 끄면 다시 보인다
+    if (this.tipsOn) return this.hud.setMission('');
     const line = t.text(this.controls.isTouch);
     const all = t.finished && this.missionDone;
     this.hud.setMission(all ? `✔ ${this.stage.mission.name} 성공! · ${line}` : `★ ${line}`, all);

@@ -83,11 +83,13 @@ export class HUD {
     );
   }
 
-  /** 미션 칸: 지금 할 일 한 줄. done이면 초록. 글이 바뀌면 통 튄다 */
+  /** 미션 칸: 지금 할 일 한 줄. done이면 초록. 글이 바뀌면 통 튄다. 빈 글이면 칸을 숨긴다 */
   setMission(text: string, done = false): void {
     if (this.missionText.text === text) return;
     this.missionText.setText(text);
     this.missionText.setColor(done ? '#2e7d5b' : COLORS.text);
+    this.missionBg.clear();
+    if (!text) return;
     const w = this.missionText.width + 28;
     this.missionBg.clear();
     this.missionBg.fillStyle(done ? 0xdff5e9 : 0xfff8d6, 0.95).fillRoundedRect(12, MISSION_Y - 13, w, 26, 13);

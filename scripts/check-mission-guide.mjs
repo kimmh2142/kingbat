@@ -96,6 +96,7 @@ log.push(['안내창', tips]);
     await p.waitForTimeout(900);
   };
   await closeTip('goal');
+  const barOn = (await k(p)).tutorial.line;
   await p.evaluate(() => {
     window.__kingbatTest.setRemaining(999);
     window.__kingbatTest.calmDaeri();
@@ -118,7 +119,19 @@ log.push(['안내창', tips]);
   const w = await p.evaluate(() => window.__kingbatTest.tipWorld());
   await p.screenshot({ path: 'screenshots/spot-confirm-plant.png' });
   clearInterval(watch);
-  log.push(['STAGE 1', { 노란안내: [...toasts], 확정안내: got, 비춘곳: w, 화분과거리: w ? Math.round(Math.hypot(w.x - 450, w.y - 1000)) : null }]);
+  log.push(['STAGE 1', { 미션칸_안내켬: barOn, 노란안내: [...toasts], 확정안내: got, 비춘곳: w, 화분과거리: w ? Math.round(Math.hypot(w.x - 450, w.y - 1000)) : null }]);
+  await p.close();
+}
+
+// 1-3) 안내를 [다시 안 보기](N)로 끄면 STAGE 1 미션 칸(단계 설명)이 다시 보인다
+{
+  const p = await open('?stage=1&tips=1');
+  await p.waitForFunction(() => window.__kingbat?.tip === 'goal', null, { timeout: 10000 });
+  const before = (await k(p)).tutorial.line;
+  await p.waitForTimeout(1500);
+  await p.keyboard.press('KeyN');
+  await p.waitForTimeout(600);
+  log.push(['STAGE 1 끔', { 끄기전: before, 끈뒤: (await k(p)).tutorial.line }]);
   await p.close();
 }
 
