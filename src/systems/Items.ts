@@ -9,6 +9,9 @@ const rand = (r: Range) => Phaser.Math.FloatBetween(r[0], r[1]);
 
 export interface MapItem {
   spot: ItemSpawnSpot;
+  /** 실제로 놓인 곳 (생성 지점 근처 랜덤) */
+  x: number;
+  y: number;
   id: ItemId;
   icon: Phaser.GameObjects.Image;
   sparkle: Phaser.GameObjects.Text;
@@ -38,6 +41,8 @@ export class Items extends Phaser.Events.EventEmitter {
   pickedAny = false;
   /** 아직 첫 아이템을 안 만들었다 (첫 아이템은 정해진 곳에 정해진 것) */
   private firstPending = true;
+  /** 이 자리에 놓아도 되는가 (벽·책상과 안 겹치고 같은 방). OfficeScene이 넣어 준다 */
+  canPlace: (x: number, y: number, spot: ItemSpawnSpot) => boolean = () => true;
 
   constructor(
     private readonly scene: Phaser.Scene,
@@ -102,10 +107,10 @@ export class Items extends Phaser.Events.EventEmitter {
     for (const m of [...this.onMap]) {
       m.t += dt;
       // 둥실둥실 + 반짝
-      m.icon.y = m.spot.y - 26 + Math.sin(m.t * 3) * 7;
-      m.sparkle.setPosition(m.spot.x + 18, m.icon.y - 20).setAlpha(0.5 + Math.abs(Math.sin(m.t * 4)) * 0.5);
+      m.icon.y = m.y - 26 + Math.sin(m.t * 3) * 7;
+      m.sparkle.setPosition(m.x + 18, m.icon.y - 20).setAlpha(0.5 + Math.abs(Math.sin(m.t * 4)) * 0.5);
       m.glow.setScale(1 + Math.sin(m.t * 3) * 0.12).setAlpha(0.45 + Math.abs(Math.sin(m.t * 2)) * 0.3);
-      const d = Phaser.Math.Distance.Between(player.x, player.y, m.spot.x, m.spot.y);
+      const d = Phaser.Math.Distance.Between(player.x, player.y, m.x, m.y);
       if (d > ITEM_RULES.pickupRadius) {
         if (this.fullWarned === m && d > ITEM_RULES.pickupRadius * 2) this.fullWarned = undefined;
         continue;
@@ -130,9 +135,9 @@ export class Items extends Phaser.Events.EventEmitter {
     this.lastPicked = m.spot;
     this.pickedAny = true;
     this.pending.push(rand(ITEM_RULES.respawn));
-    popWord(this.scene, m.spot.x, m.spot.y - 60, `${ITEMS[m.id].name} 획득!`, { color: '#f9a825', size: 22 });
+    popWord(this.scene, m.x, m.y - 60, `${ITEMS[m.id].name} 획득!`, { color: '#f9a825', size: 22 });
     this.emit('change');
-    this.emit('picked', m.id, i, m.spot.x, m.icon.y);
+    this.emit('picked', m.id, i, m.x, m.icon.y);
     return true;
   }
 
@@ -152,19 +157,38 @@ export class Items extends Phaser.Events.EventEmitter {
     } else {
       id = this.pickType(spot);
     }
+    // 첫 아이템(튜토리얼 안내가 비추는 것)은 그 자리 그대로, 그 뒤로는 생성 지점 근처 아무 곳
+    const { x, y } = this.firstPending ? spot : this.scatter(spot);
     this.firstPending = false;
-    const glow = this.scene.add.ellipse(spot.x, spot.y, 64, 24, 0xfff176, 0.6).setStrokeStyle(2, 0xf9a825, 0.8).setDepth(DEPTH.floor + 5);
-    const icon = this.scene.add.image(spot.x, spot.y - 26, ITEMS[id].icon).setDepth(spot.y);
+    const glow = this.scene.add.ellipse(x, y, 64, 24, 0xfff176, 0.6).setStrokeStyle(2, 0xf9a825, 0.8).setDepth(DEPTH.floor + 5);
+    const icon = this.scene.add.image(x, y - 26, ITEMS[id].icon).setDepth(y);
     const sparkle = this.scene.add
-      .text(spot.x, spot.y, '✦', { fontSize: '22px', color: '#fff59d', stroke: '#5a3a4a', strokeThickness: 4 })
+      .text(x, y, '✦', { fontSize: '22px', color: '#fff59d', stroke: '#5a3a4a', strokeThickness: 4 })
       .setOrigin(0.5)
-      .setDepth(spot.y + 0.1);
+      .setDepth(y + 0.1);
     icon.setScale(0.2);
     this.scene.tweens.add({ targets: icon, scale: 1, duration: 260, ease: 'Back.Out' });
-    const m: MapItem = { spot, id, icon, sparkle, glow, t: 0 };
+    const m: MapItem = { spot, x, y, id, icon, sparkle, glow, t: 0 };
     this.onMap.push(m);
     this.emit('spawned', m);
     return true;
+  }
+
+  /** 생성 지점에서 scatterRadius 안 아무 곳 (놓을 수 없는 곳이면 다시 뽑고, 끝내 없으면 생성 지점 그대로) */
+  /** 확인 스크립트용: 놓일 자리를 하나 뽑아 본다 */
+  sampleSpot(spot: ItemSpawnSpot): { x: number; y: number } {
+    return this.scatter(spot);
+  }
+
+  private scatter(spot: ItemSpawnSpot): { x: number; y: number } {
+    for (let k = 0; k < ITEM_RULES.scatterTries; k++) {
+      const a = Math.random() * Math.PI * 2;
+      const r = Math.sqrt(Math.random()) * ITEM_RULES.scatterRadius;
+      const x = Math.round(spot.x + Math.cos(a) * r);
+      const y = Math.round(spot.y + Math.sin(a) * r);
+      if (this.canPlace(x, y, spot)) return { x, y };
+    }
+    return { x: spot.x, y: spot.y };
   }
 
   /** 그 자리에 나올 수 있는 것 중 맵과 슬롯에 적은 종류를 우선 (한 종류만 계속 나오지 않게) */

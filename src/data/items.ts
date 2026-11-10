@@ -61,6 +61,10 @@ export const ITEM_RULES = {
   firstSpawn: [[1, 2], [4, 6]] as Range[],
   /** 판 시작 첫 아이템은 꼭 이것, 이 자리에 (내 자리 → 동기 자리 가는 길) */
   firstItem: { id: 'postit' as ItemId, spot: 'drawer-a' },
+  /** 생성 지점에서 이 거리(px) 안 아무 곳에 생긴다 (위치를 외우지 않게, 11/11) */
+  scatterRadius: 80,
+  /** 놓을 자리를 이만큼 다시 뽑아 보고, 없으면 생성 지점 그대로 */
+  scatterTries: 10,
   /** 이 거리(px) 안으로 걸어 들어가면 줍는다 */
   pickupRadius: 38,
   /** 슬롯 칸 수 */

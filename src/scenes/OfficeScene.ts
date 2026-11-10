@@ -204,6 +204,12 @@ export class OfficeScene extends Phaser.Scene {
     this.hide.tooClose = (x, y) => Phaser.Math.Distance.Between(x, y, this.target.x, this.target.y) < TRASH.minTargetDist;
     this.score.on('change', () => this.announceGoal());
     this.items = new Items(this, this.stage.floor.itemSpawns, this.stage.items);
+    this.items.canPlace = (x, y, spot) => {
+      const room = this.map.roomAt(x, y);
+      if (!room || room !== this.map.roomAt(spot.x, spot.y) || this.map.isLocked(room)) return false;
+      // 벽·책상·소품과 겹치지 않게 (주인공 발 크기 정도 여유)
+      return this.physics.overlapRect(x - 24, y - 16, 48, 32, false, true).length === 0;
+    };
     this.pranks = new Pranks(this, this.score, this.items, this.target);
     this.pranks.laughFrom = (x, y) => this.extras.nearestTo(x, y, 320);
     if (this.stage.mission.id === 'parade') this.pranks.on('parade', () => this.completeMission());
@@ -298,6 +304,8 @@ export class OfficeScene extends Phaser.Scene {
         },
         setRemaining: (seconds: number) => this.clock.setRemaining(seconds),
         tipSpot: () => (this.tipDialog.current ? this.tipSpot(this.tipDialog.current as TipId) : null),
+        canPlaceAt: (x: number, y: number) => this.items.canPlace(x, y, { id: 'probe', name: 'probe', x, y }),
+        scatterSample: (n: number) => this.stage.floor.itemSpawns.map((sp) => ({ id: sp.id, x: sp.x, y: sp.y, pts: Array.from({ length: n }, () => this.items.sampleSpot(sp)) })),
         tipWorld: () => (this.tipDialog.current ? this.tipWorld(this.tipDialog.current as TipId) : null),
         cameraOnPlayer: () => {
           const follow = (this.cameras.main as unknown as { _follow: unknown })._follow;
@@ -444,7 +452,7 @@ export class OfficeScene extends Phaser.Scene {
         patrols: this.patrols.filter((p) => !p.hidden),
         // 미니맵 밑에 들어가면 흐려지게: 나·대상·방해 NPC
         people: [this.player, this.target, ...this.patrols.filter((p) => !p.hidden)],
-        items: this.items.onMap.map((m) => m.spot),
+        items: this.items.onMap,
         mission: this.missionStep?.at,
         view: this.cameras.main.worldView,
       },
@@ -492,7 +500,7 @@ export class OfficeScene extends Phaser.Scene {
       items: {
         slots: [...this.items.slots],
         selected: this.items.selected,
-        onMap: this.items.onMap.map((m) => ({ id: m.id, spot: m.spot.id, x: m.spot.x, y: m.spot.y })),
+        onMap: this.items.onMap.map((m) => ({ id: m.id, spot: m.spot.id, x: m.x, y: m.y })),
         sticking: this.pranks.active,
         postit: this.pranks.postitOn,
         gum: this.pranks.gumOnBag,
@@ -508,10 +516,10 @@ export class OfficeScene extends Phaser.Scene {
     if (this.items.pickedAny || !this.items.onMap.length) return null;
     const p = this.player;
     const m = [...this.items.onMap].sort(
-      (a, b) => Phaser.Math.Distance.Between(p.x, p.y, a.spot.x, a.spot.y) - Phaser.Math.Distance.Between(p.x, p.y, b.spot.x, b.spot.y),
+      (a, b) => Phaser.Math.Distance.Between(p.x, p.y, a.x, a.y) - Phaser.Math.Distance.Between(p.x, p.y, b.x, b.y),
     )[0];
     this.itemArrow.setIcon(ITEMS[m.id].icon);
-    return { x: m.spot.x, y: m.spot.y + 24 };
+    return { x: m.x, y: m.y + 24 };
   }
 
   /** 시작 소개·컷인·실패 화면 때문에 게임이 멈춰 있음 */
@@ -642,7 +650,7 @@ export class OfficeScene extends Phaser.Scene {
     switch (id) {
       case 'goal': {
         const m = this.items.onMap.find((i) => i.id === 'postit');
-        return m ? { x: m.spot.x, y: m.spot.y - 10, r: 62 } : null;
+        return m ? { x: m.x, y: m.y - 10, r: 62 } : null;
       }
       case 'picked':
         return { x: t.x, y: t.y - TIP_BACK_SPOT - 10, r: 66 };
