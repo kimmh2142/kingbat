@@ -475,6 +475,19 @@ const files = await page.evaluate(() => {
     stroke(x, (x) => (x.moveTo(24, 40), x.quadraticCurveTo(40, 48, 56, 40)), '#d6457d', 3);
   });
 
+  // 쓰레기통 (쓰레기통 버전): 뒤집어쓰면 구멍 두 개로 눈만 빼꼼
+  make('trash_can', 96, 112, (x) => {
+    shape(x, rr(14, 22, 68, 86, 14), '#9fb3c8', { box: [14, 22, 68, 86], gloss: [30, 40, 8, 14] });
+    for (const sx of [34, 48, 62]) stroke(x, (x) => (x.moveTo(sx, 36), x.lineTo(sx, 96)), '#7d93aa', 4);
+    shape(x, rr(6, 10, 84, 20, 8), '#b8c8d8', { shade: false, gloss: [24, 15, 10, 3] });
+    shape(x, rr(38, 2, 20, 10, 4), '#b8c8d8', { shade: false, line: 4 });
+    // 빼꼼 눈구멍
+    fillOnly(x, ell(38, 60, 7, 5), '#2c2230');
+    fillOnly(x, ell(58, 60, 7, 5), '#2c2230');
+    fillOnly(x, circ(40, 59, 2), '#ffffff');
+    fillOnly(x, circ(60, 59, 2), '#ffffff');
+  });
+
   // 아이템 아이콘 72x72: 모니터 전원 끄기 / 의자 높이 내리기
   make('item_monitor', 72, 72, (x) => {
     shape(x, rr(26, 50, 20, 10, 3), '#9e98b4', { shade: false, line: 4 });

@@ -30,6 +30,17 @@ function extraBack(g: Phaser.GameObjects.Graphics): void {
 type Draw = (g: Phaser.GameObjects.Graphics, w: number, h: number) => void;
 
 const DEFS: Record<TextureKey, { w: number; h: number; draw: Draw }> = {
+  // 쓰레기통 (쓰레기통 버전 ?mode=trash). 최종 그림은 public/assets/final/trash_can.png
+  [TEX.trashCan]: {
+    w: 48,
+    h: 56,
+    draw: (g, w, h) => {
+      g.fillStyle(0x90a4ae).fillRoundedRect(6, 10, w - 12, h - 12, 6);
+      g.lineStyle(LINE, O).strokeRoundedRect(6, 10, w - 12, h - 12, 6);
+      g.fillStyle(0xb0bec5).fillRoundedRect(2, 4, w - 4, 10, 4);
+      g.lineStyle(LINE, O).strokeRoundedRect(2, 4, w - 4, 10, 4);
+    },
+  },
   [TEX.floorOffice]: {
     w: 64,
     h: 64,

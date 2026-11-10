@@ -4,12 +4,14 @@ import type { Player } from '../player/Player';
 import { popWord } from '../ui/Popups';
 import type { HideSpot, OfficeMap } from './OfficeMap';
 import type { Score } from './Score';
+import { TRASH } from '../data/trashMode';
 
 /**
  * E(모바일 [숨기])로 숨기·일하는 척. (Hit & Run의 "확정" 단계)
  * - 내 자리나 숨기 장소 범위 안에서만 된다. 누르면 물건 뒤(또는 의자)로 쏙 붙는다.
  * - 누르고 있는 동안 숨어 있고, 공략 대상이 돌아봐도 들키지 않는다.
  * - confirmSeconds 이상 버티면 임시 점수가 확정된다.
+ * - 쓰레기통 버전(trashMode): 숨을 곳이 없어도 그 자리에서 쓰레기통을 뒤집어쓴다. 대상 곁에선 못 쓴다.
  */
 export class Hide {
   /** 지금 숨어 있는 곳 */
@@ -22,6 +24,12 @@ export class Hide {
   private typingT = 0;
   private sparkleT = 0;
   private readonly sparkle: Phaser.GameObjects.Text;
+  /** 쓰레기통 버전이면 true (OfficeScene이 정한다) */
+  trashMode = false;
+  /** 쓰레기통을 뒤집어쓴 중 */
+  inTrash = false;
+  /** 쓰레기통 버전: 이 자리가 대상과 너무 가까운가 */
+  tooClose?: (x: number, y: number) => boolean;
   /** 임시 점수가 확정됐을 때 (확정된 점수) */
   onConfirm?: (gained: number) => void;
 
@@ -36,7 +44,7 @@ export class Hide {
   }
 
   get hidden(): boolean {
-    return this.spot !== null;
+    return this.spot !== null || this.inTrash;
   }
 
   /**
@@ -46,11 +54,12 @@ export class Hide {
   update(dt: number, held: boolean, player: Player, map: OfficeMap, busy: boolean): void {
     const pressed = held && !this.wasHeld;
     this.wasHeld = held;
-    this.nearby = this.spot ?? map.hideSpotAt(player.x, player.y);
+    this.nearby = this.spot ?? (this.inTrash ? undefined : map.hideSpotAt(player.x, player.y));
 
-    if (!this.spot) {
+    if (!this.hidden) {
       if (pressed && !busy) {
         if (this.nearby) this.enter(this.nearby, player);
+        else if (this.trashMode) this.enterTrash(player);
         else popWord(this.scene, player.x, player.y - 110, '숨을 곳이 없어!', { color: '#5a3a4a', size: 18 });
       }
     } else if (!held) {
@@ -65,7 +74,7 @@ export class Hide {
           this.onConfirm?.(gained);
         }
       }
-      if (this.spot.kind === 'seat') {
+      if (this.spot?.kind === 'seat') {
         // 일하는 척 타닥타닥
         this.typingT -= dt;
         if (this.typingT <= 0) {
@@ -87,8 +96,26 @@ export class Hide {
     if (spot.kind !== 'seat') popWord(this.scene, spot.hx, spot.hy - 90, '쉿…', { color: '#5a3a4a', size: 18 });
   }
 
+  private enterTrash(player: Player): void {
+    if (this.tooClose?.(player.x, player.y)) {
+      popWord(this.scene, player.x, player.y - 110, TRASH.lines.tooClose, { color: '#5a3a4a', size: 18 });
+      return;
+    }
+    this.inTrash = true;
+    this.holdTime = 0;
+    this.confirmed = false;
+    player.hideInTrash();
+    popWord(this.scene, player.x, player.y - 90, TRASH.lines.enter, { color: '#5a3a4a', size: 18 });
+  }
+
+  /** 들켰을 때 등 바깥에서 숨기를 풀 때 */
+  forceExit(player: Player): void {
+    if (this.hidden) this.exit(player);
+  }
+
   private exit(player: Player): void {
     this.spot = null;
+    this.inTrash = false;
     player.unhide();
   }
 

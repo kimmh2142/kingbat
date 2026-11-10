@@ -14,6 +14,7 @@ import { ENDING_STORY, STORIES } from '../data/dialogue';
 import type { MissionStep, MissionTask } from '../systems/MissionTask';
 import { ITEM_RULES, ITEMS, type ItemId } from '../data/items';
 import { nextStage, STAGES, type StageConfig } from '../data/stages';
+import { TRASH, TRASH_MODE, applyTrashTexts } from '../data/trashMode';
 import { MISSION_TIPS, TIP_BACK_SPOT, TIPS, TUTORIAL_TEXT, type TipId } from '../data/tutorial';
 import { CAMERA, MINIMAP, POKE } from '../data/tuning';
 import { Extras } from '../npc/Extras';
@@ -197,6 +198,10 @@ export class OfficeScene extends Phaser.Scene {
     this.score = new Score();
     this.poke = new Poke(this, this.score);
     this.hide = new Hide(this, this.score);
+    // 쓰레기통 버전 (?mode=trash): 어디서든 쓰레기통을 뒤집어쓰고 숨기 (대상 곁에선 못 씀)
+    applyTrashTexts();
+    this.hide.trashMode = TRASH_MODE;
+    this.hide.tooClose = (x, y) => Phaser.Math.Distance.Between(x, y, this.target.x, this.target.y) < TRASH.minTargetDist;
     this.score.on('change', () => this.announceGoal());
     this.items = new Items(this, this.stage.floor.itemSpawns, this.stage.items);
     this.pranks = new Pranks(this, this.score, this.items, this.target);
@@ -265,6 +270,13 @@ export class OfficeScene extends Phaser.Scene {
     this.setupCamera();
     this.miniMap = new MiniMap(this, this.map, this.touch, this.controls.isTouch, this.stage.target.appearance.rank, this.stage.mission.id !== 'parade');
     this.setupDebug();
+    // 쓰레기통 버전이면 어느 버전인지 작게 표시
+    if (TRASH_MODE) {
+      this.add
+        .text(16, 82, TRASH.lines.badge, { fontFamily: FONT, fontSize: '14px', color: '#ffffff', backgroundColor: '#78909c', padding: { x: 8, y: 3 } })
+        .setScrollFactor(0)
+        .setDepth(DEPTH.label + 20);
+    }
     // 시작 타깃 소개. 다시 도전(하트 0개·야근)이면 생략.
     // Playwright 확인 스크립트는 바로 플레이해야 하므로 생략한다 (?intro=1이면 보여줌)
     const skipIntro = data?.retry || params.has('overview') || (navigator.webdriver && !params.has('intro'));
@@ -364,7 +376,7 @@ export class OfficeScene extends Phaser.Scene {
       const sticking = this.pranks.active || !!this.task?.busy;
       const move = this.controls.getMove().clone();
       if (this.poke.active || grabbed || sticking) move.scale(grabbed || sticking ? 0 : POKE.moveMultiplier);
-      this.player.update(move, dt);
+      this.player.update(move, dt, TRASH.speedMul);
 
       // 아이템: X(다음 칸) 또는 1/2/3으로 고르고 Z·F(모바일 [아이템])로 쓴다. Space(모바일 [콕])는 콕만
       const slot = this.controls.slotPressed;
@@ -417,7 +429,7 @@ export class OfficeScene extends Phaser.Scene {
     this.updateThought(dt);
     this.flushTips();
     // [숨기] 버튼은 숨을 수 있는 곳 근처에서만 진하게
-    this.touch.setDisabled('hide', !this.hide.nearby && !this.task?.wantsE(this.player.x, this.player.y) && !this.task?.busy);
+    this.touch.setDisabled('hide', !TRASH_MODE && !this.hide.nearby && !this.task?.wantsE(this.player.x, this.player.y) && !this.task?.busy);
     // 미션 물건 앞에선 [숨기] 대신 [끼우기]·[내리기]·[깔기]
     this.touch.setLabel('hide', this.task?.eVerb(this.player.x, this.player.y) ?? '숨기');
     this.touch.setDisabled('item', !this.items.selectedItem);
@@ -449,6 +461,8 @@ export class OfficeScene extends Phaser.Scene {
       poking: this.poke.active,
       caught: this.caughtCount,
       hidden: this.hide.hidden,
+      /** 대상 시야에 내 자리가 들어 있는가 (확인용) */
+      targetSees: this.target.canSee(this.player.x, this.player.y),
       hearts: this.life.hearts,
       cutin: this.cutin.active,
       intro: !!this.intro?.active,
@@ -533,6 +547,7 @@ export class OfficeScene extends Phaser.Scene {
       return canPoke ? [use, touch ? '콕 버튼 꾹: 콕' : 'Space 꾹: 콕'].join('\n') : use;
     }
     if (canPoke) return touch ? '콕 버튼 꾹!' : 'Space 꾹 → 콕!';
+    if (TRASH_MODE && this.score.temp > 0 && !this.hide.nearby) return touch ? TRASH.lines.prompt.touch : TRASH.lines.prompt.pc;
     if (this.hide.nearby) {
       const what = this.hide.nearby.kind === 'seat' ? '일하는 척' : '숨기';
       return touch ? `숨기 버튼 꾹: ${what}` : `E 꾹: ${what}`;
@@ -886,6 +901,15 @@ export class OfficeScene extends Phaser.Scene {
 
   /** 장난 중이거나 임시 점수를 들고 있을 때 돌아본 대상에게 보이면 들킨다 */
   private checkCaught(): void {
+    // 쓰레기통 버전: 쓰레기통 안에서 움직이는 걸 보이면 들킨다 (가만히 있으면 안 보인다)
+    if (this.hide.inTrash) {
+      if (this.player.speed <= TRASH.movingSpeed) return;
+      const { x, y } = this.player;
+      if (this.target.isLooking && this.target.canSee(x, y)) return this.onCaught('trashMoved', 'target');
+      const seen = this.patrols.find((p) => p.canSee(x, y));
+      if (seen) this.onCaught('trashMoved', seen);
+      return;
+    }
     if (this.hide.hidden) return; // 숨어 있으면 안 보인다
     const filing = !!this.task?.busy;
     const sticking = this.pranks.active || filing;
@@ -921,6 +945,7 @@ export class OfficeScene extends Phaser.Scene {
     this.poke.cancel(this.target);
     this.pranks.cancel();
     this.task?.onCaught();
+    if (this.hide.inTrash) this.hide.forceExit(this.player);
     this.score.loseTemp();
     const who = w;
     if (by === 'target') this.target.onCaught();

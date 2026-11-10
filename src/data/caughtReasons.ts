@@ -12,6 +12,7 @@ export const CAUGHT_REASONS = {
   cushion: { text: '방석 깔다 들켰다!', tip: '대표가 돌아오기 전에 깔고 빠지자' },
   hr: { text: '인사팀에게 걸렸다!', tip: '엘리베이터 "띵—" 소리가 나면 숨자' },
   escaping: { text: '도망치다 들켰다!', tip: '복귀 경로를 먼저 확인하자' },
+  trashMoved: { text: '쓰레기통이 움직였다!', tip: '쓰레기통 안에선 보일 때 멈추자' },
 } as const;
 
 export type CaughtReasonId = keyof typeof CAUGHT_REASONS;

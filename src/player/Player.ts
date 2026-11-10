@@ -17,8 +17,10 @@ export class Player {
   private readonly body: Phaser.GameObjects.Image;
   private walkTime = 0;
   facing: 'up' | 'down' | 'left' | 'right' = 'down';
-  /** 숨는 중: 'seat' = 내 자리에서 일하는 척, 'spot' = 물건 뒤에 쪼그려 숨기 */
-  hiding: 'seat' | 'spot' | null = null;
+  /** 숨는 중: 'seat' = 내 자리에서 일하는 척, 'spot' = 물건 뒤에 쪼그려 숨기, 'trash' = 쓰레기통 뒤집어쓰기 (쓰레기통 버전) */
+  hiding: 'seat' | 'spot' | 'trash' | null = null;
+  /** 쓰레기통 버전: 뒤집어쓴 쓰레기통 그림 */
+  private readonly trash: Phaser.GameObjects.Image;
   /** 숨는 자리로 미끄러져 들어가는 중 */
   private snapping = false;
 
@@ -34,7 +36,8 @@ export class Player {
     this.body = scene.add.image(0, 2, TEX.playerBody).setOrigin(0.5, 1);
     this.head = scene.add.image(0, -26, TEX.playerHeadFront).setOrigin(0.5, 1);
     this.parts = scene.add.container(0, 0, [this.body, this.head]);
-    this.view = scene.add.container(x, y, [shadow, this.parts, this.makeTag(scene)]);
+    this.trash = scene.add.image(0, 4, TEX.trashCan).setOrigin(0.5, 1).setVisible(false);
+    this.view = scene.add.container(x, y, [shadow, this.parts, this.trash, this.makeTag(scene)]);
   }
 
   /** 카메라가 따라갈 대상 */
@@ -75,13 +78,34 @@ export class Player {
     this.parts.scaleX = 1;
   }
 
+  /** 쓰레기통 뒤집어쓰기: 그 자리에서 쏙. 안에서 느리게 걸을 수 있다 */
+  hideInTrash(): void {
+    this.hiding = 'trash';
+    this.parts.setVisible(false);
+    this.trash.setVisible(true).setScale(1.3, 0.4);
+    this.scene.tweens.add({ targets: this.trash, scaleX: 1, scaleY: 1, duration: 180, ease: 'Back.Out' });
+  }
+
   unhide(): void {
     this.hiding = null;
+    this.parts.setVisible(true);
+    this.trash.setVisible(false).setAngle(0);
     this.view.setAlpha(1);
     this.parts.setScale(1, 1).setPosition(0, 0);
   }
 
-  update(move: Phaser.Math.Vector2, dt: number): void {
+  /**
+   * @param trashSpeed 쓰레기통 안에서 걷는 빠르기 비율 (쓰레기통 버전)
+   */
+  update(move: Phaser.Math.Vector2, dt: number, trashSpeed = 0.35): void {
+    if (this.hiding === 'trash') {
+      // 뒤뚱뒤뚱: 느리게 걷고, 걸을 때 좌우로 기우뚱
+      this.feet.setVelocity(move.x * PLAYER.walkSpeed * trashSpeed, move.y * PLAYER.walkSpeed * trashSpeed);
+      const moving = move.lengthSq() > 0 && this.speed > 1;
+      this.walkTime += dt * (moving ? 10 : 2);
+      this.trash.setAngle(moving ? Math.sin(this.walkTime) * 8 : 0).setY(4 - (moving ? Math.abs(Math.sin(this.walkTime)) * 3 : 0));
+      return;
+    }
     if (this.hiding) {
       this.updateHiding(dt);
       return;

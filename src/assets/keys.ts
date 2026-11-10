@@ -121,6 +121,8 @@ export const TEX = {
   postitNote: 'postit_note',
   gumBlob: 'gum_blob',
   dongiBag: 'dongi_bag',
+  /** 쓰레기통 버전(?mode=trash): 주인공이 뒤집어쓰는 쓰레기통 */
+  trashCan: 'trash_can',
 
   // 표시
   angerMark: 'anger_mark',
