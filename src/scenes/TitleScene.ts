@@ -7,6 +7,8 @@ import { popWord } from '../ui/Popups';
 import { tipsSetting } from '../systems/Tutorial';
 import { HowToPanel } from '../ui/HowToPanel';
 import { RunStats } from '../systems/RunStats';
+import { addSoundButton } from '../ui/SoundButton';
+import { bgm } from '../systems/Bgm';
 
 interface MenuButton {
   root: Phaser.GameObjects.Container;
@@ -38,6 +40,8 @@ export class TitleScene extends Phaser.Scene {
     this.add.rectangle(0, 0, GAME_WIDTH, GAME_HEIGHT, 0xfbe9ee, 0.45).setOrigin(0);
 
     this.makeLogo();
+    bgm.setFast(false);
+    addSoundButton(this, GAME_WIDTH - 30, 30, 100);
     this.makeScene();
 
     const touch = new URLSearchParams(location.search).get('touch') === '1' || window.matchMedia('(pointer: coarse)').matches;

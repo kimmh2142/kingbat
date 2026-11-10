@@ -5,6 +5,8 @@ import { DEPTH } from '../systems/OfficeMap';
 import type { Life } from '../systems/Life';
 import type { Score } from '../systems/Score';
 import type { WorkClock } from '../systems/WorkClock';
+import { bgm } from '../systems/Bgm';
+import { addSoundButton } from './SoundButton';
 
 /** 특별 미션·단계 안내 칸 (상단 줄 바로 아래 왼쪽) */
 const MISSION_Y = 58;
@@ -61,6 +63,9 @@ export class HUD {
     this.value = fixed(
       scene.add.text(this.barX + BAR_W + 8, 24, '', { fontFamily: FONT, fontSize: '15px', color: COLORS.text }).setOrigin(0, 0.5),
     );
+
+    // 소리 켜기·끄기 (킹받음 숫자와 퇴근 시계 사이)
+    addSoundButton(scene, CLOCK_X - 34, 24, DEPTH.label + 21);
 
     // 퇴근 시계: 시각 + 줄어드는 바
     this.clockText = fixed(
@@ -122,6 +127,8 @@ export class HUD {
   private updateClock(): void {
     const c = this.clock;
     const urgent = c.urgent;
+    // 마지막 30초엔 배경 음악도 빨라진다
+    bgm.setFast(urgent);
     if (this.clockText.text !== '⏰ ' + c.clockText) this.clockText.setText('⏰ ' + c.clockText);
     // 마지막 30초: 빨개지고 째깍째깍 흔들린다
     this.clockText.setColor(urgent ? '#e53935' : COLORS.text);
