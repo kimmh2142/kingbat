@@ -65,7 +65,11 @@ for (const n of [1, 2, 3]) {
   await p.waitForFunction((w) => window.__kingbat?.tip === w, want, { timeout: 10000 });
   await p.waitForTimeout(500);
   const spot = await p.evaluate(() => window.__kingbatTest.tipSpot());
-  const [inside, corner] = await bright(p, [[spot.x, spot.y], [40, 200]]);
+  // 원 한가운데는 비춘 물건(외곽선이 짙은 그림)에 걸릴 수 있어 원 안 몇 곳 중 가장 밝은 값
+  const d = (spot.r ?? Math.min(spot.w, spot.h) / 2) * 0.55;
+  const v = await bright(p, [[spot.x, spot.y], [spot.x - d, spot.y], [spot.x + d, spot.y], [spot.x, spot.y + d], [40, 200]]);
+  const inside = Math.max(...v.slice(0, 4));
+  const corner = v[4];
   await p.screenshot({ path: `screenshots/spot-tip-${n}.png` });
   await p.waitForTimeout(400);
   await p.keyboard.press('Space');

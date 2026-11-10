@@ -416,6 +416,8 @@ export class OfficeScene extends Phaser.Scene {
     this.flushTips();
     // [숨기] 버튼은 숨을 수 있는 곳 근처에서만 진하게
     this.touch.setDisabled('hide', !this.hide.nearby && !this.task?.wantsE(this.player.x, this.player.y) && !this.task?.busy);
+    // 미션 물건 앞에선 [숨기] 대신 [끼우기]·[내리기]·[깔기]
+    this.touch.setLabel('hide', this.task?.eVerb(this.player.x, this.player.y) ?? '숨기');
     this.touch.setDisabled('item', !this.items.selectedItem);
     this.keyHint.setVisible(!this.controls.isTouch);
     this.hud.update(dt);

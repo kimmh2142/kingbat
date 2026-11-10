@@ -12,7 +12,8 @@ export interface MissionStep {
 }
 
 /** 단계 문구의 {e}를 키 이름으로 */
-export const stepKey = (text: string, touch: boolean) => text.replace('{e}', touch ? '[숨기]' : 'E');
+/** {e}를 PC는 E, 폰은 그 자리에서 바뀌는 버튼 이름([끼우기] 등)으로 */
+export const stepKey = (text: string, touch: boolean, verb = '숨기') => text.replace('{e}', touch ? `[${verb}]` : 'E');
 
 /**
  * E로 하는 특별 미션 (STAGE 2 승인서, STAGE 3 대정전과 방석)이 OfficeScene에 연결되는 모양.
@@ -29,6 +30,8 @@ export interface MissionTask extends Phaser.Events.EventEmitter {
   readonly anchor: { x: number; y: number };
   /** 이 자리에서 E가 이 미션에 쓰이는가 (숨기와 겹치지 않게) */
   wantsE(x: number, y: number): boolean;
+  /** 이 자리에서 E로 하는 동작 이름. 폰 [숨기] 버튼 글자가 이걸로 바뀐다 (없으면 null) */
+  eVerb(x: number, y: number): string | null;
   /** 안내 문구 (없으면 null) */
   prompt(x: number, y: number, touch: boolean): string | null;
   /** 지금 할 단계: 상단 미션 칸 문구와 ★ 화살표·미니맵이 가리킬 곳 (끝났으면 null) */

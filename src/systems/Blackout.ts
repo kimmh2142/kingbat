@@ -13,7 +13,7 @@ type Phase = 'onFloor' | 'carrying' | 'placing' | 'placed' | 'done';
 
 /**
  * STAGE 3 특별 미션 "대정전과 최후의 방석".
- * 라운지 방귀 방석 E 줍기 → 배전반 E (정전 15초, 대표가 확인하러 나감) → 대표가 나간 사이 의자 옆에서 E (1초 동안 깔기)
+ * 라운지 방귀 방석 지나가며 줍기 → 배전반 E (정전 15초, 대표가 확인하러 나감) → 대표가 나간 사이 의자 옆에서 E (1초 동안 깔기)
  * → 대표가 돌아와 앉으면 "뿌우우욱!" 'done'. 까는 중(busy)엔 움직일 수 없고, 보이면 들킨다(OfficeScene.checkCaught).
  */
 export class Blackout extends Phaser.Events.EventEmitter implements MissionTask {
@@ -74,12 +74,17 @@ export class Blackout extends Phaser.Events.EventEmitter implements MissionTask 
   }
 
   wantsE(x: number, y: number): boolean {
-    return this.nearCushion(x, y) || this.nearPanel(x, y) || (this.carrying && this.nearChair(x, y));
+    return this.eVerb(x, y) !== null;
+  }
+
+  eVerb(x: number, y: number): string | null {
+    if (this.nearPanel(x, y)) return '내리기';
+    if (this.carrying && this.nearChair(x, y)) return '깔기';
+    return null;
   }
 
   prompt(x: number, y: number, touch: boolean): string | null {
-    const e = touch ? '숨기 버튼' : 'E';
-    if (this.nearCushion(x, y)) return `${e}: 방귀 방석 줍기`;
+    const e = touch ? `[${this.eVerb(x, y) ?? '숨기'}]` : 'E';
     if (this.nearPanel(x, y)) {
       if (this.dark > 0) return null;
       if (this.cool > 0) return BLACKOUT.lines.cooling;
@@ -91,11 +96,11 @@ export class Blackout extends Phaser.Events.EventEmitter implements MissionTask 
 
   step(touch: boolean): MissionStep | null {
     const S = BLACKOUT.steps;
-    const s = (text: string, at: MissionStep['at'], icon: TextureKey = TEX.cushion) => ({ text: stepKey(text, touch), at, icon });
+    const s = (text: string, at: MissionStep['at'], icon: TextureKey = TEX.cushion, verb?: string) => ({ text: stepKey(text, touch, verb), at, icon });
     if (this.phase === 'onFloor') return s(S.pick, BLACKOUT.cushion);
     if (this.carrying) {
-      if (this.checking) return s(S.chair, BLACKOUT.chair);
-      return s(this.cool > 0 || this.dark > 0 ? S.cooling : S.panel, BLACKOUT.panel, TEX.powerPanel);
+      if (this.checking) return s(S.chair, BLACKOUT.chair, TEX.cushion, '깔기');
+      return s(this.cool > 0 || this.dark > 0 ? S.cooling : S.panel, BLACKOUT.panel, TEX.powerPanel, '내리기');
     }
     if (this.phase === 'placing') return s(S.placing, null);
     if (this.phase === 'placed') return s(S.wait, null);
@@ -107,9 +112,10 @@ export class Blackout extends Phaser.Events.EventEmitter implements MissionTask 
     this.wasHeld = eHeld;
     const { x, y } = player;
 
+    // 방석은 일반 아이템처럼 지나가면 줍는다 (11/10)
+    if (!blocked && this.nearCushion(x, y)) this.pick(player);
     if (pressed && !blocked) {
-      if (this.nearCushion(x, y)) this.pick(player);
-      else if (this.nearPanel(x, y) && this.phase !== 'onFloor' && this.dark <= 0 && this.cool <= 0) this.cutPower();
+      if (this.nearPanel(x, y) && this.phase !== 'onFloor' && this.dark <= 0 && this.cool <= 0) this.cutPower();
       else if (this.carrying && this.nearChair(x, y)) {
         if (this.canPlace) this.startPlacing(player);
         else popWord(this.scene, x, y - 110, BLACKOUT.lines.needAway, { color: '#5a3a4a', size: 18 });

@@ -92,13 +92,16 @@ export class Approval extends Phaser.Events.EventEmitter implements MissionTask 
 
   /** 이 자리에서 E가 이 미션에 쓰이는가 (숨기와 겹치지 않게) */
   wantsE(x: number, y: number): boolean {
-    return this.nearPaper(x, y) || (this.carrying && this.nearPile(x, y));
+    return this.eVerb(x, y) !== null;
+  }
+
+  eVerb(x: number, y: number): string | null {
+    return this.carrying && this.nearPile(x, y) ? '끼우기' : null;
   }
 
   /** 안내 문구 (없으면 null) */
   prompt(x: number, y: number, touch: boolean): string | null {
-    const e = touch ? '숨기 버튼' : 'E';
-    if (this.nearPaper(x, y)) return `${e}: 가짜 서류 줍기`;
+    const e = touch ? `[${this.eVerb(x, y) ?? '숨기'}]` : 'E';
     if (this.carrying && this.nearPile(x, y)) return this.target.awayFromSeat ? `${e}: 결재 더미에 끼우기` : APPROVAL.lines.needAway;
     return null;
   }
@@ -107,7 +110,7 @@ export class Approval extends Phaser.Events.EventEmitter implements MissionTask 
     const S = APPROVAL.steps;
     const s = (text: string, at: MissionStep['at']) => ({ text: stepKey(text, touch), at, icon: TEX.paperPile });
     if (this.phase === 'onTable') return s(S.pick, APPROVAL.paper);
-    if (this.carrying) return this.target.awayFromSeat ? s(S.file, APPROVAL.pile) : s(S.wait, APPROVAL.pile);
+    if (this.carrying) return this.target.awayFromSeat ? { ...s(S.file, APPROVAL.pile), text: stepKey(S.file, touch, '끼우기') } : s(S.wait, APPROVAL.pile);
     if (this.sorting) return s(S.sort, null);
     return null;
   }
@@ -121,9 +124,10 @@ export class Approval extends Phaser.Events.EventEmitter implements MissionTask 
     this.wasHeld = eHeld;
     const { x, y } = player;
 
+    // 가짜 서류는 일반 아이템처럼 지나가면 줍는다 (11/10)
+    if (!blocked && this.nearPaper(x, y)) this.pick(player);
     if (pressed && !blocked) {
-      if (this.nearPaper(x, y)) this.pick(player);
-      else if (this.carrying && this.nearPile(x, y)) {
+      if (this.carrying && this.nearPile(x, y)) {
         if (this.target.awayFromSeat) this.startSorting();
         else popWord(this.scene, x, y - 110, APPROVAL.lines.needAway, { color: '#5a3a4a', size: 18 });
       }

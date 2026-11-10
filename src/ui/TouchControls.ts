@@ -93,6 +93,12 @@ export class TouchControls {
     this.zones.push({ x, y, w, h, onTap, enabled });
   }
 
+  /** 버튼 글자 바꾸기 ([숨기] → 그 자리에서 하는 동작 이름) */
+  setLabel(id: TouchButtonId, label: string): void {
+    const text = this.views.get(id)?.getAt(1) as Phaser.GameObjects.Text | undefined;
+    if (text && text.text !== label) text.setText(label);
+  }
+
   /** 지금 쓸 수 없는 버튼은 흐리게 */
   setDisabled(id: TouchButtonId, off: boolean): void {
     if (off) this.disabled.add(id);
