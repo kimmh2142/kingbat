@@ -1,12 +1,13 @@
 import Phaser from 'phaser';
-import { TEX } from '../assets/keys';
-import { FONT, GAME_WIDTH } from '../config';
+import { GAME_WIDTH } from '../config';
 import { INTRO } from '../data/tuning';
 import type { TargetController } from '../npc/TargetController';
 import { DEPTH } from '../systems/OfficeMap';
+import type { StageStory } from '../data/dialogue';
+import { makeStageCard } from './StageCard';
 
 /**
- * 스테이지 시작 타깃 소개: 카메라가 공략 대상으로 이동 → "오늘의 타깃" → 내 자리로 돌아온다.
+ * 스테이지 시작 타깃 소개: 카메라가 공략 대상으로 이동 → 스테이지 이름 카드 → 내 자리로 돌아온다.
  * 이 동안 게임(퇴근 시계 포함)은 멈춘다. Space·터치로 넘길 수 있다.
  * 하트 0개로 다시 시작할 때는 생략한다 (도입 컷신 생략 규칙).
  */
@@ -18,24 +19,15 @@ export class TargetIntro {
   constructor(
     private readonly scene: Phaser.Scene,
     target: TargetController,
+    card: Pick<StageStory, 'title' | 'subtitle' | 'quote'>,
     private readonly backTo: () => { x: number; y: number },
     private readonly onDone: () => void,
   ) {
     const cam = scene.cameras.main;
     cam.stopFollow();
 
-    const title = scene.add
-      .text(0, -22, '오늘의 타깃!', { fontFamily: FONT, fontSize: '22px', color: '#ffffff', stroke: '#5a3a4a', strokeThickness: 6 })
-      .setOrigin(0.5);
-    const name = scene.add
-      .text(16, 14, target.pattern.name, { fontFamily: FONT, fontSize: '40px', color: '#ff3d6e', stroke: '#ffffff', strokeThickness: 8 })
-      .setOrigin(0.5);
-    const icon = scene.add.image(name.x - name.width / 2 - 20, 14, TEX.targetIcon).setScale(1.4);
-    this.banner = scene.add
-      .container(GAME_WIDTH / 2, 120, [title, icon, name])
-      .setScrollFactor(0)
-      .setDepth(DEPTH.label + 45)
-      .setVisible(false);
+    // 스테이지 이름 카드 (원래 도입 컷신 끝에 뜨던 것, 11/10). 대상이 화면 가운데 오므로 위쪽에
+    this.banner = makeStageCard(scene, GAME_WIDTH / 2, 118, card).setScrollFactor(0).setDepth(DEPTH.label + 45).setVisible(false);
 
     const ms = (s: number) => s * 1000;
     this.later(INTRO.delay, () => {
@@ -62,8 +54,8 @@ export class TargetIntro {
   }
 
   private showBanner(): void {
-    this.banner.setVisible(true).setScale(0.3);
-    this.scene.tweens.add({ targets: this.banner, scale: 1, duration: 260, ease: 'Back.Out' });
+    this.banner.setVisible(true).setScale(1.8).setAngle(-6).setAlpha(0);
+    this.scene.tweens.add({ targets: this.banner, scale: 0.86, alpha: 1, angle: -3, duration: 320, ease: 'Back.Out' });
   }
 
   private later(seconds: number, fn: () => void): void {

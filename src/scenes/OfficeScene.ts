@@ -10,7 +10,7 @@ import { RunStats } from '../systems/RunStats';
 import { HrVisit } from '../systems/HrVisit';
 import { HR_VISIT } from '../data/hrVisit';
 import { INSA } from '../npc/patterns/insa';
-import { ENDING_STORY } from '../data/dialogue';
+import { ENDING_STORY, STORIES } from '../data/dialogue';
 import type { MissionStep, MissionTask } from '../systems/MissionTask';
 import { ITEM_RULES, ITEMS, type ItemId } from '../data/items';
 import { nextStage, STAGES, type StageConfig } from '../data/stages';
@@ -272,6 +272,7 @@ export class OfficeScene extends Phaser.Scene {
       this.intro = new TargetIntro(
         this,
         this.target,
+        STORIES[this.stage.id],
         () => this.player.cameraTarget,
         () => this.followPlayer(),
       );

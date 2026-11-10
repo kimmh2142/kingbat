@@ -613,28 +613,13 @@ export class StoryScene extends Phaser.Scene {
     this.tweens.add({ targets: cap, alpha: 0, delay: 1400, duration: 500 });
   }
 
-  /** 다짐 + 스테이지 이름 */
+  /** 다짐 */
   private vowSet(): void {
     if (this.story.villain === 'gwajang') this.pacingSet(false);
     else if (this.story.villain === 'daepyo') this.ceoSet('vow');
     else this.shoppingSet(false);
+    // 스테이지 이름 카드는 게임 화면 시작 때 공략 대상을 비추며 띄운다 (11/10, ui/StageCard)
     this.shotUi.removeAll(true);
-    const s = this.story;
-    const card = this.add.container(GAME_WIDTH / 2, 150);
-    const bg = this.add.graphics();
-    bg.fillStyle(COLORS.outline).fillRoundedRect(-230, -86 + 6, 460, 172, 24);
-    bg.fillStyle(0xffffff).fillRoundedRect(-230, -86, 460, 172, 24);
-    bg.lineStyle(5, COLORS.outline).strokeRoundedRect(-230, -86, 460, 172, 24);
-    const t1 = this.add.text(0, -52, s.title, { fontFamily: FONT, fontSize: '24px', color: '#8d7f99' }).setOrigin(0.5);
-    const t2 = this.add
-      .text(0, 2, s.subtitle, { fontFamily: FONT, fontSize: '50px', color: '#ff4f8b', stroke: '#ffffff', strokeThickness: 8 })
-      .setOrigin(0.5);
-    const t3 = this.add.text(0, 54, s.quote, { fontFamily: FONT, fontSize: '22px', color: COLORS.text }).setOrigin(0.5);
-    const icon = this.add.image(-t2.width / 2 - 26, 2, TEX.targetIcon).setScale(1.4);
-    card.add([bg, t1, t2, t3, icon]);
-    card.setScale(2.4).setAngle(-6).setAlpha(0);
-    this.shotUi.add(card);
-    this.tweens.add({ targets: card, scale: 1, alpha: 1, angle: -3, duration: 320, ease: 'Back.Out' });
   }
 
   // ------------------------------------------------------------ 소품

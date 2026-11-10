@@ -27,7 +27,8 @@ const log = [];
 // 1) 시작 타깃 소개: 도는 동안 시계가 멈추고, 끝나면 풀린다
 await page.goto(BASE + '?intro=1');
 await page.waitForSelector('canvas');
-await waitFor((s) => s.intro);
+await page.waitForFunction(() => !!window.__kingbatTest && !!window.__kingbat);
+await waitFor((s) => s?.intro);
 const r0 = (await k()).remaining;
 await page.waitForTimeout(1800);
 await page.screenshot({ path: 'screenshots/guide-intro.png' });
@@ -40,7 +41,8 @@ log.push(['타깃 소개', { 시작: r0, 소개중시계: mid.remaining, 소개�
 // 2) Space로 넘기기
 await page.goto(BASE + '?intro=1');
 await page.waitForSelector('canvas');
-await waitFor((s) => s.intro);
+await page.waitForFunction(() => !!window.__kingbatTest && !!window.__kingbat);
+await waitFor((s) => s?.intro);
 await page.waitForTimeout(500);
 await page.keyboard.press('Space');
 const skipped = await waitFor((s) => !s.intro, 1000);
@@ -62,6 +64,7 @@ await page.screenshot({ path: 'screenshots/guide-arrow.png' });
 // 5) 대리 "뭐 해요?": 빈손으로 걷는 대리 바로 앞에 서면 1.5초 붙잡히고 하트는 그대로
 await page.goto(BASE);
 await page.waitForSelector('canvas');
+await page.waitForFunction(() => !!window.__kingbatTest && !!window.__kingbat);
 // 캔버스가 생겨도 게임 장면이 아직 안 만들어졌을 수 있다
 await page.waitForFunction(() => !!window.__kingbatTest, null, { timeout: 15000 });
 await page.evaluate(() => window.__kingbatTest.setRemaining(999));
@@ -85,6 +88,7 @@ log.push(['대리 뭐해요', { 붙잡힘: stopped, 붙잡힌동안이동: p1.x 
 // 6) 첫 아이템 안내: 생기면 한 줄 + 노란 화살표, 주우면 사용법 한 줄
 await page.goto(BASE);
 await page.waitForSelector('canvas');
+await page.waitForFunction(() => !!window.__kingbatTest && !!window.__kingbat);
 await page.evaluate(() => window.__kingbatTest.setRemaining(999));
 await waitFor((s) => s.items.onMap.length >= 1);
 const g1 = (await k()).items.guide;
