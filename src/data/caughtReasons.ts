@@ -15,3 +15,15 @@ export const CAUGHT_REASONS = {
 } as const;
 
 export type CaughtReasonId = keyof typeof CAUGHT_REASONS;
+
+/** "뒤돌아봤다!" 팁은 공략 대상마다 진짜 전조가 달라서 따로 (11/10. 동기 문장이 과장·대표에도 나오던 문제) */
+const TURNED_TIP: Record<string, string> = {
+  dongi: '손이 키보드를 떠나면 위험!',
+  gwajang: '"…잠깐만요" 하고 수화기를 막으면 돌아본다!',
+  daepyo: '신문을 접어 내려놓으면 돌아본다!',
+};
+
+/** 들킴 컷인·실패 화면의 한 줄 팁 */
+export function caughtTip(reason: CaughtReasonId, targetId: string): string {
+  return (reason === 'turned' && TURNED_TIP[targetId]) || CAUGHT_REASONS[reason].tip;
+}

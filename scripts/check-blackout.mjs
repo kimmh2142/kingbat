@@ -67,11 +67,26 @@ const away = await waitFor(() => window.__kingbat.target.state === 'away' && !wi
 const awayAt = { x: Math.round((await k()).target.x), y: Math.round((await k()).target.y) };
 await tp(1940, 330);
 await page.waitForTimeout(250);
-await tapE();
+// 바람 넣기 미니게임: 일찍 떼면 계속, 끝까지 누르면 뿌직(0으로), 분홍 칸에서 떼면 완성
+const air = () => page.evaluate(() => window.__kingbat.blackout.air);
+await page.keyboard.down('KeyE');
+await waitFor(() => window.__kingbat.blackout.air >= 0.3, 5000);
+await page.keyboard.up('KeyE');
+await page.waitForTimeout(200);
 const placing = (await k()).blackout.phase;
-await page.waitForTimeout(1300);
+const early = { 뗀바람: Math.round((await air()) * 100) / 100, 단계: placing };
+await page.keyboard.down('KeyE');
+await waitFor(() => window.__kingbat.blackout.air >= 0.9, 5000);
+const leak = await waitFor(() => window.__kingbat.blackout.air < 0.3, 5000);
+await waitFor(() => window.__kingbat.blackout.air >= 0.5, 5000);
+await page.screenshot({ path: 'screenshots/blackout-3-pump.png' });
+const atUp = await air();
+await page.keyboard.up('KeyE');
+const afterUp = await air();
+await page.waitForTimeout(300);
 const placed = (await k()).blackout.phase;
 await page.screenshot({ path: 'screenshots/blackout-3-placed.png' });
+log.push(['바람넣기', { 일찍뗌: early, 뿌직: leak, 뗄때: atUp, 뗀뒤: afterUp, 완성: placed }]);
 
 // 5) 멀리 빠져나와 기다리면 대표가 앉고 뿌우우욱
 await tp(1100, 1300);

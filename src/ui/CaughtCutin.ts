@@ -1,7 +1,7 @@
 import Phaser from 'phaser';
 import { TEX } from '../assets/keys';
 import { COLORS, FONT, GAME_HEIGHT, GAME_WIDTH } from '../config';
-import { CAUGHT_REASONS, type CaughtReasonId } from '../data/caughtReasons';
+import { CAUGHT_REASONS, caughtTip, type CaughtReasonId } from '../data/caughtReasons';
 import { CAMERA, CAUGHT } from '../data/tuning';
 import { DEPTH } from '../systems/OfficeMap';
 
@@ -12,6 +12,8 @@ interface Point {
 
 export interface CutinOptions {
   reason: CaughtReasonId;
+  /** 공략 대상 id ("뒤돌아봤다!" 팁이 대상마다 다르다) */
+  targetId: string;
   /** 원인 지점 (돌아본 사람 머리 등) — 카메라가 비추고 화살표가 가리킨다 */
   cause: Point;
   /** 끝나고 카메라가 돌아갈 대상 */
@@ -81,7 +83,7 @@ export class CaughtCutin {
     this.later(0.95, () => {
       const tip = this.fixed(
         s.add
-          .text(GAME_WIDTH / 2, GAME_HEIGHT - 42, `TIP  ${reason.tip}`, {
+          .text(GAME_WIDTH / 2, GAME_HEIGHT - 42, `TIP  ${caughtTip(opts.reason, opts.targetId)}`, {
             fontFamily: FONT,
             fontSize: '22px',
             color: COLORS.text,

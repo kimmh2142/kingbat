@@ -1,7 +1,7 @@
 import Phaser from 'phaser';
 import { TEX } from '../assets/keys';
 import { COLORS, FONT, GAME_HEIGHT, GAME_WIDTH } from '../config';
-import { CAUGHT_REASONS, type CaughtReasonId } from '../data/caughtReasons';
+import { CAUGHT_REASONS, caughtTip, type CaughtReasonId } from '../data/caughtReasons';
 import { nextStage, type StageConfig } from '../data/stages';
 import { DEPTH } from '../systems/OfficeMap';
 
@@ -144,7 +144,7 @@ export class ResultPanel {
       const r = CAUGHT_REASONS[top[0] as CaughtReasonId];
       this.text(cx, 222, `가장 많이 들킨 원인`, 18, '#f3d9e3');
       this.text(cx, 256, `"${r.text}" ${top[1]}번`, 26, '#ffffff');
-      this.text(cx, 298, `TIP  ${r.tip}`, 18, COLORS.text).setBackgroundColor('#fff59d').setPadding(12, 6, 12, 6);
+      this.text(cx, 298, `TIP  ${caughtTip(top[0] as CaughtReasonId, info.stage.target.id)}`, 18, COLORS.text).setBackgroundColor('#fff59d').setPadding(12, 6, 12, 6);
     }
     this.text(cx, 346, `킹받음 ${Math.floor(info.confirmed)} / ${info.goal}   ·   남은 시간 ${fmt(info.remaining)}`, 18, '#f3d9e3');
     this.buttons(cx, 420, '다시 도전');

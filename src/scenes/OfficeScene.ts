@@ -457,7 +457,7 @@ export class OfficeScene extends Phaser.Scene {
       resultReady: !!this.result?.ready,
       mission: this.missionDone,
       approval: this.approval ? { phase: this.approval.phase, seq: [...this.approval.seq], index: this.approval.index } : null,
-      blackout: this.blackout ? { phase: this.blackout.phase, dark: this.blackout.dark } : null,
+      blackout: this.blackout ? { phase: this.blackout.phase, dark: this.blackout.dark, air: this.blackout.air } : null,
       hr: this.hrVisit ? { phase: this.hrVisit.phase, timer: this.hrVisit.timer } : null,
       tutorial: { step: this.tutorial.current, line: this.hud.missionLine },
       thought: !!this.thought,
@@ -927,6 +927,7 @@ export class OfficeScene extends Phaser.Scene {
     else by.onCaught(this.player.x, this.player.y);
     this.cutin.play({
       reason,
+      targetId: this.stage.target.id,
       cause: { x: who.x, y: who.y - 70 },
       follow: this.player.cameraTarget,
       onHit: () => {

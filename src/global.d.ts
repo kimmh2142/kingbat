@@ -17,7 +17,7 @@ interface Window {
     resultReady?: boolean;
     mission?: boolean;
     approval?: { phase: string; seq: string[]; index: number } | null;
-    blackout?: { phase: string; dark: number } | null;
+    blackout?: { phase: string; dark: number; air: number } | null;
     hr?: { phase: string; timer: number } | null;
     /** 단계 안내: 지금 단계 id(다 끝나면 null)와 미션 칸 글 */
     tutorial?: { step: string | null; line: string };
