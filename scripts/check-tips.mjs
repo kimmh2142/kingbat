@@ -129,19 +129,23 @@ await page.waitForTimeout(200);
 const after = await page.evaluate(() => window.__kingbatTitle.tipsOn());
 log.push(['끈 뒤', { 새판에안뜸: noTip, 타이틀표시: before, 'T후켜짐': after }]);
 
-// 모바일: [알겠어!] 버튼 터치로 닫기
+// 모바일: 화면 아무 데나 떼면 안 닫히고, [계속] 버튼을 눌러야 닫힌다 (11/10 "알아서 꺼져서 설명을 못 봄")
 const mob = await browser.newPage({ viewport: { width: 960, height: 540 }, hasTouch: true });
 mob.on('pageerror', (e) => errors.push(String(e)));
 await mob.goto(BASE + '?tips=1&touch=1');
 await mob.waitForFunction(() => window.__kingbat?.tip === 'goal', null, { timeout: 15000 });
-await mob.waitForTimeout(700);
+await mob.waitForTimeout(1500);
 await mob.screenshot({ path: 'screenshots/tips-mobile.png' });
 const box = await mob.locator('canvas').boundingBox();
 const sc = box.width / 960;
-// 안내창 가운데 (480, 310), [알겠어!]는 (480-36, 310+118-34)
-await mob.touchscreen.tap(box.x + 444 * sc, box.y + 394 * sc);
+// 조이스틱 자리를 톡 (예전엔 이것만으로 닫혔다)
+await mob.touchscreen.tap(box.x + 130 * sc, box.y + 430 * sc);
 await mob.waitForTimeout(400);
-log.push(['모바일', { 터치로닫힘: (await mob.evaluate(() => window.__kingbat.tip)) === null }]);
+const stillOpen = (await mob.evaluate(() => window.__kingbat.tip)) === 'goal';
+// [계속 ▶] 버튼 (480, 540-52 위쪽 가운데)
+await mob.touchscreen.tap(box.x + 480 * sc, box.y + 466 * sc);
+await mob.waitForTimeout(400);
+log.push(['모바일', { 다른곳터치는유지: stillOpen, 계속버튼로닫힘: (await mob.evaluate(() => window.__kingbat.tip)) === null }]);
 
 for (const [l, v] of log) console.log(l.padEnd(10), JSON.stringify(v));
 console.log(errors.length ? `콘솔 에러 ${errors.length}개:\n` + errors.join('\n') : '콘솔 에러 없음');

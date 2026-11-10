@@ -4,8 +4,8 @@ import { FONT, GAME_HEIGHT, GAME_WIDTH } from '../config';
 import type { TipDef } from '../data/tutorial';
 import { DEPTH } from '../systems/OfficeMap';
 
-/** 뜬 직후 이 시간(초)은 입력을 안 받는다 (콕 하던 Space에 바로 닫히지 않게) */
-const INPUT_DELAY = 0.45;
+/** 뜬 직후 이 시간(초)은 입력을 안 받는다 (콕 하던 Space에 바로 닫히지 않게, 글을 읽을 틈) */
+const INPUT_DELAY = 0.8;
 /** 어두운 바탕 (정전 막과 같은 색, 더 진하게) */
 const DARK = { color: 0x0b0820, alpha: 0.78 };
 /** 글 묶음 최대 폭 */
@@ -21,7 +21,8 @@ export type TipSpot = { x: number; y: number; r: number } | { x: number; y: numb
  * 그 옆 어두운 바탕에 주인공 속마음 글을 바로 띄운다 (상자 없음). 11/10 팀원 피드백.
  * 떠 있는 동안 게임은 멈춘다 (OfficeScene.paused).
  * 비출 곳은 매 프레임 spot()으로 다시 받아서, 움직이는 대상·카메라 이동을 따라간다.
- * 닫기: Space·Enter·화면 누르기 / 다시 안 보기: N·[다시 안 보기] 버튼
+ * 닫기: [계속] 버튼·Space·Enter / 다시 안 보기: N·[다시 안 보기] 버튼.
+ * 화면 아무 데나 손을 떼면 닫히던 것은 뺐다: 조이스틱·[콕]에서 손을 떼는 것만으로 닫혀 설명을 못 봤다 (11/10)
  */
 export class TipDialog {
   active = false;
@@ -34,6 +35,9 @@ export class TipDialog {
   private readonly title: Phaser.GameObjects.Text;
   private readonly body: Phaser.GameObjects.Text;
   private readonly hint: Phaser.GameObjects.Text;
+  private readonly nextBtn: Phaser.GameObjects.Text;
+  /** 안내가 뜬 뒤 버튼 위에서 누르기 시작했는가 (뜨기 전부터 누르던 손가락은 무시) */
+  private downOn: 'next' | 'off' | null = null;
   private readonly offBtn: Phaser.GameObjects.Text;
   private spot: (() => TipSpot | null) | null = null;
   private onClose: ((off: boolean) => void) | null = null;
@@ -82,6 +86,12 @@ export class TipDialog {
       .setScrollFactor(0)
       .setDepth(depth + 2)
       .setVisible(false);
+    this.nextBtn = scene.add
+      .text(GAME_WIDTH / 2, GAME_HEIGHT - 52, '계속 ▶', { fontFamily: FONT, fontSize: '24px', color: '#5a3a4a', backgroundColor: '#ffeb3b', padding: { x: 26, y: 10 } })
+      .setOrigin(0.5, 1)
+      .setScrollFactor(0)
+      .setDepth(depth + 2)
+      .setVisible(false);
     this.offBtn = scene.add
       .text(GAME_WIDTH - 16, 56, '다시 안 보기', { fontFamily: FONT, fontSize: '17px', color: '#ffffff', backgroundColor: '#5a4a66', padding: { x: 12, y: 7 } })
       .setOrigin(1, 0)
@@ -90,10 +100,17 @@ export class TipDialog {
       .setVisible(false);
     scene.tweens.add({ targets: this.ring, alpha: 0.35, duration: 520, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
 
-    // 화면 아무 데나 누르면 계속, [다시 안 보기] 위면 끄기
+    // [계속]·[다시 안 보기] 버튼: 안내가 뜬 뒤 그 버튼 위에서 눌렀다 떼야 한다
+    const hit = (p: Phaser.Input.Pointer) =>
+      this.nextBtn.getBounds().contains(p.x, p.y) ? 'next' : this.offBtn.getBounds().contains(p.x, p.y) ? 'off' : null;
+    scene.input.on(Phaser.Input.Events.POINTER_DOWN, (p: Phaser.Input.Pointer) => {
+      this.downOn = this.active ? hit(p) : null;
+    });
     scene.input.on(Phaser.Input.Events.POINTER_UP, (p: Phaser.Input.Pointer) => {
-      if (!this.active) return;
-      this.close(this.offBtn.getBounds().contains(p.x, p.y));
+      if (!this.active || !this.downOn) return;
+      const on = hit(p);
+      if (on === this.downOn) this.close(on === 'off');
+      this.downOn = null;
     });
   }
 
@@ -107,9 +124,10 @@ export class TipDialog {
     this.onClose = onClose;
     this.title.setText(tip.title);
     this.body.setText(touch ? tip.touch : tip.pc);
-    this.hint.setText(touch ? '화면을 누르면 계속' : 'Space · 화면 누르기: 계속     N: 다시 안 보기');
+    this.hint.setText(touch ? '' : 'Space: 계속     N: 다시 안 보기');
+    this.downOn = null;
     this.offBtn.setText(touch ? '다시 안 보기' : '다시 안 보기 (N)');
-    for (const o of [this.dark, this.block, this.hint, this.offBtn]) o.setVisible(true);
+    for (const o of [this.dark, this.block, this.hint, this.offBtn, this.nextBtn]) o.setVisible(true);
     this.dark.setAlpha(0);
     this.scene.tweens.add({ targets: this.dark, alpha: 1, duration: 220 });
     this.block.setAlpha(0);
@@ -160,7 +178,7 @@ export class TipDialog {
     if (!s) y = (GAME_HEIGHT - h) / 2;
     else if ((top + bottom) / 2 < GAME_HEIGHT / 2) y = bottom + 24;
     else y = top - 24 - h;
-    y = Phaser.Math.Clamp(y, 64, GAME_HEIGHT - 48 - h);
+    y = Phaser.Math.Clamp(y, 64, GAME_HEIGHT - 116 - h);
     this.block.setPosition(x, y + 18);
   }
 
@@ -169,7 +187,7 @@ export class TipDialog {
     this.active = false;
     this.current = null;
     this.spot = null;
-    for (const o of [this.dark, this.block, this.hint, this.offBtn, this.ring]) o.setVisible(false);
+    for (const o of [this.dark, this.block, this.hint, this.offBtn, this.nextBtn, this.ring]) o.setVisible(false);
     const cb = this.onClose;
     this.onClose = null;
     cb?.(off);
