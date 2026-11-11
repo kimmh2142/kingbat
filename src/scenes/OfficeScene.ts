@@ -577,14 +577,10 @@ export class OfficeScene extends Phaser.Scene {
         if (m.id !== 'postit') return;
         this.items.off('spawned', onSpawn);
         this.tip('goal');
-        this.tip('trash');
       };
       this.items.on('spawned', onSpawn);
     }
-    else {
-      if (this.stage.mission.id !== 'parade') this.tip(this.stage.mission.id);
-      this.tip('trash');
-    }
+    else if (this.stage.mission.id !== 'parade') this.tip(this.stage.mission.id);
     const g = this.add.graphics();
     g.fillStyle(0xffeb3b, 0.45).fillEllipse(0, 0, 70, 30);
     g.lineStyle(3, 0xf57f17).strokeEllipse(0, 0, 70, 30);
@@ -600,8 +596,7 @@ export class OfficeScene extends Phaser.Scene {
   private tip(id: TipId): void {
     if (!this.tipsOn || this.tipsShown.has(id)) return;
     // STAGE 2·3은 특별 미션 단계 안내만 (동기 튜토리얼 안내는 STAGE 1에서만)
-    // 쓰레기통 안내는 쓰레기통 버전에서만, 스테이지마다
-    if (id === 'trash' ? !TRASH_MODE : !this.stage.tutorial && !MISSION_TIPS[this.stage.mission.id]?.includes(id)) return;
+    if (!this.stage.tutorial && !MISSION_TIPS[this.stage.mission.id]?.includes(id)) return;
     this.tipsShown.add(id);
     this.tipQueue.push(id);
   }
@@ -662,8 +657,6 @@ export class OfficeScene extends Phaser.Scene {
       case 'stuck':
       case 'tell':
         return { x: t.x, y: t.y - 50, r: 86 };
-      case 'trash':
-        return { x: this.player.x, y: this.player.y - 40, r: 70 };
       case 'confirmed':
         // 처음 확정한 그 자리 (내 자리든 숨는 곳이든)
         return this.confirmSpot && { x: this.confirmSpot.x, y: this.confirmSpot.y - 40, r: 82 };

@@ -54,9 +54,7 @@ export type TipId =
   | 'blackout'
   | 'boPicked'
   | 'boDark'
-  | 'boPlaced'
-  /** 쓰레기통 버전(?mode=trash)에서만, 스테이지 시작 안내 다음에 */
-  | 'trash';
+  | 'boPlaced';
 
 /** STAGE 2·3에서 뜨는 안내: 특별 미션 단계가 바뀔 때마다 (11/10 "STAGE 3 안내 부족") */
 export const MISSION_TIPS: Record<string, TipId[]> = {
@@ -96,11 +94,6 @@ export const TIPS: Record<TipId, TipDef> = {
     title: '줄무늬 = 아직 내 점수 아님!',
     pc: '들키면 날아간다!\n도망쳐서 내 자리나 숨는 곳에서 E 꾹 → 일하는 척하면 확정!',
     touch: '들키면 날아간다!\n도망쳐서 내 자리나 숨는 곳에서 [숨기] 꾹 → 일하는 척하면 확정!',
-  },
-  trash: {
-    title: '🗑 쓰레기통은 언제든 OK!',
-    pc: 'E 누르면 어디서든 바로 쏙! 계속 누르고 있으면 점수 확정.\n대상 바로 옆에선 안 되고, 안에서 움직이다 보이면 들켜요.',
-    touch: '[숨기] 누르면 어디서든 바로 쏙! 계속 누르고 있으면 점수 확정.\n대상 바로 옆에선 안 되고, 안에서 움직이다 보이면 들켜요.',
   },
   approval: {
     title: '특별 미션: 전 직원 칼퇴 승인서 (+25)',
