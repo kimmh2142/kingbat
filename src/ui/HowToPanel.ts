@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import { TEX, type TextureKey } from '../assets/keys';
 import { COLORS, FONT, GAME_HEIGHT, GAME_WIDTH } from '../config';
+import { TRASH_MODE } from '../data/trashMode';
 import { DEPTH } from '../systems/OfficeMap';
 
 const W = 720;
@@ -14,8 +15,8 @@ interface Page {
 
 /** 조작은 접속한 기기에 맞는 것만 보여준다 */
 const CONTROLS = {
-  pc: ['방향키 (또는 WASD)  이동', 'Space 꾹  콕 찌르기 (오래 누를수록 빨라짐)', 'Z  아이템 쓰기   ·   X  아이템 바꾸기', 'E 꾹  숨기 · 일하는 척 (점수 확정)'],
-  touch: ['왼쪽 조이스틱  이동', '[콕] 꾹  콕 찌르기 (오래 누를수록 빨라짐)', '[아이템]  아이템 쓰기   ·   아래 칸 눌러서 고르기', '[숨기] 꾹  숨기 · 일하는 척 (점수 확정)'],
+  pc: ['방향키 (또는 WASD)  이동', 'Space 꾹  콕 찌르기 (오래 누를수록 빨라짐)', 'Z  아이템 쓰기   ·   X  아이템 바꾸기', TRASH_MODE ? 'E 꾹  쓰레기통 쓰고 숨기 (점수 확정)' : 'E 꾹  숨기 · 일하는 척 (점수 확정)'],
+  touch: ['왼쪽 조이스틱  이동', '[콕] 꾹  콕 찌르기 (오래 누를수록 빨라짐)', '[아이템]  아이템 쓰기   ·   아래 칸 눌러서 고르기', TRASH_MODE ? '[숨기] 꾹  쓰레기통 쓰고 숨기 (점수 확정)' : '[숨기] 꾹  숨기 · 일하는 척 (점수 확정)'],
 };
 
 /**
@@ -45,7 +46,7 @@ export class HowToPanel {
       { title: '조작', lines: touch ? CONTROLS.touch : CONTROLS.pc, icons: [] },
       {
         title: 'Hit & Run',
-        lines: ['콕 찌르기로 얻은 점수는 아직 임시 점수(줄무늬).', '내 자리나 숨는 곳에서 일하는 척해야 확정된다!', '', '아이템 장난은 성공하면 바로 확정.', '맵에 반짝이는 아이템은 지나가면 줍는다.'],
+        lines: ['콕 찌르기로 얻은 점수는 아직 임시 점수(줄무늬).', TRASH_MODE ? '조금 떨어져서 쓰레기통 쓰고 숨어 있어야 확정된다!' : '내 자리나 숨는 곳에서 일하는 척해야 확정된다!', '', '아이템 장난은 성공하면 바로 확정.', '맵에 반짝이는 아이템은 지나가면 줍는다.'],
         icons: [TEX.stripe, TEX.itemPostit, TEX.itemGum],
       },
       {

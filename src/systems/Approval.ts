@@ -192,6 +192,8 @@ export class Approval extends Phaser.Events.EventEmitter implements MissionTask 
     this.deliver = 'none';
     const s = this.scene;
     const B = APPROVAL.boss;
+    // 카메라가 부장실로 (고함보다 먼저 도착하게)
+    this.emit('bossSoon', B.x - 60, B.y + 40);
     s.time.delayedCall(500, () => {
       // 부장이 벌떡 일어나 빨개지고, 고함은 부장 머리 위에서
       this.boss.standAt(B.x, B.y, 'down');

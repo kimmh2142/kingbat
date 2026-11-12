@@ -52,6 +52,8 @@ const TIP_PAN_MS = 550;
 
 /** 방귀 방석: 대표 반응을 보여 주는 시간 (카메라가 대표에게 머무는 시간, 성공 표시가 뜨기까지) */
 const FART_LOOK_MS = 3000;
+/** 부장 고함을 보여 주는 시간 (고함 → 과장 변명까지) */
+const BOSS_LOOK_MS = 3800;
 
 export class OfficeScene extends Phaser.Scene {
   /** 지금 스테이지 수치·대상 (data/stages.ts) */
@@ -279,10 +281,10 @@ export class OfficeScene extends Phaser.Scene {
     this.setupCamera();
     this.miniMap = new MiniMap(this, this.map, this.touch, this.controls.isTouch, this.stage.target.appearance.rank, this.stage.mission.id !== 'parade');
     this.setupDebug();
-    // 쓰레기통 버전이면 어느 버전인지 작게 표시
-    if (TRASH_MODE) {
+    // 예전 버전(?mode=normal)이면 어느 버전인지 작게 표시 (11/12부터 쓰레기통 버전이 기본)
+    if (!TRASH_MODE && new URLSearchParams(location.search).get('mode') === 'normal') {
       this.add
-        .text(16, 82, TRASH.lines.badge, { fontFamily: FONT, fontSize: '14px', color: '#ffffff', backgroundColor: '#78909c', padding: { x: 8, y: 3 } })
+        .text(16, 82, TRASH.lines.normalBadge, { fontFamily: FONT, fontSize: '14px', color: '#ffffff', backgroundColor: '#78909c', padding: { x: 8, y: 3 } })
         .setScrollFactor(0)
         .setDepth(DEPTH.label + 20);
     }
@@ -745,6 +747,18 @@ export class OfficeScene extends Phaser.Scene {
     this.setupTask(this.blackout, BLACKOUT.lines.picked);
   }
 
+  /** 미션 연출을 보여 주려고 카메라가 잠깐 그곳에 갔다가 ms 뒤 주인공에게 돌아온다 (안내 중이면 안 감) */
+  private lookAt(x: number, y: number, ms: number): void {
+    if (this.tipPan !== null) return;
+    this.tipPan = 'going';
+    this.cameras.main.stopFollow();
+    this.cameras.main.pan(x, y, 260, 'Sine.easeOut', true, (_c: Phaser.Cameras.Scene2D.Camera, t: number) => {
+      if (t < 1) return;
+      this.tipPan = 'away';
+      this.time.delayedCall(ms, () => this.tipPanBack());
+    });
+  }
+
   /** E 미션 공통 연결: 성공·줍기·진행 소리, 대상 도착·착석 알림 */
   private setupTask(task: MissionTask, pickedLine: string): void {
     this.task = task;
@@ -759,18 +773,12 @@ export class OfficeScene extends Phaser.Scene {
     task.on('dark', (on: boolean) => on && this.tip('boDark'));
     task.on('sheet', () => this.blackout?.phase === 'placed' && this.tip('boPlaced'));
     task.on('sheet', () => this.sfx.play('stick'));
+    // STAGE 2 부장 고함도 멀리 있으면 안 보여서 카메라가 부장실에 다녀온다 (11/12)
+    task.on('bossSoon', (x: number, y: number) => this.lookAt(x, y, BOSS_LOOK_MS));
     task.on('fart', (x: number, y: number) => {
       this.sfx.play('fart');
       // 숨어서 기다리던 곳이 멀어도 보이게: 카메라가 대표에게 갔다가 반응이 끝나면 돌아온다
-      if (this.tipPan === null) {
-        this.tipPan = 'going';
-        this.cameras.main.stopFollow();
-        this.cameras.main.pan(x, y - 40, 260, 'Sine.easeOut', true, (_c: Phaser.Cameras.Scene2D.Camera, t: number) => {
-          if (t < 1) return;
-          this.tipPan = 'away';
-          this.time.delayedCall(FART_LOOK_MS, () => this.tipPanBack());
-        });
-      }
+      this.lookAt(x, y - 40, FART_LOOK_MS);
       // 근처 직원 (8층은 엑스트라가 없어서 대표실 앞 비서가 웃는다)
       const biseo = this.patrolById('biseo');
       const near = biseo && !biseo.hidden && Phaser.Math.Distance.Between(x, y, biseo.x, biseo.y) < 700 ? biseo : null;
