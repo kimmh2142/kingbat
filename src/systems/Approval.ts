@@ -23,7 +23,8 @@ const PANEL = { x: GAME_WIDTH / 2, y: 150, w: 380, h: 150 };
 /** 모바일 방향 버튼 (창 아래) */
 const BTN = 64;
 
-type Phase = 'onTable' | 'carrying' | 'sorting' | 'done';
+/** filed = 끼우기 완료, 과장이 부장한테 가져가길 기다리는 중 (11/12부터 성공은 부장 고함 때) */
+type Phase = 'onTable' | 'carrying' | 'sorting' | 'filed' | 'done';
 
 /**
  * STAGE 2 특별 미션 "전 직원 칼퇴 승인서".
@@ -34,7 +35,8 @@ type Phase = 'onTable' | 'carrying' | 'sorting' | 'done';
 export class Approval extends Phaser.Events.EventEmitter implements MissionTask {
   readonly caughtReason = 'filing';
   readonly walkSeeRange = APPROVAL.walkSeeRange;
-  readonly anchor = APPROVAL.pile;
+  /** 성공 글자를 띄울 곳: 고함치는 부장 */
+  readonly anchor = { x: APPROVAL.boss.x, y: APPROVAL.boss.y };
   phase: Phase = 'onTable';
   /** 지금 끼우는 서류 순서와 몇 장째인지 */
   seq: Arrow[] = [];
@@ -128,6 +130,7 @@ export class Approval extends Phaser.Events.EventEmitter implements MissionTask 
     if (this.phase === 'onTable') return s(S.pick, APPROVAL.paper);
     if (this.carrying) return this.target.awayFromSeat ? { ...s(S.file, APPROVAL.pile), text: stepKey(S.file, touch, '끼우기') } : s(S.wait, APPROVAL.pile);
     if (this.sorting) return s(S.sort, null);
+    if (this.phase === 'filed') return s(S.deliver, { x: APPROVAL.boss.x, y: APPROVAL.boss.y });
     return null;
   }
 
@@ -205,6 +208,9 @@ export class Approval extends Phaser.Events.EventEmitter implements MissionTask 
       s.time.delayedCall(B.standSeconds * 1000, () => this.bossSit());
       s.cameras.main.shake(250, 0.006);
       this.emit('boss');
+      // 부장이 터지는 순간 미션 성공
+      this.phase = 'done';
+      this.emit('done');
     });
     s.time.delayedCall(1700, () => {
       this.target.view.say(APPROVAL.lines.gwajangExcuse, 2.5);
@@ -273,12 +279,12 @@ export class Approval extends Phaser.Events.EventEmitter implements MissionTask 
       this.refreshCards();
       return;
     }
-    this.phase = 'done';
+    this.phase = 'filed';
     this.deliver = 'waitSeat';
     this.panel.setVisible(false);
     this.pileTop.setVisible(true);
     popWord(this.scene, APPROVAL.pile.x, APPROVAL.pile.y - 80, APPROVAL.lines.done, { color: '#ec407a', size: 28 });
-    this.emit('done');
+    this.emit('filed');
   }
 
   private refreshCards(): void {

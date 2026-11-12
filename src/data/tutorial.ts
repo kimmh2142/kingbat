@@ -51,6 +51,7 @@ export type TipId =
   | 'approval'
   | 'apprPicked'
   | 'apprAway'
+  | 'apprFiled'
   | 'blackout'
   | 'boPicked'
   | 'boDark'
@@ -58,7 +59,7 @@ export type TipId =
 
 /** STAGE 2·3에서 뜨는 안내: 특별 미션 단계가 바뀔 때마다 (11/10 "STAGE 3 안내 부족") */
 export const MISSION_TIPS: Record<string, TipId[]> = {
-  approval: ['approval', 'apprPicked', 'apprAway'],
+  approval: ['approval', 'apprPicked', 'apprAway', 'apprFiled'],
   blackout: ['blackout', 'boPicked', 'boDark', 'boPlaced'],
 };
 
@@ -109,6 +110,11 @@ export const TIPS: Record<TipId, TipDef> = {
     title: '과장이 자리를 비웠다! 지금이야',
     pc: '결재 더미 앞에서 E → 화살표 3개를 순서대로!\n끼우는 동안 과장이 돌아오면 들킨다.',
     touch: '결재 더미 앞에서 [끼우기] → 화살표 3개를 순서대로!\n끼우는 동안 과장이 돌아오면 들킨다.',
+  },
+  apprFiled: {
+    title: '끼우기 완료!',
+    pc: '과장이 이 서류를 부장한테 들고 가면 성공!\n그때까지 들키지 말고 기다리자.',
+    touch: '과장이 이 서류를 부장한테 들고 가면 성공!\n그때까지 들키지 말고 기다리자.',
   },
   blackout: {
     title: '특별 미션: 대정전과 최후의 방석 (+30)',

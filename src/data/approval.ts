@@ -29,6 +29,7 @@ export const APPROVAL = {
     wait: '② 과장이 자리 비울 때까지 기다리기',
     file: '② 과장 자리 비었다! 결재 더미 앞에서 {e}',
     sort: '③ 화살표 3개를 순서대로!',
+    deliver: '④ 과장이 서류를 부장한테 가져갈 때까지 기다리기',
   },
   lines: {
     picked: '가짜 서류 GET! 과장 자리 비울 때 결재 더미에 끼우자',
@@ -36,6 +37,7 @@ export const APPROVAL = {
     wrong: '삐끗!',
     sheet: '스윽',
     done: '쏙!',
+    filed: '끼우기 완료! 과장이 부장한테 가져가면 성공',
     backToCopy: '서류는 복사실로 돌아갔다…',
     gwajangFind: '어디 보자~ 결재 올려야지~',
     boss: '부장: 이게 뭐야아아!!',

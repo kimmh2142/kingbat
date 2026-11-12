@@ -54,6 +54,8 @@ const TIP_PAN_MS = 550;
 const FART_LOOK_MS = 3000;
 /** 부장 고함을 보여 주는 시간 (고함 → 과장 변명까지) */
 const BOSS_LOOK_MS = 3800;
+/** 부장 고함 뒤 성공 표시까지 (과장 변명이 뜬 다음) */
+const BOSS_SHOW_MS = 2600;
 
 export class OfficeScene extends Phaser.Scene {
   /** 지금 스테이지 수치·대상 (data/stages.ts) */
@@ -677,6 +679,9 @@ export class OfficeScene extends Phaser.Scene {
       case 'apprPicked':
       case 'apprAway':
         return { x: APPROVAL.pile.x, y: APPROVAL.pile.y - 40, r: 80 };
+      case 'apprFiled':
+        // 서류가 갈 곳: 부장 (STAGE 3 방석 설치 완료처럼 결과가 터질 곳을 비춘다)
+        return { x: APPROVAL.boss.x, y: APPROVAL.boss.y - 40, r: 80 };
       case 'boPicked':
         return { x: BLACKOUT.panel.x, y: BLACKOUT.panel.y - 72, r: 80 };
       case 'boDark':
@@ -730,12 +735,13 @@ export class OfficeScene extends Phaser.Scene {
       this.banner(['특별 미션 성공!', `"${m.name}"`], '#2e9e6b');
       this.checkClear();
     };
-    // 방귀 방석은 대표 반응(뿅·버둥·말풍선)을 다 보고 나서 성공 표시
+    // 방귀 방석은 대표 반응(뿅·버둥·말풍선), 승인서는 부장 고함과 과장 변명을 다 보고 나서 성공 표시
     if (this.blackout) this.time.delayedCall(FART_LOOK_MS, show);
+    else if (this.approval) this.time.delayedCall(BOSS_SHOW_MS, show);
     else show();
   }
 
-  /** STAGE 2 승인서 미션: 성공하면 바로 확정. 과장이 돌아와 서류를 들고 부장실 옆으로 가는 연출을 이어 붙인다 */
+  /** STAGE 2 승인서 미션: 끼우면 설치 완료, 과장이 돌아와 서류를 들고 부장실로 가서 부장이 터지면 성공 (11/12) */
   private setupApproval(): void {
     this.approval = new Approval(this, this.target, this.touch);
     this.setupTask(this.approval, APPROVAL.lines.picked);
@@ -769,6 +775,10 @@ export class OfficeScene extends Phaser.Scene {
       if (this.approval) this.tip(this.target.awayFromSeat ? 'apprAway' : 'apprPicked');
       else if (this.blackout) this.tip('boPicked');
       if (!this.tipsOn) this.guide.show(pickedLine, 4);
+    });
+    task.on('filed', () => {
+      this.tip('apprFiled');
+      if (!this.tipsOn) this.guide.show(APPROVAL.lines.filed, 4);
     });
     task.on('dark', (on: boolean) => on && this.tip('boDark'));
     task.on('sheet', () => this.blackout?.phase === 'placed' && this.tip('boPlaced'));
