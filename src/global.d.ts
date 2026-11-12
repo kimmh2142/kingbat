@@ -52,7 +52,7 @@ interface Window {
   __kingbatTexture?: (key: string) => string;
   __kingbatBgm?: { step: number; muted: boolean };
   __kingbatStory?: { step(): number; shot(): string | null; total: number; typing(): boolean };
-  __kingbatTitle?: { howToOpen(): boolean; howToPage(): number; selected(): number; tipsOn(): boolean };
+  __kingbatTitle?: { howToOpen(): boolean; howToPage(): number; qrOpen(): boolean; selected(): number; tipsOn(): boolean };
   /** STAGE 2 예고 화면이 떠 있음 */
   __kingbatComingSoon?: boolean;
   __kingbatEnding?: { total: number; caught: number; stars: number; records: number };

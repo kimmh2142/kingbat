@@ -14,6 +14,8 @@ export class BootScene extends Phaser.Scene {
     for (const [key, path] of Object.entries(FINAL_ASSETS)) {
       this.load.image(key, `assets/${path}`);
     }
+    // 타이틀 "폰으로 하기" QR (scripts/make-qr.mjs로 만든다)
+    this.load.image('qr', 'assets/qr.png');
   }
 
   /**

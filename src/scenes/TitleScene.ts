@@ -50,6 +50,8 @@ export class TitleScene extends Phaser.Scene {
     this.addButton(1, '게임 방법', 0xf8bbd0, () => this.howTo.open());
     this.refresh();
     this.makeTipsToggle(touch);
+    // 발표장 PC 화면에서 폰으로 바로 들어오게 (11/12). 폰으로 볼 땐 필요 없어서 PC에서만
+    if (!touch) this.makeQr();
 
     this.add
       .text(GAME_WIDTH / 2, GAME_HEIGHT - 14, '서강대학교 가상융합전문대학원 캡스톤', { fontFamily: FONT, fontSize: '14px', color: '#8d7f99' })
@@ -58,6 +60,7 @@ export class TitleScene extends Phaser.Scene {
     // 한글 입력 상태에서도 되도록 물리 키 위치(event.code)로 읽는다
     const onKey = (e: KeyboardEvent) => {
       if (this.howTo.isOpen) return this.howTo.onKey(e.code);
+      if (this.qrBig) return this.closeQr();
       if (e.code === 'ArrowUp' || e.code === 'KeyW') this.move(-1);
       else if (e.code === 'ArrowDown' || e.code === 'KeyS') this.move(1);
       else if (e.code === 'Space' || e.code === 'Enter') this.buttons[this.selected].onPick();
@@ -67,11 +70,49 @@ export class TitleScene extends Phaser.Scene {
     };
     window.addEventListener('keydown', onKey);
     // 확인 스크립트용 상태
-    window.__kingbatTitle = { howToOpen: () => this.howTo.isOpen, howToPage: () => this.howTo.currentPage, selected: () => this.selected, tipsOn: () => !tipsSetting.off };
+    window.__kingbatTitle = { howToOpen: () => this.howTo.isOpen, howToPage: () => this.howTo.currentPage, qrOpen: () => !!this.qrBig, selected: () => this.selected, tipsOn: () => !tipsSetting.off };
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
       window.removeEventListener('keydown', onKey);
       window.__kingbatTitle = undefined;
     });
+  }
+
+  private qrBig: Phaser.GameObjects.Container | null = null;
+
+  /** 오른쪽 아래 작은 QR. 누르면 크게 */
+  private makeQr(): void {
+    this.qrBig = null;
+    if (!this.textures.exists('qr')) return;
+    const box = this.add.container(904, 478);
+    const bg = this.add.graphics();
+    bg.fillStyle(0xffffff, 0.95).fillRoundedRect(-44, -48, 88, 104, 10);
+    bg.lineStyle(2, 0x4a3a4a, 0.6).strokeRoundedRect(-44, -48, 88, 104, 10);
+    const img = this.add.image(0, -8, 'qr').setDisplaySize(76, 76);
+    const label = this.add.text(0, 44, '📱 폰으로 하기', { fontFamily: FONT, fontSize: '12px', color: COLORS.text }).setOrigin(0.5);
+    box.add([bg, img, label]);
+    box.setSize(88, 104).setInteractive({ useHandCursor: true });
+    box.on('pointerdown', () => this.openQr());
+  }
+
+  private openQr(): void {
+    if (this.qrBig || this.howTo.isOpen) return;
+    const c = this.add.container(0, 0).setDepth(1000);
+    const dim = this.add.rectangle(0, 0, GAME_WIDTH, GAME_HEIGHT, 0x2a1f2a, 0.6).setOrigin(0).setInteractive();
+    const panel = this.add.graphics();
+    panel.fillStyle(0xffffff, 1).fillRoundedRect(GAME_WIDTH / 2 - 190, 36, 380, 468, 18);
+    const img = this.add.image(GAME_WIDTH / 2, 230, 'qr').setDisplaySize(320, 320);
+    const t1 = this.add.text(GAME_WIDTH / 2, 418, '폰 카메라로 찍으면 바로 시작!', { fontFamily: FONT, fontSize: '22px', color: COLORS.text }).setOrigin(0.5);
+    const t2 = this.add.text(GAME_WIDTH / 2, 452, '폰은 가로로 돌려서 하세요', { fontFamily: FONT, fontSize: '16px', color: '#8d7f99' }).setOrigin(0.5);
+    const t3 = this.add.text(GAME_WIDTH / 2, 482, '아무 데나 누르면 닫기', { fontFamily: FONT, fontSize: '13px', color: '#b0a3b8' }).setOrigin(0.5);
+    c.add([dim, panel, img, t1, t2, t3]);
+    // 여는 클릭이 바로 닫지 않게 다음 프레임부터
+    this.time.delayedCall(0, () => dim.once('pointerdown', () => this.closeQr()));
+    this.qrBig = c;
+  }
+
+  private closeQr(): void {
+    this.qrBig?.destroy();
+    this.qrBig = null;
   }
 
   private tipsText!: Phaser.GameObjects.Text;
