@@ -21,7 +21,6 @@ export const TRASH = {
   lines: {
     tooClose: '여기선 너무 수상해! 조금 떨어지자',
     enter: '쏙!',
-    prompt: { pc: 'E 꾹: 쓰레기통 숨기', touch: '숨기 버튼 꾹: 쓰레기통 숨기' },
     /** 예전 버전(?mode=normal)일 때만 왼쪽 위에 작게 */
     normalBadge: '📍 숨는 곳 버전',
   },

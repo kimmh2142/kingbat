@@ -443,7 +443,7 @@ export class OfficeScene extends Phaser.Scene {
     // 지금 이 자리에서 아이템을 쓸 수 있으면 발밑 원이 초록, 안내도 초록 바탕
     const canUse = !this.paused && !this.hide.hidden && !this.pranks.active && !!this.items.selectedItem && this.pranks.check(this.player.x, this.player.y).ok;
     this.target.view.setMarkerReady(canUse || canPoke);
-    this.prompt.show(this.player.x, this.player.y - 122, this.promptText(canPoke), canUse);
+    this.prompt.show(this.player.x, this.player.y - 122, this.promptText(), canUse);
     this.updateSeatGuide();
     this.updateBackSpot();
     this.updateThought(dt);
@@ -559,23 +559,11 @@ export class OfficeScene extends Phaser.Scene {
     this.grabRing.lineStyle(3, 0x5a3a4a).strokeCircle(x, y, 15);
   }
 
-  private promptText(canPoke: boolean): string | null {
+  /** 머리 위 안내 상자: 특별 미션 자리 안내(끼우기·배전반·방석)만. 대상이 자리에 없을 때 뜨는 거라 말풍선과 안 겹친다.
+   *  콕·아이템·숨기 안내는 11/12에 뺐다 (피드백 "타깃 말풍선이 내 안내에 가려짐"). 튜토리얼·미션 칸·"여기서 Z!"가 설명한다 */
+  private promptText(): string | null {
     if (this.paused || this.hide.hidden || this.pranks.active || this.task?.busy) return null;
-    const touch = this.controls.isTouch;
-    const mission = this.task?.prompt(this.player.x, this.player.y, touch);
-    if (mission) return mission;
-    const item = this.items.selectedItem;
-    if (item && this.pranks.check(this.player.x, this.player.y).ok) {
-      const use = touch ? `아이템 버튼: ${ITEMS[item].hint}` : `Z: ${ITEMS[item].hint}`;
-      return canPoke ? [use, touch ? '콕 버튼 꾹: 콕' : 'Space 꾹: 콕'].join('\n') : use;
-    }
-    if (canPoke) return touch ? '콕 버튼 꾹!' : 'Space 꾹 → 콕!';
-    if (TRASH_MODE && this.score.temp > 0 && !this.hide.nearby) return touch ? TRASH.lines.prompt.touch : TRASH.lines.prompt.pc;
-    if (this.hide.nearby) {
-      const what = this.hide.nearby.kind === 'seat' ? '일하는 척' : '숨기';
-      return touch ? `숨기 버튼 꾹: ${what}` : `E 꾹: ${what}`;
-    }
-    return null;
+    return this.task?.prompt(this.player.x, this.player.y, this.controls.isTouch) ?? null;
   }
 
   /** 튜토리얼 안내창: 할 일이 바뀌는 순간 멈추고 설명 (시작 목표 → 줍기 → 붙이기·미션 → 돌아봄 → 임시 점수 → 확정) */

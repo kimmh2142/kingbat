@@ -8,8 +8,10 @@ import { CAMERA } from '../data/tuning';
 // 파츠 기준 좌표 (컨테이너 원점 = 발이 닿는 바닥, 앉았을 땐 의자 위치)
 const HEAD_Y = -30;
 const FACE_Y = HEAD_Y - 24;
-const BUBBLE_Y = -104;
 const LABEL_Y = -124;
+/** 말풍선 꼬리 끝(아래쪽) 높이. 라벨이 있으면 라벨 위로 쌓는다 (11/12 피드백 "말풍선이 라벨에 가려짐") */
+const BUBBLE_BOTTOM = -84;
+const BUBBLE_BOTTOM_LABELED = -150;
 
 /**
  * NPC 그림. 머리·몸통·손·표정을 따로 두고 Pose로 바꾼다.
@@ -32,6 +34,8 @@ export class NpcView {
   private readonly bubble: Phaser.GameObjects.Container;
   private readonly bubbleText: Phaser.GameObjects.Text;
   private readonly bubbleBg: Phaser.GameObjects.Graphics;
+  /** 말풍선 꼬리 끝 높이 (발 기준) */
+  private readonly bubbleY: number;
   private readonly label: Phaser.GameObjects.Container;
   private readonly anger: Phaser.GameObjects.Image;
   private readonly marker?: Phaser.GameObjects.Graphics;
@@ -72,9 +76,11 @@ export class NpcView {
 
     this.bubbleBg = scene.add.graphics();
     this.bubbleText = scene.add.text(0, 0, '', { fontFamily: FONT, fontSize: '15px', color: COLORS.text }).setOrigin(0.5);
-    this.bubble = scene.add.container(16, BUBBLE_Y, [this.bubbleBg, this.bubbleText]).setVisible(false).setScale(CAMERA.textScale);
+    // 말풍선은 캐릭터·책상·라벨보다 위층에 따로 그린다 (내 몸·라벨에 가려지지 않게, 11/12)
+    this.bubble = scene.add.container(0, 0, [this.bubbleBg, this.bubbleText]).setVisible(false).setScale(CAMERA.textScale).setDepth(DEPTH.label + 1);
+    this.bubbleY = look.rank ? BUBBLE_BOTTOM_LABELED : BUBBLE_BOTTOM;
 
-    this.root = scene.add.container(0, 0, [shadow, this.parts, this.bubble]);
+    this.root = scene.add.container(0, 0, [shadow, this.parts]);
 
     this.handL = scene.add.image(-14, 0, look.hand ?? TEX.hand);
     this.handR = scene.add.image(14, 0, look.hand ?? TEX.hand);
@@ -195,11 +201,12 @@ export class NpcView {
     this.hands.setVisible(on);
     this.label.setVisible(on && !!this.look.rank);
     if (!on) this.anger.setVisible(false);
+    if (!on) this.bubble.setVisible(false);
     this.marker?.setVisible(on);
   }
 
   destroy(): void {
-    for (const o of [this.root, this.hands, this.label, this.anger, this.marker]) o?.destroy();
+    for (const o of [this.root, this.bubble, this.hands, this.label, this.anger, this.marker]) o?.destroy();
   }
 
   /** 킹받음 0~1 → 머리 위 핏대 크기 */
@@ -306,6 +313,7 @@ export class NpcView {
     this.root.setDepth(this.seated ? y + 1 : y);
     this.hands.setPosition(x, y + bend).setDepth(this.seated ? this.deskY + 0.3 : y + 0.01);
     this.label.setPosition(x, y + LABEL_Y + bend * 0.5);
+    this.bubble.setPosition(x + 16, y + this.bubbleY + bend * 0.5);
     this.anger.setPosition(x + 30, y + HEAD_Y - 52 + nod + bend);
     this.anger.angle = Math.sin(this.t * 6) * 8;
     this.marker?.setPosition(x, y);
@@ -381,14 +389,17 @@ export class NpcView {
       if (this.t < this.bubbleOverride.until) text = this.bubbleOverride.text;
       else this.bubbleOverride = undefined;
     }
-    this.bubble.setVisible(!!text);
+    this.bubble.setVisible(!!text && this.root.visible);
     if (!text || this.bubbleText.text === text) return;
     this.bubbleText.setText(text);
     const w = this.bubbleText.width + 16;
     const h = this.bubbleText.height + 8;
     this.bubbleBg.clear();
-    this.bubbleBg.fillStyle(0xffffff).fillRoundedRect(-w / 2, -h / 2, w, h, 8);
-    this.bubbleBg.fillTriangle(-10, h / 2 - 1, -2, h / 2 - 1, -12, h / 2 + 7);
-    this.bubbleBg.lineStyle(2, COLORS.outline).strokeRoundedRect(-w / 2, -h / 2, w, h, 8);
+    // 원점 = 꼬리 끝. 글이 길어 두 줄이 돼도 위로 자란다
+    const top = -h - 7;
+    this.bubbleText.setY(top + h / 2);
+    this.bubbleBg.fillStyle(0xffffff).fillRoundedRect(-w / 2, top, w, h, 8);
+    this.bubbleBg.fillTriangle(-10, top + h - 1, -2, top + h - 1, -12, 0);
+    this.bubbleBg.lineStyle(2, COLORS.outline).strokeRoundedRect(-w / 2, top, w, h, 8);
   }
 }
