@@ -34,6 +34,8 @@ export class TipDialog {
   private readonly block: Phaser.GameObjects.Container;
   private readonly title: Phaser.GameObjects.Text;
   private readonly body: Phaser.GameObjects.Text;
+  /** 둘째 줄부터: 주의 한마디 (작고 연하게) */
+  private readonly sub: Phaser.GameObjects.Text;
   private readonly hint: Phaser.GameObjects.Text;
   private readonly nextBtn: Phaser.GameObjects.Text;
   /** 안내가 뜬 뒤 버튼 위에서 누르기 시작했는가 (뜨기 전부터 누르던 손가락은 무시) */
@@ -68,17 +70,27 @@ export class TipDialog {
     const faceBg = scene.add.circle(0, 0, 26, 0xffd6e4).setStrokeStyle(3, 0xffffff);
     const face = scene.add.image(0, 20, TEX.playerHeadFront).setOrigin(0.5, 1).setScale(0.62);
     const faceBox = scene.add.container(-TEXT_W / 2 + 26, 4, [faceBg, face]);
-    this.title = scene.add.text(-TEXT_W / 2 + 64, 4, '', { fontFamily: FONT, fontSize: '26px', color: '#ffeb3b', stroke: '#0b0820', strokeThickness: 6 }).setOrigin(0, 0.5);
-    this.body = scene.add.text(-TEXT_W / 2 + 4, 40, '', {
+    // 11/12 "눈에 잘 안 띈다": 제목·할 일을 크게, 주의 문구는 작고 연하게 나눠 위계를 준다
+    this.title = scene.add.text(-TEXT_W / 2 + 64, 4, '', { fontFamily: FONT, fontSize: '30px', color: '#ffeb3b', stroke: '#0b0820', strokeThickness: 7 }).setOrigin(0, 0.5);
+    this.body = scene.add.text(-TEXT_W / 2 + 4, 42, '', {
       fontFamily: FONT,
-      fontSize: '19px',
+      fontSize: '24px',
       color: '#ffffff',
       stroke: '#0b0820',
-      strokeThickness: 5,
-      lineSpacing: 8,
+      strokeThickness: 6,
+      lineSpacing: 6,
       wordWrap: { width: TEXT_W - 8, useAdvancedWrap: true },
     });
-    this.block = scene.add.container(0, 0, [faceBox, this.title, this.body]).setScrollFactor(0).setDepth(depth + 2).setVisible(false);
+    this.sub = scene.add.text(-TEXT_W / 2 + 4, 80, '', {
+      fontFamily: FONT,
+      fontSize: '18px',
+      color: '#d1c4e9',
+      stroke: '#0b0820',
+      strokeThickness: 5,
+      lineSpacing: 6,
+      wordWrap: { width: TEXT_W - 8, useAdvancedWrap: true },
+    });
+    this.block = scene.add.container(0, 0, [faceBox, this.title, this.body, this.sub]).setScrollFactor(0).setDepth(depth + 2).setVisible(false);
 
     this.hint = scene.add
       .text(GAME_WIDTH / 2, GAME_HEIGHT - 18, '', { fontFamily: FONT, fontSize: '16px', color: '#d1c4e9', stroke: '#0b0820', strokeThickness: 4 })
@@ -123,15 +135,18 @@ export class TipDialog {
     this.spot = spot;
     this.onClose = onClose;
     this.title.setText(tip.title);
-    this.body.setText(touch ? tip.touch : tip.pc);
+    // 첫 줄 = 지금 할 일(크게), 나머지 = 주의(작게)
+    const [main, ...rest] = (touch ? tip.touch : tip.pc).split('\n');
+    this.body.setText(main);
+    this.sub.setText(rest.join('\n')).setY(this.body.y + this.body.height + 6);
     this.hint.setText(touch ? '' : 'Space: 계속     N: 다시 안 보기');
     this.downOn = null;
     this.offBtn.setText(touch ? '다시 안 보기' : '다시 안 보기 (N)');
     for (const o of [this.dark, this.block, this.hint, this.offBtn, this.nextBtn]) o.setVisible(true);
     this.dark.setAlpha(0);
     this.scene.tweens.add({ targets: this.dark, alpha: 1, duration: 220 });
-    this.block.setAlpha(0);
-    this.scene.tweens.add({ targets: this.block, alpha: 1, duration: 260, delay: 120 });
+    this.block.setAlpha(0).setScale(0.9);
+    this.scene.tweens.add({ targets: this.block, alpha: 1, scale: 1, duration: 280, delay: 120, ease: 'Back.Out' });
     this.draw();
   }
 
@@ -172,7 +187,7 @@ export class TipDialog {
       bottom = s.y + s.h / 2 + pad;
     }
     // 글 묶음: 구멍이 위쪽이면 아래에, 아래쪽이면 위에. 비출 곳이 없으면 가운데
-    const h = 44 + this.body.height;
+    const h = 46 + this.body.height + (this.sub.text ? this.sub.height + 6 : 0);
     const x = Phaser.Math.Clamp(s ? s.x : GAME_WIDTH / 2, TEXT_W / 2 + 20, GAME_WIDTH - TEXT_W / 2 - 20);
     let y: number;
     if (!s) y = (GAME_HEIGHT - h) / 2;
