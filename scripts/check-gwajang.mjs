@@ -1,5 +1,5 @@
 // STAGE 2 과장 확인 (?stage=2): 관리자 구역 열림, 과장이 자리 ↔ 복사실 앞·회의실 앞을 오가는지,
-// 서 있는 곳에서도 의심 → 확인을 하는지, 통화 종료 인사 뒤 돌아보는지, 걷는 동안 콕이 안 되는지, 멈췄을 때 콕 되는지.
+// 서 있는 곳에서도 의심 → 확인을 하는지, 통화 종료 인사 뒤 돌아보는지, 걷는 동안에도 콕 되는지(11/12 동기와 통일), 멈췄을 때 콕 되는지.
 // 사용법: npm run dev 를 켠 상태에서  node scripts/check-gwajang.mjs
 import { chromium } from 'playwright';
 import { mkdirSync } from 'node:fs';
@@ -42,14 +42,15 @@ while (Date.now() - t0 < 30000) {
 }
 log.push(['30초 상태', { states: [...states], 서있던곳: [...spots], 통화종료인사: bubbleHangup }]);
 
-// 걷는 중 콕 → 안 됨
+// 걷는 중 등 뒤 콕 → 됨 (11/12)
 const walking = await waitFor(() => ['leaving', 'returning'].includes(window.__kingbat.target.state), 30000);
 let walkPoke = null;
 if (walking) {
   const t = (await k()).target;
-  await tp(t.x, t.y - 40);
+  const back = { up: [0, 40], down: [0, -40], left: [40, 0], right: [-40, 0] }[t.facing] ?? [0, -40];
+  await tp(t.x + back[0], t.y + back[1]);
   await page.keyboard.down('Space');
-  await page.waitForTimeout(300);
+  await page.waitForTimeout(500);
   walkPoke = (await k()).score.temp;
   await page.keyboard.up('Space');
   await page.screenshot({ path: 'screenshots/gwajang-walking.png' });

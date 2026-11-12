@@ -7,7 +7,7 @@ import type { TargetPattern } from '../types';
 //  - 페이크: "…네?" 말이 뚝 끊김 → "아~ 하하하! 그렇죠!" 다시 웃으며 통화
 //  - 진짜: "…네?" → "잠깐만요." 수화기를 손으로 막음 → 돌아봄
 //  - 통화 종료: "네, 그럼 이따 뵙겠습니다!" → 곧바로 돌아봄 (인사말이 전조, 반응 시간 0.8초쯤)
-//  - 걷는 동안엔 콕을 못 한다. 멈춰 선 곳(자리·복사실 앞·회의실 앞)에서 등 뒤를 잡아야 한다 (11/9 결정)
+//  - 걷는 동안에도 콕 된다 (기준 문서 "걷는 동안에는 뒤가 빈다", 11/12 동기·대표와 통일. 11/9엔 막았었다)
 // 관리자 구역 좌표: 과장 자리 의자 (2200, 758), 복사기 (1918, 1300), 회의실 탁자 (1918, 360)
 
 export const GWAJANG: TargetPattern = {
@@ -124,7 +124,6 @@ export const GWAJANG: TargetPattern = {
     walkPose: { hands: 'phone', face: TEX.faceHappy, bubble: '네네~' },
     stayPose: { hands: 'phone', face: TEX.faceHappy, bubble: '네~ 사장님~' },
   },
-  pokeWhileWalking: false,
 
   pokeSpeedup: 1.8,
   alertToSuspect: 0.6,

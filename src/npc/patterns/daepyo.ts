@@ -137,7 +137,6 @@ export const DAEPYO: TargetPattern = {
     walkPose: { hands: 'side', face: TEX.faceNormal, bubble: '흠~' },
     stayPose: { hands: 'side', face: TEX.faceSuspicious, bubble: '다들 열심히 하는군…' },
   },
-  pokeWhileWalking: false,
 
   pokeSpeedup: 1.8,
   alertToSuspect: 0.6,
