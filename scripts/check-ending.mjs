@@ -56,7 +56,7 @@ log.push(['엔딩 컷신', { 장면수: total, 장면: shots, 결과화면: endi
 
 // 3) 다시 출근하기 → STAGE 1 도입 컷신
 await page.keyboard.press('Space');
-const again = await waitFor(() => !!window.__kingbatStory && window.__kingbatStory.shot() === 'ask', 8000);
+const again = await waitFor(() => !!window.__kingbatStory && window.__kingbatStory.shot() === 'dump', 8000);
 log.push(['다시 출근', { 'STAGE 1 컷신': again }]);
 
 // 4) ?ending=result 로 바로 결과 화면 (기록 없음) → Esc = 타이틀
