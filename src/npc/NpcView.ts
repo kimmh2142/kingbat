@@ -12,6 +12,9 @@ const LABEL_Y = -124;
 /** 말풍선 꼬리 끝(아래쪽) 높이. 라벨이 있으면 라벨 위로 쌓는다 (11/12 피드백 "말풍선이 라벨에 가려짐") */
 const BUBBLE_BOTTOM = -84;
 const BUBBLE_BOTTOM_LABELED = -150;
+/** 공략 대상: 라벨 대신 머리 바로 위 과녁 아이콘, 말풍선은 그 위 */
+const TARGET_ICON_Y = -100;
+const BUBBLE_BOTTOM_TARGET = -118;
 
 /**
  * NPC 그림. 머리·몸통·손·표정을 따로 두고 Pose로 바꾼다.
@@ -36,6 +39,8 @@ export class NpcView {
   private readonly bubbleBg: Phaser.GameObjects.Graphics;
   /** 말풍선 꼬리 끝 높이 (발 기준) */
   private readonly bubbleY: number;
+  /** 라벨(또는 과녁 아이콘) 높이 */
+  private readonly labelY: number;
   private readonly label: Phaser.GameObjects.Container;
   private readonly anger: Phaser.GameObjects.Image;
   private readonly marker?: Phaser.GameObjects.Graphics;
@@ -78,7 +83,7 @@ export class NpcView {
     this.bubbleText = scene.add.text(0, 0, '', { fontFamily: FONT, fontSize: '15px', color: COLORS.text }).setOrigin(0.5);
     // 말풍선은 캐릭터·책상·라벨보다 위층에 따로 그린다 (내 몸·라벨에 가려지지 않게, 11/12)
     this.bubble = scene.add.container(0, 0, [this.bubbleBg, this.bubbleText]).setVisible(false).setScale(CAMERA.textScale).setDepth(DEPTH.label + 1);
-    this.bubbleY = look.rank ? BUBBLE_BOTTOM_LABELED : BUBBLE_BOTTOM;
+    this.bubbleY = isTarget ? BUBBLE_BOTTOM_TARGET : look.rank ? BUBBLE_BOTTOM_LABELED : BUBBLE_BOTTOM;
 
     this.root = scene.add.container(0, 0, [shadow, this.parts]);
 
@@ -88,16 +93,20 @@ export class NpcView {
     this.prop = scene.add.image(0, -10, TEX.phone).setVisible(false);
     this.hands = scene.add.container(0, 0, [this.prop, this.handL, this.handR]);
 
-    // 직급 라벨 (+ 공략 대상이면 타깃 아이콘)
-    const name = scene.add.text(0, 0, look.rank, { fontFamily: FONT, fontSize: '16px', color: '#ffffff' }).setOrigin(0.5);
-    const w = name.width + 22;
-    const h = name.height + 6;
-    const pill = scene.add.graphics();
-    pill.fillStyle(look.rankColor).fillRoundedRect(-w / 2, -h / 2, w, h, h / 2);
-    pill.lineStyle(3, COLORS.outline).strokeRoundedRect(-w / 2, -h / 2, w, h, h / 2);
-    const labelParts: Phaser.GameObjects.GameObject[] = [pill, name];
-    if (isTarget) labelParts.push(scene.add.image(-w / 2 - 12, 0, TEX.targetIcon));
-    this.label = scene.add.container(0, LABEL_Y, labelParts).setDepth(DEPTH.label - 2).setVisible(!!look.rank).setScale(CAMERA.textScale);
+    // 직급 라벨. 공략 대상은 라벨 대신 과녁 아이콘만 머리 바로 위에 (11/12: 한 번 보면 아니까 이름은 뺐다)
+    let labelParts: Phaser.GameObjects.GameObject[];
+    if (isTarget) labelParts = [scene.add.image(0, 0, TEX.targetIcon)];
+    else {
+      const name = scene.add.text(0, 0, look.rank, { fontFamily: FONT, fontSize: '16px', color: '#ffffff' }).setOrigin(0.5);
+      const w = name.width + 22;
+      const h = name.height + 6;
+      const pill = scene.add.graphics();
+      pill.fillStyle(look.rankColor).fillRoundedRect(-w / 2, -h / 2, w, h, h / 2);
+      pill.lineStyle(3, COLORS.outline).strokeRoundedRect(-w / 2, -h / 2, w, h, h / 2);
+      labelParts = [pill, name];
+    }
+    this.labelY = isTarget ? TARGET_ICON_Y : LABEL_Y;
+    this.label = scene.add.container(0, this.labelY, labelParts).setDepth(DEPTH.label - 2).setVisible(!!look.rank).setScale(CAMERA.textScale);
 
     this.anger = scene.add.image(0, 0, TEX.angerMark).setDepth(DEPTH.label - 1).setVisible(false);
 
@@ -312,7 +321,7 @@ export class NpcView {
     const y = this.root.y;
     this.root.setDepth(this.seated ? y + 1 : y);
     this.hands.setPosition(x, y + bend).setDepth(this.seated ? this.deskY + 0.3 : y + 0.01);
-    this.label.setPosition(x, y + LABEL_Y + bend * 0.5);
+    this.label.setPosition(x, y + this.labelY + bend * 0.5);
     this.bubble.setPosition(x + 16, y + this.bubbleY + bend * 0.5);
     this.anger.setPosition(x + 30, y + HEAD_Y - 52 + nod + bend);
     this.anger.angle = Math.sin(this.t * 6) * 8;

@@ -1,8 +1,6 @@
 import Phaser from 'phaser';
 import { TEX } from '../assets/keys';
-import { COLORS, FONT } from '../config';
 import { PLAYER } from '../data/tuning';
-import { CAMERA } from '../data/tuning';
 
 /**
  * 주인공. 충돌은 발밑의 작은 상자(feet)가 담당하고,
@@ -37,7 +35,7 @@ export class Player {
     this.head = scene.add.image(0, -26, TEX.playerHeadFront).setOrigin(0.5, 1);
     this.parts = scene.add.container(0, 0, [this.body, this.head]);
     this.trash = scene.add.image(0, 4, TEX.trashCan).setOrigin(0.5, 1).setVisible(false);
-    this.view = scene.add.container(x, y, [shadow, this.parts, this.trash, this.makeTag(scene)]);
+    this.view = scene.add.container(x, y, [shadow, this.parts, this.trash]);
   }
 
   /** 카메라가 따라갈 대상 */
@@ -151,15 +149,5 @@ export class Player {
   syncView(): void {
     const bottom = this.feet.body.bottom;
     this.view.setPosition(this.feet.x, bottom).setDepth(bottom);
-  }
-
-  private makeTag(scene: Phaser.Scene): Phaser.GameObjects.Container {
-    const t = scene.add.text(0, 0, '나', { fontFamily: FONT, fontSize: '16px', color: '#ffffff' }).setOrigin(0.5);
-    const w = t.width + 20;
-    const h = t.height + 6;
-    const bg = scene.add.graphics();
-    bg.fillStyle(0x9575cd).fillRoundedRect(-w / 2, -h / 2, w, h, h / 2);
-    bg.lineStyle(3, COLORS.outline).strokeRoundedRect(-w / 2, -h / 2, w, h, h / 2);
-    return scene.add.container(0, -96, [bg, t]).setScale(CAMERA.textScale);
   }
 }
