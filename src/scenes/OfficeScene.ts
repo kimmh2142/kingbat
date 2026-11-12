@@ -434,8 +434,9 @@ export class OfficeScene extends Phaser.Scene {
     this.targetArrow.update(this.cameras.main, this.paused ? null : this.target, this.miniMap.rect);
     this.itemArrow.update(this.cameras.main, this.paused ? null : this.firstItemToFind(), this.miniMap.rect);
     this.updateMissionGuide();
-    // 서류를 든 채 과장이 자리를 비우면: 지금이야!
-    if (this.approval?.carrying && this.target.awayFromSeat) this.tip('apprAway');
+    // 서류를 든 채 과장이 목적지(복사실 앞·회의실 앞)에 도착해 서 있으면: 지금이야!
+    // 일어나자마자 띄우면 아직 책상 옆이라 위험해서 도착 뒤로 (11/12). 끼우기는 일어난 뒤부터 그대로 된다
+    if (this.approval?.carrying && this.target.state === 'away') this.tip('apprAway');
     this.target.view.setAnger(this.score.total / this.score.goal);
     const near = Phaser.Math.Distance.Between(this.player.x, this.player.y, this.target.x, this.target.y) < 110;
     this.target.view.setLabelFaded(near && this.player.y < this.target.y);
@@ -763,7 +764,7 @@ export class OfficeScene extends Phaser.Scene {
     task.on('picked', () => {
       this.sfx.play('pick');
       // 안내가 켜져 있으면 다음 목적지를 스포트라이트로 비춘다 (노란 한 줄은 겹치니 생략)
-      if (this.approval) this.tip(this.target.awayFromSeat ? 'apprAway' : 'apprPicked');
+      if (this.approval) this.tip(this.target.state === 'away' ? 'apprAway' : 'apprPicked');
       else if (this.blackout) this.tip('boPicked');
       if (!this.tipsOn) this.guide.show(pickedLine, 4);
     });

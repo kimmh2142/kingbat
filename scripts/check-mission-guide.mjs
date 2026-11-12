@@ -165,6 +165,10 @@ log.push(['안내창', tips]);
   await p2.waitForTimeout(800);
   steps.서류_비춤 = await lit(p2);
   await p2.screenshot({ path: 'screenshots/spot-appr-picked.png' });
+  // "자리를 비웠다! 지금이야"는 과장이 목적지에 도착해 서 있을 때만 (일어나자마자 X, 11/12)
+  await close(p2);
+  const awayShown = await p2.waitForFunction(() => window.__kingbat?.tip === 'apprAway', null, { timeout: 60000 }).then(() => true, () => false);
+  steps.자리비움안내 = { 뜸: awayShown, 그때과장: await p2.evaluate(() => window.__kingbat.target.state) };
   await p2.close();
   // STAGE 3: 방석 → boPicked (배전반) → 정전 boDark (의자)
   const p3 = await open('?stage=3&tips=1');

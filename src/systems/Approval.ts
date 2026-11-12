@@ -128,7 +128,8 @@ export class Approval extends Phaser.Events.EventEmitter implements MissionTask 
     const S = APPROVAL.steps;
     const s = (text: string, at: MissionStep['at']) => ({ text: stepKey(text, touch), at, icon: TEX.paperPile });
     if (this.phase === 'onTable') return s(S.pick, APPROVAL.paper);
-    if (this.carrying) return this.target.awayFromSeat ? { ...s(S.file, APPROVAL.pile), text: stepKey(S.file, touch, '끼우기') } : s(S.wait, APPROVAL.pile);
+    // 미션 칸도 안내와 같이 과장이 목적지에 도착한 뒤에 "자리 비었다!" (끼우기는 일어난 뒤부터 된다)
+    if (this.carrying) return this.target.state === 'away' ? { ...s(S.file, APPROVAL.pile), text: stepKey(S.file, touch, '끼우기') } : s(S.wait, APPROVAL.pile);
     if (this.sorting) return s(S.sort, null);
     if (this.phase === 'filed') return s(S.deliver, { x: APPROVAL.boss.x, y: APPROVAL.boss.y });
     return null;
