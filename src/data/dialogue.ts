@@ -91,7 +91,7 @@ export const STORIES: Record<number, StageStory> = {
     subtitle: '대표 나대표',
     quote: '"최후의 킹받음"',
     steps: [
-      { shot: 'ceo', who: 'daepyo', caption: '8층 · 대표실', text: '요즘 장난치는 녀석이 있다지? 허허, 어디 나도 한번 당해 볼까?' },
+      { shot: 'ceo', who: 'daepyo', caption: '8층 · 대표실', text: '요즘 장난치는 녀석이 있다지?' },
       { shot: 'ceoLaugh', who: 'me', text: '여기까지 왔다. 마지막은 대표님이다!' },
     ],
   },
