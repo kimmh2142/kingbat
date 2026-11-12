@@ -53,7 +53,7 @@ export const BLACKOUT = {
     cooling: '② 배전반이 식으면 다시 {e}',
     chair: '③ 대표가 나간 사이 대표 의자 옆에서 {e}',
     placing: '③ 흔들리는 방석이 가운데 올 때 {e}! (3번)',
-    wait: '④ 숨어서 대표가 돌아와 앉길 기다리기',
+    wait: '④ 대표가 돌아와 앉길 기다리기',
   },
   lines: {
     picked: '방귀 방석 GET! 배전반에서 불을 끄자',
@@ -74,5 +74,11 @@ export const BLACKOUT = {
     backToLounge: '방석은 라운지로 돌아갔다…',
     fart: '뿌우우욱!!',
     daepyoShock: '…!!!',
+    /** 튀어오른 뒤 (11/12 "더 우스꽝스럽게") */
+    daepyoWho: '누, 누구야아아!!',
+    /** 두리번거리며 시치미 */
+    daepyoDeny: '흠흠… 나, 난 아니야~',
+    /** 근처 직원 */
+    laugh: '푸흡!',
   },
 } as const;

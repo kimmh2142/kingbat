@@ -314,7 +314,13 @@ export class Blackout extends Phaser.Events.EventEmitter implements MissionTask 
     s.time.delayedCall(1700, () => cam.zoomTo(zoom, 400, 'Sine.easeInOut'));
     cam.shake(400, 0.01);
     this.target.view.jolt();
-    this.target.view.say(BLACKOUT.lines.daepyoShock, 2.5);
+    // 뿅 튀어올라 버둥 → 납작, 머리 새빨개지고 김, 말풍선 3단계 (11/12 "더 우스꽝스럽게")
+    this.target.view.boing();
+    this.target.view.setPokeHeat(1);
+    this.target.view.say(BLACKOUT.lines.daepyoShock, 1);
+    s.time.delayedCall(1000, () => this.target.view.say(BLACKOUT.lines.daepyoWho, 1.3));
+    s.time.delayedCall(2300, () => this.target.view.say(BLACKOUT.lines.daepyoDeny, 1.8));
+    this.emit('fart', x, y);
     const t = s.add
       .text(x, y - 150, BLACKOUT.lines.fart, { fontFamily: FONT, fontSize: '54px', color: '#8d5524', stroke: '#ffffff', strokeThickness: 10 })
       .setOrigin(0.5)
@@ -324,10 +330,14 @@ export class Blackout extends Phaser.Events.EventEmitter implements MissionTask 
     s.tweens.add({ targets: t, scale: 1.2, duration: 180, ease: 'Back.Out' });
     s.tweens.add({ targets: t, angle: 8, duration: 80, yoyo: true, repeat: 7 });
     s.tweens.add({ targets: t, alpha: 0, y: y - 190, delay: 2400, duration: 400, onComplete: () => t.destroy() });
-    // 방귀 구름
-    for (let i = 0; i < 5; i++) {
-      const c = s.add.circle(x + Phaser.Math.Between(-30, 30), y - 20, Phaser.Math.Between(12, 22), 0xc5e1a5, 0.8).setDepth(DEPTH.label + 9);
-      s.tweens.add({ targets: c, y: c.y - 60 - i * 12, x: c.x + Phaser.Math.Between(-40, 40), alpha: 0, scale: 1.8, duration: 1400, delay: i * 90, onComplete: () => c.destroy() });
+    // 방귀 구름: 크게 여러 겹, 두 번 뿜는다
+    for (let i = 0; i < 12; i++) {
+      const color = i % 3 === 0 ? 0xaed581 : 0xc5e1a5;
+      // 양옆으로 퍼진다 (가운데는 튀어오르는 대표가 보이게 비워 둔다)
+      const side = i % 2 === 0 ? -1 : 1;
+      const c = s.add.circle(x + side * Phaser.Math.Between(30, 55), y - 10, Phaser.Math.Between(14, 26), color, 0.85).setDepth(DEPTH.label + 9);
+      const delay = (i % 6) * 80 + (i >= 6 ? 450 : 0);
+      s.tweens.add({ targets: c, y: c.y - 40 - (i % 6) * 12, x: c.x + side * Phaser.Math.Between(60, 120), alpha: 0, scale: 2.2, duration: 1700, delay, onComplete: () => c.destroy() });
     }
   }
 

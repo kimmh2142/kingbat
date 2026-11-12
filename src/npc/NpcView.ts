@@ -45,6 +45,8 @@ export class NpcView {
   private deskY = 0;
   private t = 0;
   private joltT = 0;
+  /** 깜짝 튀어오르기 진행 시간 (음수면 안 함) */
+  private boingT = -1;
   /** 콕 콤보로 달아오른 정도 (0~1): 머리가 빨개지고, 움찔이 커지고, 끝까지 차면 김이 난다 */
   private heat = 0;
   private steamT = 0;
@@ -164,6 +166,11 @@ export class NpcView {
     this.joltT = 0.12;
   }
 
+  /** 깜짝 놀라 뿅 튀어올라 버둥거리다 납작 (방귀 방석) */
+  boing(): void {
+    this.boingT = 0;
+  }
+
   /** 플레이어가 바로 뒤에 있을 때 라벨이 얼굴을 가리지 않게 옅게 */
   /** 지금 장난칠 수 있는 거리면 발밑 원을 초록으로 */
   setMarkerReady(ready: boolean): void {
@@ -199,6 +206,33 @@ export class NpcView {
   setAnger(ratio: number): void {
     this.anger.setVisible(ratio > 0.01);
     this.anger.setScale(0.45 + Math.min(ratio, 1) * 1.1);
+  }
+
+  private updateBoing(dt: number): void {
+    if (this.boingT < 0) return;
+    this.boingT += dt;
+    const t = this.boingT;
+    const UP = 0.6;
+    const SQUASH = 0.28;
+    const side = this.parts.scaleX < 0 ? -1 : 1;
+    if (t < UP) {
+      // 위로 뿅, 공중에서 팔다리 버둥 (좌우로 마구 흔들림)
+      this.parts.y -= Math.sin((Math.PI * t) / UP) * 78;
+      this.parts.setAngle(Math.sin(t * 46) * 14);
+      this.parts.scaleY = 1.12;
+      this.parts.scaleX = side * 0.92;
+    } else if (t < UP + SQUASH) {
+      // 착지: 납작하게 찌그러졌다 돌아옴
+      const k = Math.sin((Math.PI * (t - UP)) / SQUASH);
+      this.parts.setAngle(0);
+      this.parts.scaleY = 1 - k * 0.35;
+      this.parts.scaleX = side * (1 + k * 0.25);
+    } else {
+      this.parts.setAngle(0);
+      this.parts.scaleY = 1;
+      this.parts.scaleX = side;
+      this.boingT = -1;
+    }
   }
 
   update(dt: number): void {
@@ -241,6 +275,7 @@ export class NpcView {
     // 움찔 (달아오를수록 크게)
     if (this.joltT > 0) this.joltT -= dt;
     this.parts.x = this.joltT > 0 ? Math.sin(this.joltT * 120) * (3 + this.heat * 5) : 0;
+    this.updateBoing(dt);
     // 달아오름: 머리가 빨개지고, 끝까지 차면 머리 위로 김. 찌르지 않으면 천천히 식는다
     this.heat = Math.max(0, this.heat - dt * 0.12);
     if (this.heat > 0.02) {

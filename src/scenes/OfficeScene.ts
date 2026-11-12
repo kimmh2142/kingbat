@@ -50,6 +50,9 @@ import { TouchControls } from '../ui/TouchControls';
 /** 안내 때문에 카메라가 비출 곳으로 갔다 오는 시간 (ms) */
 const TIP_PAN_MS = 550;
 
+/** 방귀 방석: 대표 반응을 보여 주는 시간 (카메라가 대표에게 머무는 시간, 성공 표시가 뜨기까지) */
+const FART_LOOK_MS = 3000;
+
 export class OfficeScene extends Phaser.Scene {
   /** 지금 스테이지 수치·대상 (data/stages.ts) */
   private stage!: StageConfig;
@@ -671,12 +674,9 @@ export class OfficeScene extends Phaser.Scene {
         return { x: BLACKOUT.panel.x, y: BLACKOUT.panel.y - 72, r: 80 };
       case 'boDark':
         return { x: BLACKOUT.chair.x, y: BLACKOUT.chair.y - 30, r: 80 };
-      case 'boPlaced': {
-        // 지금 자리에서 가장 가까운 숨는 곳
-        const p = this.player;
-        const h = [...this.map.hideSpots].sort((a, b) => Phaser.Math.Distance.Between(p.x, p.y, a.x, a.y) - Phaser.Math.Distance.Between(p.x, p.y, b.x, b.y))[0];
-        return h ? { x: h.x, y: h.y - 30, r: 76 } : null;
-      }
+      case 'boPlaced':
+        // 방석 깐 대표 의자 (숨기 설명은 STAGE 1에서 다 했다, 11/12)
+        return { x: BLACKOUT.chair.x, y: BLACKOUT.chair.y - 30, r: 80 };
       default:
         return null;
     }
@@ -718,9 +718,14 @@ export class OfficeScene extends Phaser.Scene {
     this.tutorial.complete('parade');
     this.score.addConfirmed(m.points);
     const at = this.task ? this.task.anchor : this.target;
-    popWord(this, at.x, at.y - 120, `미션 성공! +${m.points}`, { size: 30, color: '#2e7d5b' });
-    this.banner(['특별 미션 성공!', `"${m.name}"`], '#2e9e6b');
-    this.checkClear();
+    const show = () => {
+      popWord(this, at.x, at.y - 120, `미션 성공! +${m.points}`, { size: 30, color: '#2e7d5b' });
+      this.banner(['특별 미션 성공!', `"${m.name}"`], '#2e9e6b');
+      this.checkClear();
+    };
+    // 방귀 방석은 대표 반응(뿅·버둥·말풍선)을 다 보고 나서 성공 표시
+    if (this.blackout) this.time.delayedCall(FART_LOOK_MS, show);
+    else show();
   }
 
   /** STAGE 2 승인서 미션: 성공하면 바로 확정. 과장이 돌아와 서류를 들고 부장실 옆으로 가는 연출을 이어 붙인다 */
@@ -749,6 +754,24 @@ export class OfficeScene extends Phaser.Scene {
     task.on('dark', (on: boolean) => on && this.tip('boDark'));
     task.on('sheet', () => this.blackout?.phase === 'placed' && this.tip('boPlaced'));
     task.on('sheet', () => this.sfx.play('stick'));
+    task.on('fart', (x: number, y: number) => {
+      this.sfx.play('fart');
+      // 숨어서 기다리던 곳이 멀어도 보이게: 카메라가 대표에게 갔다가 반응이 끝나면 돌아온다
+      if (this.tipPan === null) {
+        this.tipPan = 'going';
+        this.cameras.main.stopFollow();
+        this.cameras.main.pan(x, y - 40, 260, 'Sine.easeOut', true, (_c: Phaser.Cameras.Scene2D.Camera, t: number) => {
+          if (t < 1) return;
+          this.tipPan = 'away';
+          this.time.delayedCall(FART_LOOK_MS, () => this.tipPanBack());
+        });
+      }
+      // 근처 직원 (8층은 엑스트라가 없어서 대표실 앞 비서가 웃는다)
+      const biseo = this.patrolById('biseo');
+      const near = biseo && !biseo.hidden && Phaser.Math.Distance.Between(x, y, biseo.x, biseo.y) < 700 ? biseo : null;
+      const who = this.extras.nearestTo(x, y, 420) ?? near;
+      if (who) this.time.delayedCall(700, () => popWord(this, who.x, who.y - 100, BLACKOUT.lines.laugh, { color: '#8d7f99', size: 22 }));
+    });
     // 대상 도착·착석 알림은 포스트잇·껌(Pranks)도 쓰므로 이어 붙인다
     const arrive = this.target.onArrive;
     this.target.onArrive = () => {

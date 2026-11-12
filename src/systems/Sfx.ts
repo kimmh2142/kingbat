@@ -1,7 +1,7 @@
 import Phaser from 'phaser';
 
 /** 효과음 이름. 진짜 소리 파일이 생기면 `sfx-<이름>` 키로 불러오면 그 파일을 대신 튼다 */
-export type SfxName = 'poke' | 'stick' | 'gum' | 'pick' | 'confirm' | 'caught' | 'clear' | 'fail';
+export type SfxName = 'poke' | 'stick' | 'gum' | 'pick' | 'confirm' | 'caught' | 'clear' | 'fail' | 'fart';
 
 type Note = { f: number; t: number; d: number; type?: OscillatorType; slide?: number; vol?: number };
 
@@ -37,6 +37,15 @@ const SYNTH: Record<SfxName, Note[]> = {
     { f: 659, t: 0.12, d: 0.12, type: 'square', vol: 0.12 },
     { f: 784, t: 0.24, d: 0.12, type: 'square', vol: 0.12 },
     { f: 1046, t: 0.36, d: 0.45, type: 'square', vol: 0.12 },
+  ],
+  // 뿌르르르욱: 방귀 방석 (끊어지며 음이 떨어진다)
+  fart: [
+    { f: 190, slide: 150, t: 0, d: 0.12, type: 'sawtooth', vol: 0.22 },
+    { f: 165, slide: 125, t: 0.11, d: 0.12, type: 'sawtooth', vol: 0.22 },
+    { f: 150, slide: 110, t: 0.22, d: 0.12, type: 'sawtooth', vol: 0.22 },
+    { f: 135, slide: 95, t: 0.33, d: 0.12, type: 'sawtooth', vol: 0.22 },
+    { f: 120, slide: 55, t: 0.44, d: 0.55, type: 'sawtooth', vol: 0.24 },
+    { f: 60, slide: 35, t: 0.44, d: 0.55, type: 'square', vol: 0.12 },
   ],
   // 뿌우~: 실패
   fail: [
