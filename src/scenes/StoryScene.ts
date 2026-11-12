@@ -1,7 +1,8 @@
 import Phaser from 'phaser';
 import { TEX } from '../assets/keys';
 import { COLORS, FONT, GAME_HEIGHT, GAME_WIDTH } from '../config';
-import { SPEAKERS, STORIES, type StageStory, type StoryShot } from '../data/dialogue';
+import { HIGHLIGHTS, SPEAKERS, STORIES, type StageStory, type StoryShot } from '../data/dialogue';
+import { ISA } from '../npc/patterns/isa';
 import { NpcView } from '../npc/NpcView';
 import { DONGI } from '../npc/patterns/dongi';
 import { GWAJANG } from '../npc/patterns/gwajang';
@@ -61,9 +62,13 @@ export class StoryScene extends Phaser.Scene {
     super('Story');
   }
 
-  create(data?: { stage?: number }): void {
+  /** 클리어 뒤 "오늘의 명장면": 게임 위에 띄웠다가 끝나면 게임 장면(결과 화면)으로 돌아간다 */
+  private highlight = false;
+
+  create(data?: { stage?: number; highlight?: boolean }): void {
     this.stage = data?.stage ?? 1;
-    const story = STORIES[this.stage];
+    this.highlight = !!data?.highlight;
+    const story = this.highlight ? HIGHLIGHTS[this.stage] : STORIES[this.stage];
     if (!story) {
       this.scene.start('Office', { stage: this.stage });
       return;
@@ -152,6 +157,14 @@ export class StoryScene extends Phaser.Scene {
     this.done = true;
     this.cameras.main.fadeOut(300, 59, 42, 51);
     this.uiCam.fadeOut(300, 59, 42, 51);
+    if (this.highlight) {
+      // 명장면: 멈춰 둔 게임 장면으로 돌아가면 결과 화면이 뜬다 (OfficeScene RESUME)
+      this.uiCam.once(Phaser.Cameras.Scene2D.Events.FADE_OUT_COMPLETE, () => {
+        this.scene.resume('Office');
+        this.scene.stop();
+      });
+      return;
+    }
     // 엔딩 컷신(STAGES에 없는 번호)이 끝나면 엔딩 결과 화면
     const next = STAGES[this.stage] ? 'Office' : 'Ending';
     this.uiCam.once(Phaser.Cameras.Scene2D.Events.FADE_OUT_COMPLETE, () => this.scene.start(next, { stage: this.stage }));
@@ -226,6 +239,8 @@ export class StoryScene extends Phaser.Scene {
     this.monoFade?.destroy();
     this.monoFade = undefined;
     this.tweens.killAll();
+    // 명장면 구경꾼 웃음처럼 장면 안에서 되풀이하던 예약도 같이 끈다
+    this.time.removeAllEvents();
     this.nextMark.setY(GAME_HEIGHT - 28);
     this.tweens.add({ targets: this.nextMark, y: GAME_HEIGHT - 28 + 5, duration: 400, yoyo: true, repeat: -1 });
     this.cameras.main.setZoom(ZOOM).centerOn(CX, CY);
@@ -275,6 +290,14 @@ export class StoryScene extends Phaser.Scene {
         return this.newbieSet(kind);
       case 'vow':
         return this.vowSet();
+      case 'paradeWalk':
+        return this.paradeWalkSet();
+      case 'paradeNote':
+        return this.paradeNoteSet();
+      case 'apprBoss':
+        return this.apprBossSet();
+      case 'apprStamp':
+        return this.apprStampSet();
     }
   }
 
@@ -611,6 +634,155 @@ export class StoryScene extends Phaser.Scene {
       .setOrigin(0.5);
     this.shotUi.add(cap);
     this.tweens.add({ targets: cap, alpha: 0, delay: 1400, duration: 500 });
+  }
+
+  // ------------------------------------------------------------ 오늘의 명장면 (클리어 뒤, 11/12)
+
+  /** 무대를 어둡게 (바닥 타일 위를 덮는다) */
+  private stageDark(): void {
+    this.keep(this.add.rectangle(CX, CY, 900, 700, 0x1a1020).setDepth(-900));
+  }
+
+  /** 핀 조명: 위에서 x 쪽 바닥으로 퍼지는 빛 + 바닥 동그라미 */
+  private drawSpot(g: Phaser.GameObjects.Graphics, x: number, floorY: number, spread: number): void {
+    g.clear();
+    g.fillStyle(0xfff8e1, 0.14);
+    g.fillTriangle(x - 18, CY - 140, x + 18, CY - 140, x + spread, floorY);
+    g.fillTriangle(x - 18, CY - 140, x - spread, floorY, x + spread, floorY);
+    g.fillStyle(0xfff8e1, 0.28).fillEllipse(x, floorY - 4, spread * 2, 26);
+  }
+
+  /** STAGE 1 명장면 ①: 레드카펫 위 핀 조명 아래로 등에 포스트잇 붙인 동기가 간식 들고 당당하게 걷는다. 양옆에서 킥킥 */
+  private paradeWalkSet(): void {
+    this.stageDark();
+    const carpetY = 318;
+    const g = this.keep(this.add.graphics().setDepth(-800));
+    g.fillStyle(0xc62828).fillRect(240, carpetY - 22, 500, 44);
+    g.fillStyle(0xffd54f).fillRect(240, carpetY - 24, 500, 3).fillRect(240, carpetY + 21, 500, 3);
+    // 구경꾼 (뒷줄, 어둡게)
+    const laughs = ['킥킥', '푸흡!', '크큭', '풉'];
+    [320, 410, 570, 660].forEach((x, i) => {
+      const v = new NpcView(this, { ...EXTRA_LOOKS[i % EXTRA_LOOKS.length], tint: 0x8a7f90 }, false);
+      this.npcs.push(v);
+      v.standAt(x, 266, 'down');
+      v.setPose({ face: TEX.faceHappy, hands: 'side' });
+      this.time.addEvent({ delay: 650 + i * 230, loop: true, callback: () => popWord(this, x, 172, laughs[i], { size: 14, color: '#ffe082' }) });
+    });
+    const dongi = new NpcView(this, { ...DONGI.appearance, rank: '' }, false);
+    this.npcs.push(dongi);
+    dongi.setPose({ face: TEX.faceHappy, hands: 'snack' });
+    dongi.setBackNote(true);
+    const spot = this.keep(this.add.graphics().setDepth(-700));
+    const walk = { x: 270 };
+    const place = () => {
+      dongi.standAt(walk.x, carpetY + 6 - Math.abs(Math.sin(walk.x / 9)) * 3, 'right');
+      this.drawSpot(spot, walk.x, carpetY + 14, 54);
+    };
+    place();
+    this.tweens.add({ targets: walk, x: 650, duration: 4200, ease: 'Linear', onUpdate: place });
+    this.time.addEvent({ delay: 500, loop: true, callback: () => popWord(this, Phaser.Math.Between(300, 680), Phaser.Math.Between(200, 240), '짝짝', { size: 12, color: '#ffffff' }) });
+  }
+
+  /** STAGE 1 명장면 ②: 동기 등짝 확대, 포스트잇이 쾅 */
+  private paradeNoteSet(): void {
+    const bg = this.add.rectangle(0, 0, GAME_WIDTH, GAME_HEIGHT, 0x2a1a24).setOrigin(0);
+    const body = this.add.image(GAME_WIDTH / 2, 430, TEX.dongiBodyBack).setOrigin(0.5, 1).setScale(3.4);
+    const head = this.add.image(GAME_WIDTH / 2, 210, TEX.dongiHeadBack).setOrigin(0.5, 1).setScale(3.4);
+    const note = this.add.container(GAME_WIDTH / 2, 300).setAngle(-6);
+    const ng = this.add.graphics();
+    ng.fillStyle(0x000000, 0.25).fillRect(-112, -72, 236, 160);
+    ng.fillStyle(0xfff176).fillRect(-118, -80, 236, 160);
+    ng.lineStyle(4, COLORS.outline).strokeRect(-118, -80, 236, 160);
+    ng.fillStyle(0xffffff, 0.6).fillRect(-40, -92, 80, 22);
+    const nt = this.add
+      .text(0, 2, '오늘도\n월급루팡', { fontFamily: FONT, fontSize: '44px', color: '#5a3a4a', align: 'center', lineSpacing: 4 })
+      .setOrigin(0.5);
+    note.add([ng, nt]);
+    note.setScale(3).setAlpha(0);
+    const bang = this.add.text(GAME_WIDTH / 2 + 190, 150, '쾅!', { fontFamily: FONT, fontSize: '46px', color: '#ff3d6e', stroke: '#ffffff', strokeThickness: 8 }).setOrigin(0.5).setAlpha(0);
+    this.shotUi.add([bg, body, head, note, bang]);
+    this.tweens.add({
+      targets: note,
+      scale: 1,
+      alpha: 1,
+      delay: 300,
+      duration: 220,
+      ease: 'Quad.In',
+      onComplete: () => {
+        this.uiCam.shake(220, 0.012);
+        bang.setAlpha(1).setScale(0.4);
+        this.tweens.add({ targets: bang, scale: 1.1, duration: 180, ease: 'Back.Out' });
+        this.tweens.add({ targets: note, angle: -3, duration: 500, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
+      },
+    });
+  }
+
+  /** STAGE 2 명장면 ①: 핀 조명 아래 부장 책상. 과장이 서 있고, 부장이 벌떡 일어나 "이게 뭐야아아!!" */
+  private apprBossSet(): void {
+    this.stageDark();
+    const deskX = 490;
+    const deskY = 300;
+    const spot = this.keep(this.add.graphics().setDepth(-700));
+    this.drawSpot(spot, deskX, deskY + 50, 130);
+    this.keep(this.add.image(deskX, deskY - 62, TEX.chair).setOrigin(0.5, 1).setDepth(deskY - 62));
+    this.keep(this.add.image(deskX, deskY, TEX.bossDesk).setOrigin(0.5, 1).setDepth(deskY));
+    // 책상 위 분홍 가짜 서류
+    this.keep(this.add.image(deskX - 34, deskY - 30, TEX.paperPile).setOrigin(0.5, 1).setScale(0.5).setTint(0xffd6e4).setDepth(deskY + 1));
+    const boss = new NpcView(this, { ...ISA.appearance, rank: '' }, false);
+    this.npcs.push(boss);
+    boss.sitAt(deskX, deskY - 62, deskY);
+    boss.setPose({ face: TEX.faceNormal, hands: 'folded' });
+    const gw = new NpcView(this, { ...GWAJANG.appearance, rank: '' }, false);
+    this.npcs.push(gw);
+    gw.standAt(deskX - 44, deskY + 46, 'up');
+    gw.setPose({ back: true, hands: 'side' });
+    this.time.delayedCall(450, () => {
+      boss.standAt(deskX, deskY - 62, 'down');
+      boss.setPose({ face: TEX.faceShock, hands: 'side' });
+      boss.boing();
+      boss.setPokeHeat(1);
+      popWord(this, deskX + 70, deskY - 150, '이게 뭐야아아!!', { size: 22, color: '#d32f2f' });
+      this.cameras.main.shake(250, 0.01);
+      // 과장은 부들부들
+      this.tweens.add({ targets: gw.root, x: deskX - 41, duration: 40, yoyo: true, repeat: -1 });
+    });
+  }
+
+  /** STAGE 2 명장면 ②: 승인서 확대, "반려!!" 도장이 쾅 */
+  private apprStampSet(): void {
+    const bg = this.add.rectangle(0, 0, GAME_WIDTH, GAME_HEIGHT, 0x2a1a24).setOrigin(0);
+    const paper = this.add.container(GAME_WIDTH / 2, 218).setAngle(-3);
+    const g = this.add.graphics();
+    g.fillStyle(0x000000, 0.25).fillRect(-164, -144, 340, 300);
+    g.fillStyle(0xfffdf7).fillRect(-170, -150, 340, 300);
+    g.lineStyle(4, COLORS.outline).strokeRect(-170, -150, 340, 300);
+    g.lineStyle(2, COLORS.outline).strokeRect(50, 20, 100, 100);
+    const t = (x: number, y: number, s: string, size: number, origin = 0) =>
+      this.add.text(x, y, s, { fontFamily: FONT, fontSize: `${size}px`, color: COLORS.text }).setOrigin(origin, 0.5);
+    paper.add([
+      g,
+      t(0, -112, '전 직원 칼퇴 승인서', 28, 0.5),
+      t(-148, -62, '내용: 오늘부터 전 직원', 17),
+      t(-148, -36, '6시 정각 칼퇴를 승인함', 17),
+      t(-148, 40, '기안: 박과장', 19),
+      t(100, 36, '부장', 15, 0.5),
+    ]);
+    const stamp = this.add.container(GAME_WIDTH / 2 + 96, 300).setAngle(-14);
+    const sg = this.add.graphics();
+    sg.lineStyle(6, 0xd32f2f).strokeRoundedRect(-82, -38, 164, 76, 14);
+    const st = this.add.text(0, 0, '반려!!', { fontFamily: FONT, fontSize: '46px', color: '#d32f2f' }).setOrigin(0.5);
+    stamp.add([sg, st]);
+    stamp.setScale(3.5).setAlpha(0);
+    this.shotUi.add([bg, paper, stamp]);
+    this.tweens.add({
+      targets: stamp,
+      scale: 1,
+      alpha: 1,
+      delay: 400,
+      duration: 220,
+      ease: 'Quad.In',
+      onComplete: () => this.uiCam.shake(240, 0.014),
+    });
   }
 
   /** 다짐 */

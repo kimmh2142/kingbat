@@ -10,7 +10,7 @@ import { RunStats } from '../systems/RunStats';
 import { HrVisit } from '../systems/HrVisit';
 import { HR_VISIT } from '../data/hrVisit';
 import { INSA } from '../npc/patterns/insa';
-import { ENDING_STORY, STORIES } from '../data/dialogue';
+import { ENDING_STORY, HIGHLIGHTS, STORIES } from '../data/dialogue';
 import type { MissionStep, MissionTask } from '../systems/MissionTask';
 import { ITEM_RULES, ITEMS, type ItemId } from '../data/items';
 import { nextStage, STAGES, type StageConfig } from '../data/stages';
@@ -56,6 +56,8 @@ const FART_LOOK_MS = 3000;
 const BOSS_LOOK_MS = 3800;
 /** 부장 고함 뒤 성공 표시까지 (과장 변명이 뜬 다음) */
 const BOSS_SHOW_MS = 2600;
+/** 클리어 알림을 잠깐 보여 준 뒤 명장면으로 */
+const HIGHLIGHT_DELAY_MS = 1600;
 
 export class OfficeScene extends Phaser.Scene {
   /** 지금 스테이지 수치·대상 (data/stages.ts) */
@@ -1037,7 +1039,20 @@ export class OfficeScene extends Phaser.Scene {
       seconds: Math.round(this.stage.timeLimit - this.clock.remaining),
       hearts: this.life.hearts,
     });
-    this.showResult('clear');
+    this.playHighlight();
+  }
+
+  /** 클리어 뒤 특별 미션 "오늘의 명장면"을 게임 위에 띄우고, 끝나면 결과 화면 (11/12). 확인 스크립트는 ?highlight=1일 때만 */
+  private playHighlight(): void {
+    const wanted = !navigator.webdriver || new URLSearchParams(location.search).has('highlight');
+    if (!HIGHLIGHTS[this.stage.id] || !wanted) return this.showResult('clear');
+    this.time.delayedCall(HIGHLIGHT_DELAY_MS, () => {
+      this.events.once(Phaser.Scenes.Events.RESUME, () => this.showResult('clear'));
+      this.scene.launch('Story', { stage: this.stage.id, highlight: true });
+      // 장면 목록에서 Story가 Office보다 앞이라 그대로면 게임 화면 뒤에 그려진다
+      this.scene.bringToTop('Story');
+      this.scene.pause();
+    });
   }
 
   private showResult(kind: ResultKind): void {

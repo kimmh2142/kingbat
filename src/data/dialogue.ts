@@ -1,11 +1,12 @@
 // 오프닝 독백과 스테이지 도입 컷신 대사. 장면(shot) 연출은 StoryScene이 하고, 글은 여기서 바꾼다.
 // 하트 0개로 다시 시작할 때는 나오지 않는다 (확정 규칙: 재시작 시 도입 컷신 생략).
 
-export type Speaker = 'dongi' | 'gwajang' | 'daepyo' | 'biseo' | 'newbie' | 'staff' | 'me' | 'none';
+export type Speaker = 'dongi' | 'gwajang' | 'bujang' | 'daepyo' | 'biseo' | 'newbie' | 'staff' | 'me' | 'none';
 
 /** 장면 연출 종류 (StoryScene에 같은 이름의 연출이 있다) */
 export type StoryShot = 'monologue' | 'ask' | 'dump' | 'reply' | 'shopping' | 'angry' | 'pacing' | 'pacingAngry' | 'ceo' | 'ceoReport' | 'ceoLaugh' | 'vow'
-  | 'final' | 'finalMe' | 'finalOk' | 'promoted' | 'cheer' | 'newbie' | 'poke' | 'pokeMe' | 'innocent';
+  | 'final' | 'finalMe' | 'finalOk' | 'promoted' | 'cheer' | 'newbie' | 'poke' | 'pokeMe' | 'innocent'
+  | 'paradeWalk' | 'paradeNote' | 'apprBoss' | 'apprStamp';
 
 export interface StoryStep {
   shot: StoryShot;
@@ -18,6 +19,7 @@ export interface StoryStep {
 export const SPEAKERS: Record<Speaker, { name: string; color: number }> = {
   dongi: { name: '동기 이동기', color: 0xf06292 },
   gwajang: { name: '박과장', color: 0xff9800 },
+  bujang: { name: '부장', color: 0x78909c },
   daepyo: { name: '대표 나대표', color: 0x8e24aa },
   biseo: { name: '비서 김비서', color: 0x5c6bc0 },
   newbie: { name: '신입', color: 0xffb300 },
@@ -113,4 +115,31 @@ STORIES[ENDING_STORY] = {
     { shot: 'poke', who: 'me', caption: '다음 날 아침', text: '어?! 누가 나 건드렸어?!' },
     { shot: 'monologue', who: 'none', text: '직장생활은 돌고 돈다.\n\n…이제 당신이 당할 차례입니다.' },
   ],
+};
+
+/**
+ * 스테이지 클리어 뒤 결과 화면 전에 나오는 특별 미션 "오늘의 명장면" (11/12). 2장면: 무대 위 장면 → 확대 컷.
+ * STAGE 3은 클리어하면 바로 엔딩 컷신이라 없다.
+ */
+export const HIGHLIGHTS: Record<number, StageStory> = {
+  1: {
+    villain: 'dongi',
+    title: '',
+    subtitle: '',
+    quote: '',
+    steps: [
+      { shot: 'paradeWalk', who: 'none', caption: '★ 특별 미션 성공 ★', text: '오늘의 주인공 입장~ 월급루팡 퍼레이드!' },
+      { shot: 'paradeNote', who: 'dongi', text: '냠냠~ 근데 다들 왜 웃지?' },
+    ],
+  },
+  2: {
+    villain: 'gwajang',
+    title: '',
+    subtitle: '',
+    quote: '',
+    steps: [
+      { shot: 'apprBoss', who: 'bujang', caption: '★ 특별 미션 성공 ★', text: '이게 뭐야아아!! 전 직원 칼퇴?!' },
+      { shot: 'apprStamp', who: 'gwajang', text: '제, 제가 올린 게 아닙니다!!' },
+    ],
+  },
 };
