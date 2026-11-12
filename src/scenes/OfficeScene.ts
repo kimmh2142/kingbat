@@ -306,6 +306,11 @@ export class OfficeScene extends Phaser.Scene {
           this.cameras.main.centerOn(x, y);
         },
         setRemaining: (seconds: number) => this.clock.setRemaining(seconds),
+        patrolGo: (id: string, route: number) => {
+          const p = this.patrolById(id);
+          p?.goNow(route);
+          return !!p;
+        },
         tipSpot: () => (this.tipDialog.current ? this.tipSpot(this.tipDialog.current as TipId) : null),
         canPlaceAt: (x: number, y: number) => this.items.canPlace(x, y, { id: 'probe', name: 'probe', x, y }),
         scatterSample: (n: number) => this.stage.floor.itemSpawns.map((sp) => ({ id: sp.id, x: sp.x, y: sp.y, pts: Array.from({ length: n }, () => this.items.sampleSpot(sp)) })),

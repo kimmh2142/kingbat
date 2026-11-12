@@ -281,9 +281,13 @@ export class PatrolController {
         break;
       case 'stay':
         this.timer = resuming ? this.resumeTimer : rand(P.stay.duration);
-        this.dir = FACING_VEC[P.stay.facing];
-        v.standAt(this.pos.x, this.pos.y, P.stay.facing);
-        v.setPose(P.stay.pose);
+        {
+          const r = P.routes[this.routeIndex];
+          const facing = r?.stayFacing ?? P.stay.facing;
+          this.dir = FACING_VEC[facing];
+          v.standAt(this.pos.x, this.pos.y, facing);
+          v.setPose(r?.stayPose ?? P.stay.pose);
+        }
         break;
       default:
         break;
