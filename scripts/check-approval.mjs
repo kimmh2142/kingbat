@@ -1,6 +1,6 @@
 // STAGE 2 특별 미션 "전 직원 칼퇴 승인서" 확인 (?stage=2).
 // 복사실 서류 E 줍기 → 과장 자리에 있을 땐 못 끼움 → 자리 비우면 결재 더미 앞 E → 화살표 3장(틀리면 그대로) → 성공 +25 확정
-// → 과장이 돌아와 서류 발견 → 회의실 앞(부장실 옆)으로 → 부장 "이게 뭐야아아!!". 끼우다 들키면 서류는 복사실로. 모바일 방향 버튼.
+// → 과장이 돌아와 서류 발견 → 부장실 앞으로 → 부장이 벌떡 "이게 뭐야아아!!". 끼우다 들키면 서류는 복사실로. 모바일 방향 버튼.
 // 사용법: npm run dev 를 켠 상태에서  node scripts/check-approval.mjs
 import { chromium } from 'playwright';
 import { mkdirSync } from 'node:fs';
@@ -83,13 +83,13 @@ let s = await k(page);
 await page.screenshot({ path: 'screenshots/approval-3-done.png' });
 log.push(['줍기·끼우기', { 줍기: picked, 자리에있을때: atSeat, 시작: a.phase, 틀린뒤장수: afterWrong, 결과: s.approval.phase, 미션: s.mission, 점수: s.score, 들킴: s.caught }]);
 
-// 2) 성공 연출: 과장이 돌아와 앉았다가 회의실 앞으로
+// 2) 성공 연출: 과장이 돌아와 앉았다가 부장실 앞으로
 await tp(page, 2080, 640);
 const seated = await waitFor(page, () => window.__kingbat.target.state === 'work', 40000);
 const went = await waitFor(page, () => window.__kingbat.target.state === 'away' && window.__kingbat.target.y < 600, 40000);
 await page.waitForTimeout(1900);
 await page.screenshot({ path: 'screenshots/approval-4-boss.png' });
-log.push(['성공 연출', { 자리복귀: seated, 회의실앞: went, 위치: { x: (await k(page)).target.x, y: (await k(page)).target.y } }]);
+log.push(['성공 연출', { 자리복귀: seated, 부장실앞: went, 위치: { x: (await k(page)).target.x, y: (await k(page)).target.y } }]);
 await page.close();
 
 // 3) 끼우다 들킴: 아무것도 안 누르고 과장이 돌아올 때까지

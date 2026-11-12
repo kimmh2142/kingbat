@@ -2,6 +2,8 @@ import Phaser from 'phaser';
 import { TEX } from '../assets/keys';
 import { COLORS, FONT, GAME_WIDTH } from '../config';
 import { APPROVAL, ARROW_GLYPH, type Arrow } from '../data/approval';
+import { NpcView } from '../npc/NpcView';
+import { ISA } from '../npc/patterns/isa';
 import type { TargetController } from '../npc/TargetController';
 import type { Player } from '../player/Player';
 import { popWord } from '../ui/Popups';
@@ -71,6 +73,20 @@ export class Approval extends Phaser.Events.EventEmitter implements MissionTask 
     this.carryView = scene.add.image(0, 0, TEX.paperPile).setScale(0.4).setTint(0xffd6e4).setDepth(DEPTH.label + 3).setVisible(false);
 
     this.panel = this.buildPanel(scene, touch);
+
+    // 부장 (장식 인물, 시야 없음). 그림은 STAGE 3 이사 것을 빌려 쓴다
+    const B = P.boss;
+    scene.add.image(B.x, B.y, TEX.chair).setOrigin(0.5, 1).setDepth(B.y);
+    this.boss = new NpcView(scene, { ...ISA.appearance, rank: '부장' }, false);
+    this.bossSit();
+  }
+
+  private readonly boss: NpcView;
+
+  private bossSit(): void {
+    const B = APPROVAL.boss;
+    this.boss.sitAt(B.x, B.y, B.deskY);
+    this.boss.setPose({ face: TEX.faceNormal, hands: 'folded' });
   }
 
   /** 끼우는 중 (움직일 수 없고, 보이면 들킨다) */
@@ -120,6 +136,7 @@ export class Approval extends Phaser.Events.EventEmitter implements MissionTask 
    * @param blocked 숨는 중·붙잡힘 등 지금은 못 함
    */
   update(dt: number, eHeld: boolean, blocked: boolean, player: Player, justPressed: (code: string) => boolean): void {
+    this.boss.update(dt);
     const pressed = eHeld && !this.wasHeld;
     this.wasHeld = eHeld;
     const { x, y } = player;
@@ -174,9 +191,16 @@ export class Approval extends Phaser.Events.EventEmitter implements MissionTask 
     if (this.deliver !== 'walking') return;
     this.deliver = 'none';
     const s = this.scene;
-    const v = APPROVAL.bossVoice;
+    const B = APPROVAL.boss;
     s.time.delayedCall(500, () => {
-      this.shout(this.target.x + v.dx, this.target.y + v.dy, APPROVAL.lines.boss);
+      // 부장이 벌떡 일어나 빨개지고, 고함은 부장 머리 위에서
+      this.boss.standAt(B.x, B.y, 'down');
+      this.boss.setPose({ face: TEX.faceShock, hands: 'side' });
+      this.boss.boing();
+      this.boss.setPokeHeat(1);
+      // 부장실은 맵 오른쪽 끝이라 글자가 화면 밖으로 안 나가게 왼쪽으로
+      this.shout(B.x - 140, B.y - 150, APPROVAL.lines.boss);
+      s.time.delayedCall(B.standSeconds * 1000, () => this.bossSit());
       s.cameras.main.shake(250, 0.006);
       this.emit('boss');
     });

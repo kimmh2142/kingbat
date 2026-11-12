@@ -107,6 +107,17 @@ export const GWAJANG: TargetPattern = {
           { x: 1918, y: 540 },
         ],
       },
+      // 결재 미션 성공 때만 (Approval이 forceTrip으로 보낸다, 11/12): 부장 책상 앞에서 부장을 올려다본다
+      {
+        name: '부장실 앞',
+        weight: 0,
+        stayFacing: 'up',
+        path: [
+          { x: 2100, y: 758 },
+          { x: 2100, y: 540 },
+          { x: 2224, y: 430 },
+        ],
+      },
     ],
     checksWhileAway: true,
     hangup: { chance: 0.5, line: '네, 그럼 이따 뵙겠습니다!', duration: [0.8, 0.9] },
