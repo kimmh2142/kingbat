@@ -81,9 +81,15 @@ export class Items extends Phaser.Events.EventEmitter {
     }
   }
 
-  /** 고른 슬롯의 아이템을 다 썼을 때 */
+  /** 고른 슬롯의 아이템을 다 썼을 때: 뒤 칸을 한 칸씩 당기고(2→1, 3→2) 선택은 그 자리 (11/12).
+   *  맨 뒤 칸이라 당겨 올 게 없으면 앞쪽 남은 아이템으로 */
   consumeSelected(): void {
-    this.slots[this.selected] = null;
+    this.slots.splice(this.selected, 1);
+    this.slots.push(null);
+    if (!this.slots[this.selected]) {
+      const count = this.slots.filter((s) => s !== null).length;
+      if (count > 0) this.selected = count - 1;
+    }
     this.emit('change');
   }
 
