@@ -539,12 +539,12 @@ export class OfficeScene extends Phaser.Scene {
     return !!this.intro?.active || this.cutin.active || this.failed || this.cleared || this.tipDialog.active || !!this.tipPan;
   }
 
-  /** 머리 위 진행 원: 대리에게 붙잡혀 있는 동안 남은 시간(주황), 아이템 붙이는 중(분홍) */
+  /** 진행 원: 대리·차장에게 붙잡혀 있는 동안 남은 시간(주황), 아이템 붙이는 중(분홍).
+   *  머리 위는 타깃 말풍선과 겹쳐서 주인공 왼쪽 옆에 (11/12) */
   private drawGrabRing(): void {
     this.grabRing.clear();
     if (this.pranks.active) {
-      const x = this.player.x;
-      const y = this.player.y - 118;
+      const { x, y } = this.ringSpot();
       this.grabRing.fillStyle(0xffffff, 0.9).fillCircle(x, y, 15);
       this.grabRing.fillStyle(0xf06292).slice(x, y, 13, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * this.pranks.progress, false).fillPath();
       this.grabRing.lineStyle(3, 0x5a3a4a).strokeCircle(x, y, 15);
@@ -552,11 +552,14 @@ export class OfficeScene extends Phaser.Scene {
     }
     const r = Math.max(0, ...this.patrols.map((p) => p.grabRatio));
     if (r <= 0) return;
-    const x = this.player.x;
-    const y = this.player.y - 118;
+    const { x, y } = this.ringSpot();
     this.grabRing.fillStyle(0xffffff, 0.9).fillCircle(x, y, 15);
     this.grabRing.fillStyle(0xffa000).slice(x, y, 13, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * r, false).fillPath();
     this.grabRing.lineStyle(3, 0x5a3a4a).strokeCircle(x, y, 15);
+  }
+
+  private ringSpot(): { x: number; y: number } {
+    return { x: this.player.x - 44, y: this.player.y - 50 };
   }
 
   /** 머리 위 안내 상자: 특별 미션 자리 안내(끼우기·배전반·방석)만. 대상이 자리에 없을 때 뜨는 거라 말풍선과 안 겹친다.
