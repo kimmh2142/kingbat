@@ -117,6 +117,8 @@ export interface TargetPattern {
   pokeSpeedup: number;
   /** 자리 밖에서 이만큼(초) 찔리면 바로 의심을 시작한다 */
   alertToSuspect: number;
+  /** 지난번 진짜로 돌아본 뒤로 이만큼(초) 넘게 찔렸으면 다음 확인은 반드시 진짜 (욕심내면 돌아본다, 11/12) */
+  greedPokeSeconds: number;
 }
 
 /** 방해 NPC 순찰 패턴. 자리 ↔ 목적지 왕복. 걸어 다니는 동안 바닥에 시야 부채꼴을 보여준다. */

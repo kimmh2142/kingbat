@@ -65,6 +65,8 @@ export class TargetController {
   private duration = 0;
   private tripTimer: number;
   private alert = 0;
+  /** 지난번 진짜로 돌아본 뒤로 찔린 시간 (초) */
+  private pokedSinceCheck = 0;
   private workPose: Pose;
   private facing: Facing = 'down';
   private pos: Point;
@@ -221,6 +223,7 @@ export class TargetController {
 
     // 찔리는 중이면 눈치챈다
     if (this.beingPoked) {
+      this.pokedSinceCheck += dt;
       this.alert += dt;
       const busyElsewhere = this.state === 'away' || this.state === 'leaving' || this.state === 'returning';
       if (busyElsewhere && this.alert >= P.alertToSuspect) this.startCheck();
@@ -277,7 +280,11 @@ export class TargetController {
     // 하던 일 기억 (걷던 중이면 이어서 걷기)
     this.resume = this.state === 'suspect' || this.state === 'fake' ? this.resume : this.state === 'distracted' ? 'work' : this.state;
     const chance = this.irritated ? P.fakeChanceIrritated : P.fakeChance;
-    this.isReal = this.consecutiveFakes >= P.maxConsecutiveFakes || Math.random() >= chance;
+    // 지난번 진짜로 돌아본 뒤로 오래 찔렸으면 페이크 없이 진짜 (전조는 그대로: 갸웃 → 손 사라짐).
+    // 페이크로 넘어간 뒤 계속 찌르면 쌓인 시간이 그대로 남는다
+    const greedy = this.pokedSinceCheck >= P.greedPokeSeconds;
+    this.isReal = greedy || this.consecutiveFakes >= P.maxConsecutiveFakes || Math.random() >= chance;
+    if (this.isReal) this.pokedSinceCheck = 0;
     this.consecutiveFakes = this.isReal ? 0 : this.consecutiveFakes + 1;
     this.lookSide = this.isReal ? this.pickSide() : 0;
     this.alert = 0;

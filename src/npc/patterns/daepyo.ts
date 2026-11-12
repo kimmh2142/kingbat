@@ -139,5 +139,7 @@ export const DAEPYO: TargetPattern = {
   },
 
   pokeSpeedup: 1.8,
+  // 지난번 진짜로 돌아본 뒤로 4초 넘게 찔렀으면 다음 갸웃은 진짜 (11/12 "너무 안 돌아본다")
+  greedPokeSeconds: 4,
   alertToSuspect: 0.6,
 };
