@@ -44,7 +44,7 @@ export interface StageConfig {
 export const STAGES: Record<number, StageConfig> = {
   // 2·3 스테이지 시각은 기준 문서에 끝 시각이 없어 정해지면 추가한다 (제한시간 4분·5분)
   // STAGE 1: 기준 문서 초기값 3분 → 플레이 테스트(11/1) 후 2분 → 팀원 플레이(11/5) 뒤 2분 30초 (맵·아이템 익힐 시간)
-  // 미션 점수: 기준 문서 +30 → 포스트잇(15)과 합쳐 한 번에 45점이 너무 커서 +15 (11/5 결정)
+  // 미션 점수: 기준 문서 +30 → +15 (11/5) → +35 (11/13, 미션이 선택이 되면서 콕을 줄이고 미션을 크게. 포스트잇 15와 합쳐 50)
   1: {
     id: 1,
     label: 'STAGE 1 · 동기 이동기',
@@ -57,7 +57,7 @@ export const STAGES: Record<number, StageConfig> = {
     clockEnd: 18 * 60,
     urgentAt: 30,
     tutorial: true,
-    mission: { id: 'parade', name: '월급루팡 퍼레이드', goal: '포스트잇 붙인 채로 동기를 탕비실까지', points: 15 },
+    mission: { id: 'parade', name: '월급루팡 퍼레이드', goal: '포스트잇 붙인 채로 동기를 탕비실까지', points: 35 },
     lines: {
       clear: '아! 진짜 오늘 왜 이러는 거야!!',
       next: '동기 공략 성공! 다음 타깃: 과장',
@@ -78,7 +78,7 @@ export const STAGES: Record<number, StageConfig> = {
     clockEnd: 18 * 60,
     urgentAt: 30,
     tutorial: false,
-    mission: { id: 'approval', name: '전 직원 칼퇴 승인서', goal: '복사실 가짜 서류를 과장 결재 더미에', points: 25 },
+    mission: { id: 'approval', name: '전 직원 칼퇴 승인서', goal: '복사실 가짜 서류를 과장 결재 더미에', points: 40 },
     lines: {
       clear: '회의 자료보다 더 신경 쓰이는 일이 생겼어!',
       next: '과장 공략 성공! 최종 타깃: 대표',
@@ -100,7 +100,7 @@ export const STAGES: Record<number, StageConfig> = {
     clockEnd: 18 * 60,
     urgentAt: 30,
     tutorial: false,
-    mission: { id: 'blackout', name: '대정전과 최후의 방석', goal: '배전반을 내리고 대표 의자에 방귀 방석을', points: 30 },
+    mission: { id: 'blackout', name: '대정전과 최후의 방석', goal: '배전반을 내리고 대표 의자에 방귀 방석을', points: 45 },
     lines: {
       clear: '누가…… 이런 짓을……!',
       next: '대표 공략 성공! 이제 마지막 이야기',
