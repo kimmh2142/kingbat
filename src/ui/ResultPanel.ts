@@ -28,7 +28,7 @@ const D = DEPTH.label + 50;
 
 /**
  * 스테이지 결과 화면 (게임은 멈춘 채 위에 뜬다).
- * - clear: 대상의 분노 + "공략 성공!" + 별점(남은 하트) · 남은 시간 · 들킨 횟수
+ * - clear: 대상의 분노 + "공략 성공!" + 별점(남은 하트) · 남은 시간 · 들킨 횟수 (특별 미션을 안 했으면 명장면 안내 한 줄)
  * - overtime: 불 꺼진 사무실, 모니터 불빛만. 무엇이 모자랐는지
  * - caught: 대상이 "야! 너였구나!" + 가장 많이 들킨 원인
  * 실패: Space·Enter = 다시 도전, Esc = 타이틀로 (또는 버튼).
@@ -93,6 +93,8 @@ export class ResultPanel {
     this.stars(cx, 232, info.hearts, info.maxHearts);
     this.text(cx, 284, `남은 시간 ${fmt(info.remaining)}   ·   들킨 횟수 ${info.caughtCount}번`, 20, COLORS.text);
     this.text(cx, 330, `나: "${stage.lines.clearMe}"`, 20, '#8d6fb0');
+    // 특별 미션은 선택 (11/13): 안 하고 깼으면 다시 해 볼 이유를 한 줄로
+    if (!info.missionDone) this.text(cx, 366, `★ 특별 미션 "${stage.mission.name}"까지 하면 명장면이 나와요`, 16, '#e0457b');
     const last = nextStage(stage.id) === null;
     this.button(cx - 110, 410, last ? '엔딩 보기' : '다음 스테이지', 0xffd54f, this.onNext);
     this.button(cx + 110, 410, '다시 하기', 0xffffff, this.onRetry);
@@ -124,7 +126,6 @@ export class ResultPanel {
     this.stamp(cx, 70, '야근 확정…', '#7fa6ff', -4);
     const lack: string[] = [];
     if (info.confirmed < info.goal) lack.push(`킹받음 ${Math.floor(info.confirmed)} / ${info.goal}`);
-    if (!info.missionDone) lack.push(`특별 미션 "${info.stage.mission.name}" 실패`);
     this.text(cx, 374, '퇴근 시계가 6시를 넘겼다…', 22, '#e8ecff');
     this.text(cx, 408, lack.join('   ·   ') || '조금만 더 빨랐다면!', 19, '#ffd54f');
     this.buttons(cx, 470, '다시 도전');

@@ -87,14 +87,16 @@ await page.waitForTimeout(700);
 await page.screenshot({ path: 'screenshots/result-next-stage.png' });
 log.push(['다음 스테이지', { 'STAGE 2 컷신': story2, 'STAGE 2 시작': stage2 }]);
 
-// 3) 미션 없이 100: 클리어 아님
+// 3) 미션 없이 100: 클리어 (특별 미션은 선택, 11/13). 결과 화면에 명장면 안내 한 줄
 await fresh();
 await page.evaluate(() => window.__kingbatTest.addScore(100));
+await waitFor(() => window.__kingbat.resultReady, 15000);
 await page.waitForTimeout(600);
 await page.screenshot({ path: 'screenshots/result-goal-only.png' });
 log.push(['100만', { cleared: (await k()).cleared }]);
 
 // 4) 야근 확정
+await fresh();
 await page.evaluate(() => window.__kingbatTest.setRemaining(0.5));
 await waitFor(() => window.__kingbat.resultReady, 15000);
 await page.waitForTimeout(600);

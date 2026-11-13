@@ -81,7 +81,6 @@ export class OfficeScene extends Phaser.Scene {
   private keyHint!: Phaser.GameObjects.Text;
   private touch!: TouchControls;
   private hide!: Hide;
-  private goalAnnounced = false;
   /** 특별 미션 성공 */
   private missionDone = false;
   /** 클리어 화면이 떠 있음 */
@@ -158,7 +157,6 @@ export class OfficeScene extends Phaser.Scene {
     this.tapped = false;
     this.caughtCount = 0;
     this.lastCaught = null;
-    this.goalAnnounced = false;
     this.missionDone = false;
     this.cleared = false;
     this.thought = null;
@@ -211,7 +209,7 @@ export class OfficeScene extends Phaser.Scene {
     applyTrashTexts();
     this.hide.trashMode = TRASH_MODE;
     this.hide.tooClose = (x, y) => Phaser.Math.Distance.Between(x, y, this.target.x, this.target.y) < TRASH.minTargetDist;
-    this.score.on('change', () => this.announceGoal());
+    this.score.on('change', () => this.checkClear());
     this.items = new Items(this, this.stage.floor.itemSpawns, this.stage.items);
     this.items.canPlace = (x, y, spot) => {
       const room = this.map.roomAt(x, y);
@@ -917,18 +915,10 @@ export class OfficeScene extends Phaser.Scene {
     }
   }
 
-  /** 클리어 조건: 킹받음 100 확정 + 특별 미션 성공 (목숨이 남아 있을 때) */
+  /** 클리어 조건: 킹받음 100 확정 (목숨이 남아 있을 때). 특별 미션은 선택이고, 하면 클리어 뒤 명장면 (11/13) */
   private checkClear(): void {
     if (this.cleared || this.failed || !this.life.alive) return;
-    if (this.missionDone && this.score.confirmed >= this.score.goal) this.showClear();
-  }
-
-  /** 확정 킹받음이 목표에 처음 닿았을 때: 미션이 남았으면 알려 준다 */
-  private announceGoal(): void {
-    if (this.goalAnnounced || this.score.confirmed < this.score.goal) return;
-    this.goalAnnounced = true;
-    if (this.missionDone) return this.checkClear();
-    this.banner(['킹받음 100 달성!', `이제 특별 미션 "${this.stage.mission.name}"만!`], '#e0457b');
+    if (this.score.confirmed >= this.score.goal) this.showClear();
   }
 
   /** 화면 위쪽 큰 알림 (잠깐 떴다 사라짐) */
@@ -1042,10 +1032,10 @@ export class OfficeScene extends Phaser.Scene {
     this.playHighlight();
   }
 
-  /** 클리어 뒤 특별 미션 "오늘의 명장면"을 게임 위에 띄우고, 끝나면 결과 화면 (11/12). 확인 스크립트는 ?highlight=1일 때만 */
+  /** 특별 미션까지 하고 클리어하면 "오늘의 명장면"을 게임 위에 띄우고, 끝나면 결과 화면 (11/12). 확인 스크립트는 ?highlight=1일 때만 */
   private playHighlight(): void {
     const wanted = !navigator.webdriver || new URLSearchParams(location.search).has('highlight');
-    if (!HIGHLIGHTS[this.stage.id] || !wanted) return this.showResult('clear');
+    if (!this.missionDone || !HIGHLIGHTS[this.stage.id] || !wanted) return this.showResult('clear');
     this.time.delayedCall(HIGHLIGHT_DELAY_MS, () => {
       this.events.once(Phaser.Scenes.Events.RESUME, () => this.showResult('clear'));
       this.scene.launch('Story', { stage: this.stage.id, highlight: true });

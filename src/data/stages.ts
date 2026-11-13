@@ -29,7 +29,7 @@ export interface StageConfig {
   clockEnd: number;
   /** 남은 시간이 이만큼(초) 되면 시계가 째깍거린다 */
   urgentAt: number;
-  /** 특별 미션 (클리어 조건: 킹받음 100 확정 + 미션 성공). id로 어떤 미션 판정을 쓸지 고른다 */
+  /** 특별 미션 (선택, 11/13부터. 하면 점수 바로 확정 + 클리어 뒤 명장면). id로 어떤 미션 판정을 쓸지 고른다 */
   mission: { id: 'parade' | 'approval' | 'blackout'; name: string; goal: string; points: number };
   /** 이 스테이지 맵에 나오는 아이템 (스테이지가 오를수록 Lv2가 섞인다) */
   items: ItemId[];
