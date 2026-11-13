@@ -11,7 +11,7 @@ import { DEPTH } from './OfficeMap';
  * 콕 찌르기. Space를 꾹 누르는 동안 쌓이고, 오래 누를수록 빨라진다.
  * 대상이 돌아볼 때 누르고 있으면 들킨다 (판정은 Detection 쪽).
  * 콤보 (11/10): 한 번 꾹 누르는 동안 이어서 찌를수록 점수 배율이 오르고(×1.5, ×2), 대상이 움찔 → 꿈틀 → 빨개짐 → 김.
- * 글자는 "콕!" 하나만 (11/13 정리). 콤보 숫자는 없고, 배율이 오르면 "콕!" 색이 분홍 → 주황 → 빨강으로 바뀌며 크게 튄다
+ * 글자는 "콕!" 하나만 (11/13 정리. 반응 글자 "움찔·간질간질"도 뺐다). 콤보 숫자는 없고, 배율이 오르면 "콕!" 색이 분홍 → 주황 → 빨강으로 바뀌며 크게 튄다
  */
 export class Poke {
   /** 지금 실제로 찌르는 중 */
@@ -125,8 +125,6 @@ export class Poke {
       this.scene.cameras.main.shake(120, 0.004);
     } else if (this.scene.time.now >= this.bigPunchUntil) this.punch(this.pokeWord.setAngle(Phaser.Math.Between(-10, 10)), 1.35, 90);
     target.view.setPokeHeat(this.combo / POKE.combo.heatFull);
-    const reaction = POKE.combo.reactions.find(([n]) => n === this.combo);
-    if (reaction) popWord(this.scene, bx - 50, by - 50, reaction[1], { color: '#ec407a', size: 24 });
   }
 
   /** 글자를 잠깐 크게 했다가 제 크기로 (통!) */
