@@ -35,8 +35,6 @@ export class Blackout extends Phaser.Events.EventEmitter implements MissionTask 
   /** 가운데 표시와 맞춘 횟수 점 */
   private readonly gauge: Phaser.GameObjects.Graphics;
   private wasHeld = false;
-  /** 정전으로 대표가 자리를 비운 동안 (이때만 방석을 깔 수 있다) */
-  private checking = false;
   private readonly floorView: Phaser.GameObjects.Image;
   private readonly spark: Phaser.GameObjects.Text;
   private readonly carryView: Phaser.GameObjects.Image;
@@ -111,7 +109,7 @@ export class Blackout extends Phaser.Events.EventEmitter implements MissionTask 
     const s = (text: string, at: MissionStep['at'], icon: TextureKey = TEX.cushion, verb?: string) => ({ text: stepKey(text, touch, verb), at, icon });
     if (this.phase === 'onFloor') return s(S.pick, BLACKOUT.cushion);
     if (this.carrying) {
-      if (this.checking && this.dark > 0) return s(S.chair, BLACKOUT.chair, TEX.cushion, '깔기');
+      if (this.dark > 0) return s(S.chair, BLACKOUT.chair, TEX.cushion, '깔기');
       return s(this.cool > 0 || this.dark > 0 ? S.cooling : S.panel, BLACKOUT.panel, TEX.powerPanel, '내리기');
     }
     if (this.phase === 'placing') return s(S.placing, null, TEX.cushion, '깔기');
@@ -164,7 +162,6 @@ export class Blackout extends Phaser.Events.EventEmitter implements MissionTask 
 
   /** 대표가 돌아와 앉았을 때: 방석이 깔려 있으면 뿌우우욱 */
   onTargetSeated(): void {
-    this.checking = false;
     if (this.phase !== 'placed') return;
     this.phase = 'done';
     this.seatView.setVisible(false);
@@ -177,8 +174,8 @@ export class Blackout extends Phaser.Events.EventEmitter implements MissionTask 
   // ---------------------------------------------------------------- 진행
 
   private get canPlace(): boolean {
-    // 정전 중에만 (11/10): 불이 켜지면 못 깐다
-    return this.checking && this.target.awayFromSeat && this.dark > 0;
+    // 정전 중에만 (11/10): 불이 켜지면 못 깐다. 대표가 자리에 없으면 나간 이유는 상관없다 (11/13, 원래 하던 외출에서 돌아와 잠깐 앉으면 정전 확인이 끝난 걸로 쳐서 못 까던 버그)
+    return this.target.awayFromSeat && this.dark > 0;
   }
 
   private pick(player: Player): void {
@@ -194,7 +191,6 @@ export class Blackout extends Phaser.Events.EventEmitter implements MissionTask 
     const s = this.scene;
     const B = BLACKOUT;
     this.dark = B.darkSeconds;
-    this.checking = true;
     popWord(s, B.panel.x, B.panel.y - 130, B.lines.panel, { color: '#5a3a4a', size: 26 });
     s.cameras.main.shake(180, 0.005);
     this.shade.setVisible(true).setAlpha(0);

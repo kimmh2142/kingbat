@@ -325,6 +325,7 @@ export class OfficeScene extends Phaser.Scene {
           return this.tipPan === null && follow === this.player.cameraTarget;
         },
         giveItem: (id: string) => this.items.give(id as ItemId),
+        targetTrip: (route: number) => this.target.forceTrip(route, true),
         forceGrab: () => {
           const d = this.patrolById('daeri');
           if (!d) return;
