@@ -57,7 +57,7 @@ export const ITEM_RULES = {
   maxOnMap: 2,
   /** 하나를 주우면 이 시간(초) 뒤 다른 곳에 새로 생긴다 */
   respawn: [15, 25] as Range,
-  /** 판 시작 직후 처음 생기기까지 (두 개가 따로따로) */
+  /** 판 시작 직후 처음 생기기까지 (두 개가 따로따로). 첫 번째(포스트잇)는 OfficeScene이 spawnFirst로 바로 놓아서 안 쓴다 */
   firstSpawn: [[1, 2], [4, 6]] as Range[],
   /** 판 시작 첫 아이템은 꼭 이것, 이 자리에 (내 자리 → 동기 자리 가는 길) */
   firstItem: { id: 'postit' as ItemId, spot: 'drawer-a' },

@@ -24,7 +24,11 @@ const TURNED_TIP: Record<string, string> = {
   daepyo: '신문을 접어 내려놓으면 돌아본다!',
 };
 
-/** 들킴 컷인·실패 화면의 한 줄 팁 */
-export function caughtTip(reason: CaughtReasonId, targetId: string): string {
+/** 대상이 자리 밖(걷는 중·탕비실·부장실 앞)에서 돌아봤을 때. 위 팁은 자리에서의 전조라 안 맞는다 (11/13 "걷다 들켰는데 키보드 얘기") */
+const TURNED_AWAY_TIP = '자리 밖에서도 갸웃하면 돌아본다! 바로 손 떼';
+
+/** 들킴 컷인·실패 화면의 한 줄 팁. away = 대상이 자리에 없을 때 들켰다 */
+export function caughtTip(reason: CaughtReasonId, targetId: string, away = false): string {
+  if (reason === 'turned' && away) return TURNED_AWAY_TIP;
   return (reason === 'turned' && TURNED_TIP[targetId]) || CAUGHT_REASONS[reason].tip;
 }

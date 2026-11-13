@@ -242,6 +242,7 @@ export class OfficeScene extends Phaser.Scene {
     this.hud = new HUD(this, this.score, this.life, this.clock);
     this.setupTutorial();
     this.setupTips();
+    this.items.spawnFirst();
     this.cutin = new CaughtCutin(this);
     this.input.on(Phaser.Input.Events.POINTER_DOWN, () => (this.tapped = true));
     this.prompt = new Prompt(this);
@@ -575,7 +576,7 @@ export class OfficeScene extends Phaser.Scene {
     this.tipDialog = new TipDialog(this);
     this.items.on('picked', (id: ItemId) => id === 'postit' && this.tip('picked'));
     // STAGE 1 안내는 시작 목표·포스트잇 붙이기·첫 임시 점수 3개만 (11/10 "안내·시나리오는 간단히"). 특별 미션은 포스트잇 안내에 합쳤다
-    // 시작 목표는 첫 포스트잇이 맵에 생기면 (1~2초 뒤) 그 포스트잇을 비추며
+    // 시작 목표는 첫 포스트잇이 맵에 생기면 (판 시작과 함께. 안내는 타깃 소개가 끝난 뒤 뜬다) 그 포스트잇을 비추며
     if (this.stage.tutorial) {
       const onSpawn = (m: { id: ItemId }) => {
         if (m.id !== 'postit') return;
@@ -994,6 +995,7 @@ export class OfficeScene extends Phaser.Scene {
     this.cutin.play({
       reason,
       targetId: this.stage.target.id,
+      targetAway: by === 'target' && this.target.awayFromSeat,
       cause: { x: who.x, y: who.y - 70 },
       follow: this.player.cameraTarget,
       onHit: () => {

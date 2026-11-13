@@ -93,6 +93,12 @@ export class Items extends Phaser.Events.EventEmitter {
     this.emit('change');
   }
 
+  /** 판 시작 첫 아이템(정해진 곳의 포스트잇)을 바로 놓는다. 타깃 소개 카메라가 지나갈 때 이미 보이고,
+   *  소개가 끝나자마자 시작 안내가 뜨게 (11/13 "포스트잇 뜨는 데 오래 걸려": 예전엔 소개가 끝난 뒤 1~2초를 더 기다렸다) */
+  spawnFirst(): void {
+    if (this.firstPending && this.spawn()) this.pending.shift();
+  }
+
   /** 개발 테스트용: 빈 슬롯에 바로 넣기 */
   give(id: ItemId): boolean {
     const i = this.slots.indexOf(null);
