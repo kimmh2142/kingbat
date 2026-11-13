@@ -11,7 +11,7 @@ import { DEPTH } from './OfficeMap';
  * 콕 찌르기. Space를 꾹 누르는 동안 쌓이고, 오래 누를수록 빨라진다.
  * 대상이 돌아볼 때 누르고 있으면 들킨다 (판정은 Detection 쪽).
  * 콤보 (11/10): 한 번 꾹 누르는 동안 이어서 찌를수록 점수 배율이 오르고(×1.5, ×2), 대상이 움찔 → 꿈틀 → 빨개짐 → 김.
- * 글자는 "콕!" 하나 + 머리 옆 콤보 숫자 하나만 (11/13 정리)
+ * 글자는 "콕!" 하나만 (11/13 정리). 콤보 숫자는 없고, 배율이 오르면 "콕!" 색이 분홍 → 주황 → 빨강으로 바뀌며 크게 튄다
  */
 export class Poke {
   /** 지금 실제로 찌르는 중 */
@@ -22,22 +22,17 @@ export class Poke {
   sessionPoints = 0;
   /** 이번에 꾹 누르는 동안 이어서 찌른 횟수 (콤보) */
   combo = 0;
-  /** 콤보 숫자 (대상 머리 옆) */
-  private readonly comboText: Phaser.GameObjects.Text;
   /** "콕!" 글자 하나 (11/13 "설명이 중구난방": 여러 개 흩뿌리지 않고 한 자리에서 찌를 때마다 통 튄다) */
   private readonly pokeWord: Phaser.GameObjects.Text;
   private holdTime = 0;
   private acc = 0;
+  /** 배율이 올라 크게 튄 글자가 제 크기로 돌아올 때까지 (이 동안은 콕마다 튀지 않는다) */
+  private bigPunchUntil = 0;
 
   constructor(
     private readonly scene: Phaser.Scene,
     private readonly score: Score,
   ) {
-    this.comboText = scene.add
-      .text(0, 0, '', { fontFamily: FONT, fontSize: '22px', color: '#ffeb3b', stroke: '#5a3a4a', strokeThickness: 6 })
-      .setOrigin(0, 0.5)
-      .setScale(CAMERA.textScale)
-      .setVisible(false);
     this.pokeWord = scene.add
       .text(0, 0, '', { fontFamily: FONT, fontSize: '26px', color: '#ff4f8b', stroke: '#ffffff', strokeThickness: 6 })
       .setOrigin(0.5)
@@ -95,8 +90,6 @@ export class Poke {
       this.acc -= 1;
       this.pokeOnce(target);
     }
-    // 콤보 숫자는 대상 머리 오른쪽에 따라다닌다
-    this.comboText.setPosition(target.x + 36, target.y - 120).setDepth(target.y + 1000);
     this.pokeWord.setPosition(target.x, target.y - 50);
   }
 
@@ -123,29 +116,29 @@ export class Poke {
     this.score.addTemp(points);
     // 콤보가 오를수록 의성어가 커지고 길어진다
     const word = this.combo >= 30 ? '콕콕콕!!' : this.combo >= 12 ? '콕콕!' : '콕!';
-    this.punch(this.pokeWord.setText(word).setFontSize(Math.min(24 + this.combo * 0.4, 40)).setPosition(bx, by).setAngle(Phaser.Math.Between(-10, 10)), 1.35);
+    const step = POKE.combo.steps.filter(([n]) => this.combo >= n).length;
+    this.pokeWord.setText(word).setFontSize(Math.min(24 + this.combo * 0.4, 40)).setColor(POKE.combo.wordColors[step]).setPosition(bx, by);
+    // 배율이 오르면 크게 통 + 화면 흔들림. 그 밖엔 콕마다 살짝 통
+    if (mult > before) {
+      this.punch(this.pokeWord.setAngle(0), 2, 320);
+      this.bigPunchUntil = this.scene.time.now + 320;
+      this.scene.cameras.main.shake(120, 0.004);
+    } else if (this.scene.time.now >= this.bigPunchUntil) this.punch(this.pokeWord.setAngle(Phaser.Math.Between(-10, 10)), 1.35, 90);
     target.view.setPokeHeat(this.combo / POKE.combo.heatFull);
     const reaction = POKE.combo.reactions.find(([n]) => n === this.combo);
     if (reaction) popWord(this.scene, bx - 50, by - 50, reaction[1], { color: '#ec407a', size: 24 });
-    if (this.combo >= 5) this.comboText.setText(`${this.combo}콤보${mult > 1 ? ` ×${mult}` : ''}`).setVisible(true);
-    // 배율이 오르면 따로 큰 글씨를 띄우지 않고 콤보 숫자만 크게 튄다
-    if (mult > before) {
-      this.punch(this.comboText, 1.8);
-      this.scene.cameras.main.shake(120, 0.004);
-    }
   }
 
   /** 글자를 잠깐 크게 했다가 제 크기로 (통!) */
-  private punch(t: Phaser.GameObjects.Text, by: number): void {
+  private punch(t: Phaser.GameObjects.Text, by: number, ms: number): void {
     this.scene.tweens.killTweensOf(t);
     t.setVisible(true).setAlpha(1).setScale(by * CAMERA.textScale);
-    this.scene.tweens.add({ targets: t, scale: CAMERA.textScale, duration: by > 1.5 ? 260 : 90, ease: 'Back.Out' });
+    this.scene.tweens.add({ targets: t, scale: CAMERA.textScale, duration: ms, ease: 'Back.Out' });
   }
 
   private stop(target: TargetController): void {
     if (!this.active) return;
     this.active = false;
-    this.comboText.setVisible(false);
     this.scene.tweens.killTweensOf(this.pokeWord);
     this.scene.tweens.add({ targets: this.pokeWord, alpha: 0, y: this.pokeWord.y - 20, duration: 250, onComplete: () => this.pokeWord.setVisible(false) });
     target.setBeingPoked(false);
